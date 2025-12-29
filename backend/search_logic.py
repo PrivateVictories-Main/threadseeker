@@ -39,11 +39,19 @@ def get_headers() -> dict:
     }
 
 
-def run_ddg_search(query: str, max_results: int) -> list[dict]:
-    """Run DuckDuckGo search synchronously."""
+def run_ddg_search(query: str, max_results: int, time_filter: str = "w") -> list[dict]:
+    """
+    Run DuckDuckGo search synchronously with time filtering.
+    
+    Args:
+        query: Search query
+        max_results: Maximum number of results
+        time_filter: Time filter ('d'=day, 'w'=week, 'm'=month, 'y'=year)
+    """
     try:
         ddgs = DDGS()
-        results = list(ddgs.text(query, max_results=max_results))
+        # Add timelimit parameter for fresh results
+        results = list(ddgs.text(query, max_results=max_results, timelimit=time_filter))
         return results
     except Exception as e:
         print(f"DuckDuckGo search error: {e}")

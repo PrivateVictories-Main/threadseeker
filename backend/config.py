@@ -8,10 +8,16 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
     groq_api_key: str = ""
+    gemini_api_key: str = ""
+    upstash_redis_url: str = ""
+    upstash_redis_token: str = ""
     
     # Rate limiting settings
     max_concurrent_searches: int = 10
     request_timeout: float = 15.0
+    
+    # Cache settings
+    cache_ttl_seconds: int = 600  # 10 minutes
     
     # User agents for rotation (prevents 429 errors)
     user_agents: list[str] = [

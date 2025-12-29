@@ -8,3 +8,6 @@ pydantic>=2.6.0
 pydantic-settings>=2.1.0
 beautifulsoup4>=4.12.0
 lxml>=5.1.0
+trafilatura>=1.8.0
+upstash-redis>=0.15.0
+google-generativeai>=0.3.0

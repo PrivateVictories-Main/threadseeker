@@ -1,4 +1,4 @@
-"""ThreadSeeker V2 - The Autonomous Research Engine API with Zero-Cost Scaling."""
+"""ThreadSeeker - The Autonomous Research Engine API."""
 import time
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -14,25 +14,20 @@ from models import (
 )
 from search_logic import execute_parallel_search
 from ranking import rank_github_results, rank_huggingface_results, rank_reddit_results
-from cache import get_cache
-from content_extractor import extract_multiple_urls
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
-    print("🚀 ThreadSeeker V2 API starting...")
-    print("🔄 Initializing cache...")
-    cache = get_cache()
-    print(f"✅ Cache status: {'enabled' if cache.enabled else 'disabled'}")
+    print("🚀 ThreadSeeker API starting...")
     yield
-    print("👋 ThreadSeeker V2 API shutting down...")
+    print("👋 ThreadSeeker API shutting down...")
 
 
 app = FastAPI(
-    title="ThreadSeeker V2 API",
-    description="The Autonomous Research Engine - Real-time, zero-cost search across GitHub, Hugging Face, and Reddit.",
-    version="2.0.0",
+    title="ThreadSeeker API",
+    description="The Autonomous Research Engine - Find code, models, and community validation for your project ideas.",
+    version="1.0.0",
     lifespan=lifespan,
 )
 
@@ -43,7 +38,6 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
-        "*",  # Allow all for Vercel deployments
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -60,11 +54,7 @@ async def root():
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint."""
-    cache = get_cache()
-    return HealthResponse(
-        status="healthy",
-        message=f"ThreadSeeker V2 is running! Cache: {'enabled' if cache.enabled else 'disabled'}"
-    )
+    return HealthResponse()
 
 
 @app.post("/search", response_model=SearchResults)
@@ -72,72 +62,45 @@ async def search(request: SearchRequest, x_groq_api_key: Optional[str] = Header(
     """
     Execute a comprehensive parallel search across GitHub, HuggingFace, and Reddit.
     
-    V2 Features:
-    - Real-time content extraction from top results
-    - Redis caching for infinite scaling (10-minute TTL)
-    - Groq -> Gemini AI fallback
-    - Time-filtered searches for maximum freshness
+    The search process:
+    1. Use AI to generate optimized queries for each platform
+    2. Execute all searches in parallel
+    3. Synthesize results with AI-powered verdict
     
     Optional Header:
     - X-Groq-API-Key: User's Groq API key for faster AI processing
     """
     start_time = time.time()
-    cache = get_cache()
-    
-    # Check cache first
-    cache_key = f"{request.query}:{x_groq_api_key[:8] if x_groq_api_key else 'default'}"
-    cached_result = await cache.get("search", cache_key)
-    
-    if cached_result:
-        print(f"🎯 Returning cached results for: {request.query}")
-        # Update timing to reflect cache hit speed
-        cached_result["search_duration_ms"] = int((time.time() - start_time) * 1000)
-        return SearchResults(**cached_result)
     
     try:
         # Step 1: Generate optimized search queries using AI (with optional user API key)
         generated_queries = await generate_search_queries(request.query, api_key=x_groq_api_key)
         
-        # Step 2: Execute parallel searches with time filter for freshness
+        # Step 2: Execute parallel searches
         github_results, hf_results, reddit_results, errors = await execute_parallel_search(
             github_query=generated_queries.github_query,
             huggingface_query=generated_queries.huggingface_query,
             reddit_query=generated_queries.reddit_query,
         )
         
-        # Step 2.5: Extract real-time content from top 3 results (if available)
-        extracted_content = {}
-        urls_to_extract = []
-        
-        if github_results:
-            urls_to_extract.extend([r.url for r in github_results[:2]])
-        if hf_results:
-            urls_to_extract.extend([r.url for r in hf_results[:1]])
-        
-        if urls_to_extract:
-            print(f"📄 Extracting content from {len(urls_to_extract)} URLs...")
-            extracted_content = await extract_multiple_urls(urls_to_extract, max_concurrent=3)
-            print(f"✅ Extracted {sum(1 for v in extracted_content.values() if v)} content pieces")
-        
-        # Step 3: Rank results by relevance
+        # Step 2.5: Rank results by relevance
         github_results = rank_github_results(github_results, request.query)
         hf_results = rank_huggingface_results(hf_results, request.query)
         reddit_results = rank_reddit_results(reddit_results, request.query)
         
-        # Step 4: Synthesize results with AI (with optional user API key and extracted content)
+        # Step 3: Synthesize results with AI (with optional user API key)
         synthesis = await synthesize_results(
             user_query=request.query,
             github_results=github_results,
             huggingface_results=hf_results,
             reddit_results=reddit_results,
             api_key=x_groq_api_key,
-            extracted_content=extracted_content if extracted_content else None,
         )
         
         # Calculate duration
         duration_ms = int((time.time() - start_time) * 1000)
         
-        result = SearchResults(
+        return SearchResults(
             github=github_results,
             huggingface=hf_results,
             reddit=reddit_results,
@@ -146,11 +109,6 @@ async def search(request: SearchRequest, x_groq_api_key: Optional[str] = Header(
             search_duration_ms=duration_ms,
             errors=errors,
         )
-        
-        # Cache the result (10 minutes TTL)
-        await cache.set("search", cache_key, result.model_dump(), ttl_seconds=600)
-        
-        return result
         
     except Exception as e:
         raise HTTPException(
@@ -163,30 +121,20 @@ async def search(request: SearchRequest, x_groq_api_key: Optional[str] = Header(
 async def get_trending():
     """
     Get trending content across GitHub, HuggingFace, and Reddit.
-    Returns curated, up-to-date projects and discussions with aggressive caching.
+    Returns curated, up-to-date projects and discussions.
     """
     from datetime import datetime
     
     start_time = time.time()
-    cache = get_cache()
-    
-    # Check cache first (trending updates every 10 minutes)
-    cached_trending = await cache.get("trending", "latest")
-    
-    if cached_trending:
-        print("🎯 Returning cached trending content")
-        cached_trending["search_duration_ms"] = int((time.time() - start_time) * 1000)
-        return SearchResults(**cached_trending)
     
     try:
         current_year = datetime.now().year
-        current_month = datetime.now().strftime("%B")
         
-        # Trending searches optimized for each platform with time filters
+        # Trending searches optimized for each platform
         github_results, hf_results, reddit_results, errors = await execute_parallel_search(
             github_query=f"trending {current_year} stars:>100",
-            huggingface_query=f"{current_month} {current_year} trending most downloaded",
-            reddit_query=f"programming {current_year} trending hot discussion",
+            huggingface_query=f"trending {current_year} most downloaded",
+            reddit_query=f"programming {current_year} trending hot",
         )
         
         # Filter out flagged Reddit posts from trending
@@ -199,20 +147,15 @@ async def get_trending():
         
         duration_ms = int((time.time() - start_time) * 1000)
         
-        result = SearchResults(
+        return SearchResults(
             github=github_results,
             huggingface=hf_results,
             reddit=reddit_results,
             generated_queries=None,
-            synthesis=f"Explore trending projects, models, and discussions from {current_month} {current_year}. Updated in real-time.",
+            synthesis="Explore trending projects, models, and discussions from the development community.",
             search_duration_ms=duration_ms,
             errors=errors,
         )
-        
-        # Cache trending for 10 minutes
-        await cache.set("trending", "latest", result.model_dump(), ttl_seconds=600)
-        
-        return result
         
     except Exception as e:
         raise HTTPException(
@@ -256,3 +199,4 @@ async def test_search():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+

@@ -1,9 +1,11 @@
-"""Groq AI integration for intelligent query generation and synthesis."""
+"""AI integration with Groq (primary) and Gemini (fallback) for intelligent query generation and synthesis."""
 import json
 import re
 from typing import Optional
+from datetime import datetime
 
 from groq import Groq
+import google.generativeai as genai
 
 from config import get_settings
 from models import (
@@ -11,10 +13,14 @@ from models import (
     GitHubResult,
     HuggingFaceResult,
     RedditResult,
-    SearchResults,
 )
 
 settings = get_settings()
+
+
+# Configure Gemini if available
+if settings.gemini_api_key:
+    genai.configure(api_key=settings.gemini_api_key)
 
 
 def get_groq_client(api_key: Optional[str] = None) -> Optional[Groq]:
@@ -26,98 +32,87 @@ def get_groq_client(api_key: Optional[str] = None) -> Optional[Groq]:
     return None
 
 
-async def generate_search_queries(user_query: str, api_key: Optional[str] = None) -> GeneratedQueries:
+def get_gemini_model() -> Optional[any]:
+    """Get Gemini model if API key is configured."""
+    if settings.gemini_api_key:
+        try:
+            return genai.GenerativeModel('gemini-1.5-flash')
+        except Exception as e:
+            print(f"⚠️ Gemini initialization error: {e}")
+    return None
+
+
+async def generate_search_queries(user_query: str, api_key: Optional[str] = None, extracted_content: Optional[dict] = None) -> GeneratedQueries:
     """
-    Use Groq (Llama 3-8b for speed) to convert user's natural language 
+    Use AI (Groq primary, Gemini fallback) to convert user's natural language 
     into optimized search queries for each platform.
     
     Args:
         user_query: The user's search query
         api_key: Optional user-provided API key (takes priority over settings)
+        extracted_content: Optional dict of extracted content from URLs for context
     """
+    current_year = datetime.now().year
+    current_month = datetime.now().strftime("%B %Y")
+    
+    # Try Groq first (primary)
     client = get_groq_client(api_key)
     
-    if not client:
-        # Improved fallback: always include current year for maximum recency
-        from datetime import datetime
-        current_year = datetime.now().year
-        
-        # Extract technical terms
-        words = re.findall(r'\b\w+\b', user_query.lower())
-        
-        # Add common programming languages if mentioned
-        langs = ['python', 'javascript', 'java', 'cpp', 'c++', 'rust', 'go', 'typescript']
-        lang_keywords = [w for w in words if w in langs]
-        
-        # Always add current year for maximum recency
-        github_query = f"{user_query} {current_year} {''.join(lang_keywords[:1])}".strip()
-        huggingface_query = f"{user_query} {current_year} latest".strip()
-        reddit_query = f"{user_query} {current_year} best recommendation".strip()
-        
-        return GeneratedQueries(
-            github_query=github_query,
-            huggingface_query=huggingface_query,
-            reddit_query=reddit_query,
-            reasoning=f"Using optimized fallback queries with {current_year} for maximum recency",
-        )
-    
-    prompt = f"""You are a search optimization expert. Given a user's project idea, generate 3 highly optimized search queries that will find the MOST RELEVANT and UP-TO-DATE results.
-
-USER'S PROJECT IDEA: "{user_query}"
-
-Generate search queries optimized for:
-1. **GitHub** - Focus on: exact technical terms, primary libraries/frameworks, programming language. MUST include "2024" or "2025" for recent projects.
-2. **Hugging Face** - Focus on: specific model types, task names (e.g., "text-generation", "image-classification"), architecture names. MUST include "2024" or "2025" or "latest".
-3. **Reddit** - Focus on: recent discussions. MUST include "2024" or "2025" for latest info, plus keywords like "best", "recommendation", "current".
-
-CRITICAL RULES:
-- ALWAYS include "2024" or "2025" in EVERY query for maximum recency
-- Prioritize RECENT, MAINTAINED, and POPULAR projects
-- Use exact technical terminology
-- Keep each query under 60 characters
-- For Reddit, focus on posts from last few months only
-
-Respond ONLY in this exact JSON format:
-{{
-    "github_query": "your github optimized query with 2024/2025",
-    "huggingface_query": "your huggingface optimized query with 2024/2025", 
-    "reddit_query": "your reddit optimized query with 2024/2025",
-    "reasoning": "brief explanation of your optimization strategy"
-}}"""
-
-    try:
-        response = client.chat.completions.create(
-            model="llama3-8b-8192",
-            messages=[
-                {"role": "system", "content": "You are a search query optimization assistant. Always respond with valid JSON only."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3,
-            max_tokens=300,
-        )
-        
-        content = response.choices[0].message.content.strip()
-        
-        # Parse JSON from response
-        json_match = re.search(r'\{[^{}]*\}', content, re.DOTALL)
-        if json_match:
-            data = json.loads(json_match.group())
-            return GeneratedQueries(
-                github_query=data.get("github_query", user_query),
-                huggingface_query=data.get("huggingface_query", user_query),
-                reddit_query=data.get("reddit_query", user_query),
-                reasoning=data.get("reasoning"),
+    if client:
+        try:
+            prompt = _build_query_prompt(user_query, current_year, current_month, extracted_content)
+            
+            response = client.chat.completions.create(
+                model="llama3-8b-8192",
+                messages=[
+                    {"role": "system", "content": "You are a search query optimization assistant. Always respond with valid JSON only."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=300,
             )
-    except Exception as e:
-        print(f"Query generation error: {e}")
+            
+            content = response.choices[0].message.content.strip()
+            
+            # Parse JSON from response
+            json_match = re.search(r'\{[^{}]*\}', content, re.DOTALL)
+            if json_match:
+                data = json.loads(json_match.group())
+                return GeneratedQueries(
+                    github_query=data.get("github_query", user_query),
+                    huggingface_query=data.get("huggingface_query", user_query),
+                    reddit_query=data.get("reddit_query", user_query),
+                    reasoning=data.get("reasoning", "Generated by Groq AI"),
+                )
+        except Exception as e:
+            print(f"⚠️ Groq query generation failed: {e}")
+            print("🔄 Switching to Gemini fallback...")
     
-    # Fallback
-    return GeneratedQueries(
-        github_query=user_query,
-        huggingface_query=user_query,
-        reddit_query=f"{user_query} recommendation",
-        reasoning="AI optimization failed - using direct query",
-    )
+    # Try Gemini fallback
+    gemini_model = get_gemini_model()
+    if gemini_model:
+        try:
+            prompt = _build_query_prompt(user_query, current_year, current_month, extracted_content)
+            
+            response = gemini_model.generate_content(prompt)
+            content = response.text.strip()
+            
+            # Parse JSON from response
+            json_match = re.search(r'\{[^{}]*\}', content, re.DOTALL)
+            if json_match:
+                data = json.loads(json_match.group())
+                print("✅ Gemini fallback successful")
+                return GeneratedQueries(
+                    github_query=data.get("github_query", user_query),
+                    huggingface_query=data.get("huggingface_query", user_query),
+                    reddit_query=data.get("reddit_query", user_query),
+                    reasoning=data.get("reasoning", "Generated by Gemini AI (fallback)"),
+                )
+        except Exception as e:
+            print(f"⚠️ Gemini fallback also failed: {e}")
+    
+    # Ultimate fallback - rule-based
+    return _generate_fallback_queries(user_query, current_year)
 
 
 async def synthesize_results(
@@ -126,10 +121,11 @@ async def synthesize_results(
     huggingface_results: list[HuggingFaceResult],
     reddit_results: list[RedditResult],
     api_key: Optional[str] = None,
+    extracted_content: Optional[dict] = None,
 ) -> str:
     """
-    Use Groq (Llama 3-70b for quality) to synthesize a comprehensive verdict 
-    from all search results.
+    Use AI (Groq primary, Gemini fallback) to synthesize a comprehensive verdict 
+    from all search results and extracted content.
     
     Args:
         user_query: The user's search query
@@ -137,13 +133,91 @@ async def synthesize_results(
         huggingface_results: HuggingFace search results
         reddit_results: Reddit search results
         api_key: Optional user-provided API key (takes priority over settings)
+        extracted_content: Optional dict of extracted content from URLs
     """
+    # Try Groq first (primary)
     client = get_groq_client(api_key)
     
-    if not client:
-        return _generate_fallback_synthesis(github_results, huggingface_results, reddit_results)
+    if client:
+        try:
+            prompt = _build_synthesis_prompt(user_query, github_results, huggingface_results, reddit_results, extracted_content)
+            
+            response = client.chat.completions.create(
+                model="llama3-70b-8192",
+                messages=[
+                    {"role": "system", "content": "You are a real-time technical research advisor. Synthesize findings to provide actionable insights. Emphasize how recent the information is."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.5,
+                max_tokens=300,
+            )
+            
+            return response.choices[0].message.content.strip()
+            
+        except Exception as e:
+            print(f"⚠️ Groq synthesis failed: {e}")
+            print("🔄 Switching to Gemini fallback...")
     
-    # Prepare context for the AI
+    # Try Gemini fallback
+    gemini_model = get_gemini_model()
+    if gemini_model:
+        try:
+            prompt = _build_synthesis_prompt(user_query, github_results, huggingface_results, reddit_results, extracted_content)
+            
+            response = gemini_model.generate_content(prompt)
+            print("✅ Gemini fallback successful")
+            return response.text.strip()
+            
+        except Exception as e:
+            print(f"⚠️ Gemini fallback also failed: {e}")
+    
+    # Ultimate fallback
+    return _generate_fallback_synthesis(github_results, huggingface_results, reddit_results)
+
+
+def _build_query_prompt(user_query: str, current_year: int, current_month: str, extracted_content: Optional[dict]) -> str:
+    """Build the prompt for query generation."""
+    content_context = ""
+    if extracted_content:
+        content_context = f"\n\nREAL-TIME CONTEXT FROM WEB:\n"
+        for url, text in list(extracted_content.items())[:2]:
+            if text:
+                content_context += f"- {text[:300]}...\n"
+    
+    return f"""You are a search optimization expert focused on finding THE MOST RECENT information. Today is {current_month}.
+
+USER'S PROJECT IDEA: "{user_query}"{content_context}
+
+Generate search queries optimized for:
+1. **GitHub** - Focus on: exact technical terms, primary libraries/frameworks, programming language. MUST include "{current_year}" or "recent" or "latest" for fresh projects.
+2. **Hugging Face** - Focus on: specific model types, task names (e.g., "text-generation", "image-classification"), architecture names. MUST include "{current_year}" or "latest".
+3. **Reddit** - Focus on: recent discussions. MUST include "{current_year}" or "recent" for latest info, plus keywords like "best", "recommendation", "current".
+
+CRITICAL RULES:
+- ALWAYS include "{current_year}" OR "recent" OR "latest" in EVERY query for maximum freshness
+- Use time filter parameters when possible (e.g., "time:week", "time:month")
+- Prioritize ACTIVELY MAINTAINED and RECENTLY UPDATED projects
+- Use exact technical terminology
+- Keep each query under 60 characters
+
+Respond ONLY in this exact JSON format:
+{{
+    "github_query": "your github optimized query with {current_year}/recent",
+    "huggingface_query": "your huggingface optimized query with {current_year}/latest", 
+    "reddit_query": "your reddit optimized query with {current_year}/recent",
+    "reasoning": "brief explanation emphasizing recency focus"
+}}"""
+
+
+def _build_synthesis_prompt(
+    user_query: str,
+    github_results: list[GitHubResult],
+    huggingface_results: list[HuggingFaceResult],
+    reddit_results: list[RedditResult],
+    extracted_content: Optional[dict]
+) -> str:
+    """Build the prompt for synthesis."""
+    # Prepare context
     github_context = []
     for r in github_results[:5]:
         status_emoji = {
@@ -166,7 +240,14 @@ async def synthesize_results(
             comments_summary = f" | Top comment: '{r.top_comments[0].body[:100]}...'"
         reddit_context.append(f"- r/{r.subreddit}: {r.title} {warning}{comments_summary}")
     
-    prompt = f"""You are a technical research advisor helping a developer find existing solutions.
+    content_context = ""
+    if extracted_content:
+        content_context = f"\n\nREAL-TIME CONTENT EXTRACTED FROM TOP RESULTS:\n"
+        for url, text in list(extracted_content.items())[:3]:
+            if text:
+                content_context += f"- {text[:400]}...\n"
+    
+    return f"""You are a technical research advisor helping a developer find existing solutions using REAL-TIME data.
 
 USER'S PROJECT IDEA: "{user_query}"
 
@@ -177,31 +258,37 @@ HUGGING FACE MODELS/SPACES FOUND:
 {chr(10).join(hf_context) if hf_context else "No models found."}
 
 REDDIT COMMUNITY DISCUSSIONS:
-{chr(10).join(reddit_context) if reddit_context else "No discussions found."}
+{chr(10).join(reddit_context) if reddit_context else "No discussions found."}{content_context}
 
-Based on these findings, provide a concise verdict (3-4 sentences max):
+Based on these REAL-TIME findings, provide a concise verdict (3-4 sentences max):
 1. Is there a strong existing solution the user can build upon?
 2. What's the recommended starting point?
-3. Any important warnings from the community?
+3. Any important warnings or recent trends from the community?
+4. How recent/fresh is this information?
 
-Be direct and actionable. Start with the bottom line."""
+Be direct and actionable. Mention specific dates or time frames when available. Start with the bottom line."""
 
-    try:
-        response = client.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=[
-                {"role": "system", "content": "You are a concise technical advisor. Provide actionable insights in 3-4 sentences."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.5,
-            max_tokens=250,
-        )
-        
-        return response.choices[0].message.content.strip()
-        
-    except Exception as e:
-        print(f"Synthesis error: {e}")
-        return _generate_fallback_synthesis(github_results, huggingface_results, reddit_results)
+
+def _generate_fallback_queries(user_query: str, current_year: int) -> GeneratedQueries:
+    """Generate fallback queries when both AIs fail."""
+    # Extract technical terms
+    words = re.findall(r'\b\w+\b', user_query.lower())
+    
+    # Add common programming languages if mentioned
+    langs = ['python', 'javascript', 'java', 'cpp', 'c++', 'rust', 'go', 'typescript']
+    lang_keywords = [w for w in words if w in langs]
+    
+    # Always add current year for maximum recency
+    github_query = f"{user_query} {current_year} {''.join(lang_keywords[:1])}".strip()
+    huggingface_query = f"{user_query} {current_year} latest".strip()
+    reddit_query = f"{user_query} {current_year} best recommendation recent".strip()
+    
+    return GeneratedQueries(
+        github_query=github_query,
+        huggingface_query=huggingface_query,
+        reddit_query=reddit_query,
+        reasoning=f"Using optimized fallback queries with {current_year} for maximum recency (both AI providers unavailable)",
+    )
 
 
 def _generate_fallback_synthesis(
@@ -230,7 +317,6 @@ def _generate_fallback_synthesis(
             parts.append(f"{len(reddit_results)} Reddit discussions")
     
     if not parts:
-        return "No relevant results found. Try refining your search query."
+        return "No relevant results found. Try refining your search query with more specific technical terms."
     
-    return f"Search complete: {', '.join(parts)}. Review the results below for potential starting points."
-
+    return f"Search complete: {', '.join(parts)}. Review the results below for potential starting points. (Note: AI synthesis unavailable - both Groq and Gemini providers are currently unavailable)"
