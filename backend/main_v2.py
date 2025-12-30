@@ -170,7 +170,7 @@ async def get_trending():
     start_time = time.time()
     cache = get_cache()
     
-    # Check cache first (aggressive caching for trending - longer TTL)
+    # Check cache first (trending updates every 10 minutes)
     cached_trending = await cache.get("trending", "latest")
     
     if cached_trending:
@@ -183,17 +183,16 @@ async def get_trending():
         current_month = datetime.now().strftime("%B")
         
         # Trending searches optimized for each platform with time filters
-        # Use fewer results for faster loading
         github_results, hf_results, reddit_results, errors = await execute_parallel_search(
-            github_query=f"stars:>500 pushed:>{current_year}-01-01",
-            huggingface_query=f"trending most-downloaded",
-            reddit_query=f"site:reddit.com/r/programming OR site:reddit.com/r/webdev {current_year}",
+            github_query=f"trending {current_year} stars:>100",
+            huggingface_query=f"{current_month} {current_year} trending most downloaded",
+            reddit_query=f"programming {current_year} trending hot discussion",
         )
         
         # Filter out flagged Reddit posts from trending
         reddit_results = [r for r in reddit_results if not r.has_warning]
         
-        # Take top results only for speed
+        # Take top results only
         github_results = github_results[:6]
         hf_results = hf_results[:6]
         reddit_results = reddit_results[:6]
@@ -210,8 +209,8 @@ async def get_trending():
             errors=errors,
         )
         
-        # Cache trending for 30 minutes (longer than regular searches)
-        await cache.set("trending", "latest", result.model_dump(), ttl_seconds=1800)
+        # Cache trending for 10 minutes
+        await cache.set("trending", "latest", result.model_dump(), ttl_seconds=600)
         
         return result
         
