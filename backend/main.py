@@ -164,8 +164,11 @@ async def get_trending():
     """
     Get trending content across GitHub, HuggingFace, and Reddit.
     Returns curated, up-to-date projects and discussions with aggressive caching.
+    Uses static fallback for instant loading while fetching fresh data in background.
     """
     from datetime import datetime
+    from static_trending import STATIC_TRENDING
+    import asyncio
     
     start_time = time.time()
     cache = get_cache()
@@ -177,6 +180,64 @@ async def get_trending():
         print("🎯 Returning cached trending content")
         cached_trending["search_duration_ms"] = int((time.time() - start_time) * 1000)
         return SearchResults(**cached_trending)
+    
+    # Check if we have static data as fallback
+    try:
+        # Parse static data into proper models
+        from models import GitHubResult, HuggingFaceResult, RedditResult, RedditComment
+        
+        github_static = [GitHubResult(**item) for item in STATIC_TRENDING["github"]]
+        hf_static = [HuggingFaceResult(**item) for item in STATIC_TRENDING["huggingface"]]
+        reddit_static = []
+        for item in STATIC_TRENDING["reddit"]:
+            reddit_data = item.copy()
+            if reddit_data.get("top_comments"):
+                reddit_data["top_comments"] = [RedditComment(**c) for c in reddit_data["top_comments"]]
+            reddit_static.append(RedditResult(**reddit_data))
+        
+        # Return static data immediately
+        static_result = SearchResults(
+            github=github_static,
+            huggingface=hf_static,
+            reddit=reddit_static,
+            generated_queries=None,
+            synthesis=f"Explore trending projects, models, and discussions. Loading fresh data...",
+            search_duration_ms=int((time.time() - start_time) * 1000),
+            errors=[]
+        )
+        
+        # Cache static data briefly (1 minute) so repeated calls are instant
+        await cache.set("trending", "latest", static_result.model_dump(), ttl_seconds=60)
+        
+        # Start background task to fetch real data (don't await)
+        asyncio.create_task(fetch_and_cache_real_trending())
+        
+        return static_result
+        
+    except Exception as e:
+        print(f"⚠️ Static fallback failed: {e}")
+    
+    # If static fails, fetch real data (slow but reliable)
+    return await fetch_real_trending()
+
+
+async def fetch_and_cache_real_trending():
+    """Background task to fetch real trending data and cache it."""
+    try:
+        result = await fetch_real_trending()
+        cache = get_cache()
+        # Cache for 30 minutes
+        await cache.set("trending", "latest", result.model_dump(), ttl_seconds=1800)
+        print("✅ Background: Fresh trending data cached")
+    except Exception as e:
+        print(f"⚠️ Background trending fetch failed: {e}")
+
+
+async def fetch_real_trending() -> SearchResults:
+    """Fetch real trending data from APIs."""
+    from datetime import datetime
+    
+    start_time = time.time()
     
     try:
         current_year = datetime.now().year
@@ -200,7 +261,7 @@ async def get_trending():
         
         duration_ms = int((time.time() - start_time) * 1000)
         
-        result = SearchResults(
+        return SearchResults(
             github=github_results,
             huggingface=hf_results,
             reddit=reddit_results,
@@ -209,11 +270,6 @@ async def get_trending():
             search_duration_ms=duration_ms,
             errors=errors,
         )
-        
-        # Cache trending for 30 minutes (longer than regular searches)
-        await cache.set("trending", "latest", result.model_dump(), ttl_seconds=1800)
-        
-        return result
         
     except Exception as e:
         raise HTTPException(
