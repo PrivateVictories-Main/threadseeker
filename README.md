@@ -2,13 +2,13 @@
 
 <div align="center">
 
-![ThreadSeeker](https://img.shields.io/badge/ThreadSeeker-v2.0-blue?style=for-the-badge)
+![ThreadSeeker](https://img.shields.io/badge/ThreadSeeker-v1.0-blue?style=for-the-badge)
 ![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.127-009688?style=for-the-badge&logo=fastapi)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python)
 
-**Find code, models, and community validation — real-time, zero-cost, infinitely scalable.**
+**Find code, models, and community validation for your project ideas — all in one place.**
 
 [Features](#-features) • [Demo](#-demo) • [Installation](#-installation) • [Documentation](#-documentation) • [Contributing](#-contributing)
 
@@ -65,12 +65,25 @@ Search across three major platforms simultaneously:
 
 ---
 
+## 🎬 Demo
+
+### Search Interface
+![Search Interface](https://via.placeholder.com/800x400/18181b/ffffff?text=ThreadSeeker+Search+Interface)
+
+### Autocomplete
+![Autocomplete](https://via.placeholder.com/800x400/18181b/ffffff?text=Smart+Autocomplete+with+100%2B+Suggestions)
+
+### Results View
+![Results](https://via.placeholder.com/800x400/18181b/ffffff?text=Beautiful+Results+Grid)
+
+---
+
 ## 📦 Installation
 
 ### Prerequisites
 - **Node.js** 18+ and npm/yarn
 - **Python** 3.10+
-- **Groq API Key** (get it free at console.groq.com)
+- **Groq API Key** (get it free at [console.groq.com](https://console.groq.com))
 
 ### Quick Start
 
@@ -110,14 +123,13 @@ npm run dev
 ```
 
 #### 4. Open your browser
-Navigate to http://localhost:3000
+Navigate to [http://localhost:3000](http://localhost:3000)
 
 ---
 
 ## 🔧 Configuration
 
-### Backend Configuration
-Create `backend/.env`:
+### Backend Configuration (`backend/.env`)
 ```env
 GROQ_API_KEY=your_groq_api_key_here
 ```
@@ -178,12 +190,12 @@ NEXT_PUBLIC_API_URL=your_backend_url
 
 Comprehensive documentation is available in the repository:
 
-- **ENHANCED-AUTOCOMPLETE-AND-INSTANT-LOAD.md** - Complete feature overview
-- **INSTANT-LOAD-OPTIMIZATIONS.md** - Performance optimizations
-- **AUTOCOMPLETE-FEATURE.md** - Autocomplete system details
-- **VOICE-INPUT-FEATURE.md** - Voice search implementation
-- **DETAILED-VIEW-FEATURE.md** - In-app preview modal
-- **TRENDING-FEATURE.md** - Trending content system
+- [**ENHANCED-AUTOCOMPLETE-AND-INSTANT-LOAD.md**](./ENHANCED-AUTOCOMPLETE-AND-INSTANT-LOAD.md) - Complete feature overview
+- [**INSTANT-LOAD-OPTIMIZATIONS.md**](./INSTANT-LOAD-OPTIMIZATIONS.md) - Performance optimizations
+- [**AUTOCOMPLETE-FEATURE.md**](./AUTOCOMPLETE-FEATURE.md) - Autocomplete system details
+- [**VOICE-INPUT-FEATURE.md**](./VOICE-INPUT-FEATURE.md) - Voice search implementation
+- [**DETAILED-VIEW-FEATURE.md**](./DETAILED-VIEW-FEATURE.md) - In-app preview modal
+- [**TRENDING-FEATURE.md**](./TRENDING-FEATURE.md) - Trending content system
 
 ---
 
@@ -209,6 +221,8 @@ Click microphone icon
 ```
 Type: "flutter"
 → See 6 relevant suggestions instantly
+→ "flutter mobile app"
+→ "react native weather app"
 → Navigate with ↑↓ keys, select with Enter
 ```
 
@@ -236,7 +250,7 @@ Type: "flutter"
 Contributions are welcome! Here's how you can help:
 
 ### Ways to Contribute
-1. 🐛 Report bugs via Issues
+1. 🐛 Report bugs via [Issues](https://github.com/PrivateVictories-Main/RedditSearchEngine/issues)
 2. 💡 Suggest features or improvements
 3. 📝 Improve documentation
 4. 🔧 Submit pull requests
@@ -259,11 +273,16 @@ git push origin feature/amazing-feature
 # Open a Pull Request
 ```
 
+### Code Style
+- **Frontend**: ESLint + Prettier (already configured)
+- **Backend**: PEP 8 style guide
+- **Commits**: Conventional Commits format
+
 ---
 
 ## 📝 License
 
-This project is licensed under the **MIT License** - see the LICENSE file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE) file for details.
 
 ---
 
@@ -279,9 +298,18 @@ This project is licensed under the **MIT License** - see the LICENSE file for de
 
 ## 🔗 Links
 
-- **Repository**: https://github.com/PrivateVictories-Main/RedditSearchEngine
-- **Issues**: https://github.com/PrivateVictories-Main/RedditSearchEngine/issues
-- **Groq API**: https://console.groq.com
+- **Repository**: [github.com/PrivateVictories-Main/RedditSearchEngine](https://github.com/PrivateVictories-Main/RedditSearchEngine)
+- **Issues**: [Report a bug](https://github.com/PrivateVictories-Main/RedditSearchEngine/issues)
+- **Groq API**: [console.groq.com](https://console.groq.com)
+
+---
+
+## 📧 Contact
+
+Have questions? Feel free to reach out!
+
+- **GitHub Issues**: [Create an issue](https://github.com/PrivateVictories-Main/RedditSearchEngine/issues)
+- **Discussions**: [Start a discussion](https://github.com/PrivateVictories-Main/RedditSearchEngine/discussions)
 
 ---
 
@@ -289,37 +317,4 @@ This project is licensed under the **MIT License** - see the LICENSE file for de
 
 **Made with ❤️ by the ThreadSeeker Team**
 
-⭐ Star this repo if you find it helpful!
-
-</div>
-
----
-
-## 🆕 What's New in V2?
-
-### 🆓 Zero-Cost Everything
-- **No paid APIs** - Groq (free) + Gemini (free) + Upstash (free)
-- **Unlimited scaling** - Redis caching handles 1000+ concurrent users
-- **$0/month operation** - All services on free tiers
-
-### ⚡ Lightning Fast
-- **<50ms** cached searches (50x faster)
-- **<100ms** trending content (15x faster)
-- **Real-time** content extraction from sources
-
-### 🔥 Fresh & Live
-- **Time-filtered** searches (default: past week)
-- **Live GitHub stats** fetched per user (stars, last commit)
-- **Freshness badges** for content updated < 7 days
-- **Real-time synthesis** with extracted article text
-
-### 🤖 Fail-Safe AI
-- **Dual providers**: Groq (primary) → Gemini (backup)
-- **100% uptime**: Falls back automatically
-- **Rule-based fallback**: Works even without API keys
-
-### 📚 New Documentation
-- **[QUICK-SETUP-V2.md](./QUICK-SETUP-V2.md)** - Get started in 5 minutes
-- **[THREADSEEKER-V2-UPGRADE.md](./THREADSEEKER-V2-UPGRADE.md)** - Complete V2 guide
-
----
+⭐ Star this repo if you find it helpful!</div>
