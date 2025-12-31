@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 
-from ai_logic import generate_search_queries, synthesize_results
+from ai_logic import generate_search_queries, synthesize_results, merge_and_prioritize_results
 from models import (
     HealthResponse,
     SearchRequest,
@@ -124,6 +124,17 @@ async def search(request: SearchRequest, x_groq_api_key: Optional[str] = Header(
         hf_results = rank_huggingface_results(hf_results, request.query)
         reddit_results = rank_reddit_results(reddit_results, request.query)
         
+        # Step 3.5: Intelligently merge and prioritize results based on intent
+        intent = generated_queries.intent or "general"
+        weights = generated_queries.source_weights or {"github": 0.4, "reddit": 0.4, "huggingface": 0.2}
+        prioritized_results = merge_and_prioritize_results(
+            github_results=github_results,
+            huggingface_results=hf_results,
+            reddit_results=reddit_results,
+            intent=intent,
+            weights=weights
+        )
+        
         # Step 4: Synthesize results with AI (with optional user API key and extracted content)
         synthesis = await synthesize_results(
             user_query=request.query,
@@ -145,6 +156,8 @@ async def search(request: SearchRequest, x_groq_api_key: Optional[str] = Header(
             synthesis=synthesis,
             search_duration_ms=duration_ms,
             errors=errors,
+            intent=intent,
+            prioritized_results=prioritized_results,
         )
         
         # Cache the result (10 minutes TTL)

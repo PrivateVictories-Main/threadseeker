@@ -1,7 +1,7 @@
 """AI integration with Groq (primary) and Gemini (fallback) for intelligent query generation and synthesis."""
 import json
 import re
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 
 from groq import Groq
@@ -16,6 +16,17 @@ from models import (
 )
 
 settings = get_settings()
+
+# Query intent types
+QueryIntent = Literal[
+    "project_search",      # Looking for existing projects/code
+    "how_to",              # Tutorial/guide questions
+    "recommendation",      # Asking for suggestions/best practices
+    "comparison",          # Comparing technologies
+    "troubleshooting",     # Problem-solving/debugging
+    "model_search",        # Looking for AI models
+    "general"              # General inquiry
+]
 
 
 # Configure Gemini if available
@@ -42,16 +53,216 @@ def get_gemini_model() -> Optional[any]:
     return None
 
 
+def classify_query_intent(user_query: str) -> tuple[QueryIntent, dict[str, float]]:
+    """
+    Classify the user's query intent to determine optimal source prioritization.
+    
+    Returns:
+        tuple: (primary_intent, source_weights)
+        source_weights example: {"github": 0.6, "reddit": 0.3, "huggingface": 0.1}
+    """
+    query_lower = user_query.lower()
+    
+    # Pattern matching for intent classification
+    project_patterns = [
+        r'\b(project|repo|repository|code|implementation|example|template|boilerplate)\b',
+        r'\b(github|clone|fork|open[- ]source)\b',
+        r'\b(does .+ exist|is there a|find .+ project)\b',
+    ]
+    
+    how_to_patterns = [
+        r'\bhow (to|do|can)\b',
+        r'\bwhat is the (best )?(way|method|approach)\b',
+        r'\b(guide|tutorial|steps|learn|build|create|make|setup)\b',
+        r'\bcan (i|you|we)\b',
+    ]
+    
+    recommendation_patterns = [
+        r'\b(best|top|recommend|suggestion|should i|which|better|vs)\b',
+        r'\b(what .+ use|what .+ choose)\b',
+    ]
+    
+    comparison_patterns = [
+        r'\bvs\.?\b|\bversus\b',
+        r'\b(compare|comparison|difference between|which is better)\b',
+    ]
+    
+    troubleshooting_patterns = [
+        r'\b(error|issue|problem|bug|fix|broken|not working|help|solve)\b',
+        r'\b(why .+ not|how to fix|debugging)\b',
+    ]
+    
+    model_patterns = [
+        r'\b(model|llm|transformer|neural network|ai model|ml model)\b',
+        r'\b(gpt|bert|llama|mistral|stable diffusion|clip)\b',
+        r'\b(hugging ?face|hf|pretrained)\b',
+    ]
+    
+    # Score each intent
+    scores = {
+        "project_search": sum(1 for p in project_patterns if re.search(p, query_lower, re.IGNORECASE)),
+        "how_to": sum(1 for p in how_to_patterns if re.search(p, query_lower, re.IGNORECASE)),
+        "recommendation": sum(1 for p in recommendation_patterns if re.search(p, query_lower, re.IGNORECASE)),
+        "comparison": sum(1 for p in comparison_patterns if re.search(p, query_lower, re.IGNORECASE)),
+        "troubleshooting": sum(1 for p in troubleshooting_patterns if re.search(p, query_lower, re.IGNORECASE)),
+        "model_search": sum(1 for p in model_patterns if re.search(p, query_lower, re.IGNORECASE)),
+    }
+    
+    # Determine primary intent
+    max_score = max(scores.values())
+    if max_score == 0:
+        intent = "general"
+    else:
+        intent = max(scores, key=scores.get)
+    
+    # Define source weights based on intent
+    weight_mappings = {
+        "project_search": {"github": 0.7, "reddit": 0.2, "huggingface": 0.1},
+        "how_to": {"reddit": 0.6, "github": 0.3, "huggingface": 0.1},
+        "recommendation": {"reddit": 0.6, "github": 0.25, "huggingface": 0.15},
+        "comparison": {"reddit": 0.5, "github": 0.3, "huggingface": 0.2},
+        "troubleshooting": {"reddit": 0.7, "github": 0.2, "huggingface": 0.1},
+        "model_search": {"huggingface": 0.7, "github": 0.2, "reddit": 0.1},
+        "general": {"github": 0.4, "reddit": 0.4, "huggingface": 0.2},
+    }
+    
+    weights = weight_mappings.get(intent, weight_mappings["general"])
+    
+    print(f"🎯 Query intent: {intent} | Weights: GitHub {weights['github']:.0%}, Reddit {weights['reddit']:.0%}, HF {weights['huggingface']:.0%}")
+    
+    return intent, weights
+
+
+def merge_and_prioritize_results(
+    github_results: list[GitHubResult],
+    huggingface_results: list[HuggingFaceResult],
+    reddit_results: list[RedditResult],
+    intent: QueryIntent,
+    weights: dict[str, float]
+) -> list[dict]:
+    """
+    Intelligently merge and prioritize results based on query intent.
+    
+    Creates a unified ranked list where:
+    - Results are scored based on source weights
+    - Top results from each source can be interleaved
+    - Quality signals (stars, votes, recency) boost scores
+    
+    Returns:
+        List of dicts with: {source, data, score, rank}
+    """
+    merged = []
+    
+    # Score GitHub results
+    for idx, result in enumerate(github_results):
+        base_score = weights["github"] * 100
+        
+        # Boost for quality signals
+        if result.stars:
+            star_boost = min(result.stars / 1000, 20)  # Cap at 20 points
+            base_score += star_boost
+        
+        # Boost for active projects
+        status_boosts = {
+            "active": 15,
+            "maintained": 10,
+            "stale": -5,
+            "abandoned": -15,
+        }
+        base_score += status_boosts.get(result.status.value, 0)
+        
+        # Penalty for lower rank
+        base_score -= idx * 2
+        
+        merged.append({
+            "source": "github",
+            "data": result.model_dump(),
+            "score": base_score,
+            "original_rank": idx + 1
+        })
+    
+    # Score HuggingFace results
+    for idx, result in enumerate(huggingface_results):
+        base_score = weights["huggingface"] * 100
+        
+        # Boost for popularity
+        if result.likes:
+            like_boost = min(result.likes / 100, 15)
+            base_score += like_boost
+        
+        if result.downloads:
+            download_boost = min(result.downloads / 10000, 15)
+            base_score += download_boost
+        
+        # Penalty for lower rank
+        base_score -= idx * 2
+        
+        merged.append({
+            "source": "huggingface",
+            "data": result.model_dump(),
+            "score": base_score,
+            "original_rank": idx + 1
+        })
+    
+    # Score Reddit results
+    for idx, result in enumerate(reddit_results):
+        base_score = weights["reddit"] * 100
+        
+        # Boost for engagement
+        if result.score:
+            vote_boost = min(result.score / 100, 15)
+            base_score += vote_boost
+        
+        if result.num_comments:
+            comment_boost = min(result.num_comments / 50, 10)
+            base_score += comment_boost
+        
+        # Penalty for warnings
+        if result.has_warning:
+            base_score -= 20
+        
+        # Boost for positive sentiment
+        if result.community_sentiment.value == "positive":
+            base_score += 10
+        elif result.community_sentiment.value == "negative":
+            base_score -= 10
+        
+        # Penalty for lower rank
+        base_score -= idx * 2
+        
+        merged.append({
+            "source": "reddit",
+            "data": result.model_dump(),
+            "score": base_score,
+            "original_rank": idx + 1
+        })
+    
+    # Sort by score (descending)
+    merged.sort(key=lambda x: x["score"], reverse=True)
+    
+    # Add final rank
+    for idx, item in enumerate(merged):
+        item["rank"] = idx + 1
+    
+    print(f"🔄 Merged {len(merged)} results | Top 3: {[f'{m['source']}({m['score']:.1f})' for m in merged[:3]]}")
+    
+    return merged
+
+
 async def generate_search_queries(user_query: str, api_key: Optional[str] = None, extracted_content: Optional[dict] = None) -> GeneratedQueries:
     """
     Use AI (Groq primary, Gemini fallback) to convert user's natural language 
     into optimized search queries for each platform.
+    Also classifies query intent for intelligent result prioritization.
     
     Args:
         user_query: The user's search query
         api_key: Optional user-provided API key (takes priority over settings)
         extracted_content: Optional dict of extracted content from URLs for context
     """
+    # Classify intent first
+    intent, weights = classify_query_intent(user_query)
+    
     current_year = datetime.now().year
     current_month = datetime.now().strftime("%B %Y")
     
@@ -60,7 +271,7 @@ async def generate_search_queries(user_query: str, api_key: Optional[str] = None
     
     if client:
         try:
-            prompt = _build_query_prompt(user_query, current_year, current_month, extracted_content)
+            prompt = _build_query_prompt(user_query, current_year, current_month, extracted_content, intent)
             
             response = client.chat.completions.create(
                 model="llama3-8b-8192",
@@ -83,6 +294,8 @@ async def generate_search_queries(user_query: str, api_key: Optional[str] = None
                     huggingface_query=data.get("huggingface_query", user_query),
                     reddit_query=data.get("reddit_query", user_query),
                     reasoning=data.get("reasoning", "Generated by Groq AI"),
+                    intent=intent,
+                    source_weights=weights,
                 )
         except Exception as e:
             print(f"⚠️ Groq query generation failed: {e}")
@@ -92,7 +305,7 @@ async def generate_search_queries(user_query: str, api_key: Optional[str] = None
     gemini_model = get_gemini_model()
     if gemini_model:
         try:
-            prompt = _build_query_prompt(user_query, current_year, current_month, extracted_content)
+            prompt = _build_query_prompt(user_query, current_year, current_month, extracted_content, intent)
             
             response = gemini_model.generate_content(prompt)
             content = response.text.strip()
@@ -107,12 +320,17 @@ async def generate_search_queries(user_query: str, api_key: Optional[str] = None
                     huggingface_query=data.get("huggingface_query", user_query),
                     reddit_query=data.get("reddit_query", user_query),
                     reasoning=data.get("reasoning", "Generated by Gemini AI (fallback)"),
+                    intent=intent,
+                    source_weights=weights,
                 )
         except Exception as e:
             print(f"⚠️ Gemini fallback also failed: {e}")
     
     # Ultimate fallback - rule-based
-    return _generate_fallback_queries(user_query, current_year)
+    fallback = _generate_fallback_queries(user_query, current_year)
+    fallback.intent = intent
+    fallback.source_weights = weights
+    return fallback
 
 
 async def synthesize_results(
@@ -175,8 +393,8 @@ async def synthesize_results(
     return _generate_fallback_synthesis(github_results, huggingface_results, reddit_results)
 
 
-def _build_query_prompt(user_query: str, current_year: int, current_month: str, extracted_content: Optional[dict]) -> str:
-    """Build the prompt for query generation."""
+def _build_query_prompt(user_query: str, current_year: int, current_month: str, extracted_content: Optional[dict], intent: QueryIntent) -> str:
+    """Build the prompt for query generation with intent awareness."""
     content_context = ""
     if extracted_content:
         content_context = f"\n\nREAL-TIME CONTEXT FROM WEB:\n"
@@ -184,9 +402,23 @@ def _build_query_prompt(user_query: str, current_year: int, current_month: str, 
             if text:
                 content_context += f"- {text[:300]}...\n"
     
+    intent_guidance = {
+        "project_search": "Focus on finding concrete implementations and code examples. Prioritize GitHub.",
+        "how_to": "Focus on tutorials, guides, and discussions. Prioritize Reddit and GitHub examples.",
+        "recommendation": "Focus on community opinions and comparisons. Prioritize Reddit.",
+        "comparison": "Focus on detailed comparisons and benchmarks. Balance Reddit and GitHub.",
+        "troubleshooting": "Focus on solutions and discussions. Prioritize Reddit.",
+        "model_search": "Focus on AI models and pretrained weights. Prioritize HuggingFace.",
+        "general": "Balance all sources equally.",
+    }
+    
+    guidance = intent_guidance.get(intent, intent_guidance["general"])
+    
     return f"""You are a search optimization expert focused on finding THE MOST RECENT information. Today is {current_month}.
 
-USER'S PROJECT IDEA: "{user_query}"{content_context}
+USER'S QUERY: "{user_query}"
+DETECTED INTENT: {intent}
+STRATEGY: {guidance}{content_context}
 
 Generate search queries optimized for:
 1. **GitHub** - Focus on: exact technical terms, primary libraries/frameworks, programming language. MUST include "{current_year}" or "recent" or "latest" for fresh projects.
@@ -249,20 +481,22 @@ def _build_synthesis_prompt(
     
     return f"""You are a technical research advisor helping a developer find existing solutions using REAL-TIME data.
 
-USER'S PROJECT IDEA: "{user_query}"
+USER'S QUERY: "{user_query}"
 
-GITHUB REPOSITORIES FOUND:
+NOTE: This search was intelligently prioritized based on query intent. Results are ranked by relevance and quality.
+
+GITHUB REPOSITORIES FOUND (ranked):
 {chr(10).join(github_context) if github_context else "No repositories found."}
 
-HUGGING FACE MODELS/SPACES FOUND:
+HUGGING FACE MODELS/SPACES FOUND (ranked):
 {chr(10).join(hf_context) if hf_context else "No models found."}
 
-REDDIT COMMUNITY DISCUSSIONS:
+REDDIT COMMUNITY DISCUSSIONS (ranked):
 {chr(10).join(reddit_context) if reddit_context else "No discussions found."}{content_context}
 
-Based on these REAL-TIME findings, provide a concise verdict (3-4 sentences max):
+Based on these REAL-TIME, intelligently-ranked findings, provide a concise verdict (3-4 sentences max):
 1. Is there a strong existing solution the user can build upon?
-2. What's the recommended starting point?
+2. What's the recommended starting point from the TOP-RANKED results?
 3. Any important warnings or recent trends from the community?
 4. How recent/fresh is this information?
 

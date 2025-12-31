@@ -93,6 +93,8 @@ class GeneratedQueries(BaseModel):
     huggingface_query: str
     reddit_query: str
     reasoning: Optional[str] = None
+    intent: Optional[str] = None  # Query intent classification
+    source_weights: Optional[dict[str, float]] = None  # Prioritization weights
 
 
 class SearchResults(BaseModel):
@@ -104,6 +106,8 @@ class SearchResults(BaseModel):
     synthesis: Optional[str] = None
     search_duration_ms: int = 0
     errors: list[str] = Field(default_factory=list)
+    intent: Optional[str] = None  # Query intent
+    prioritized_results: Optional[list[dict]] = None  # Intelligently merged results
 
 
 class HealthResponse(BaseModel):
