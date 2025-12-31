@@ -268,20 +268,43 @@ async def fetch_real_trending() -> SearchResults:
         reddit_results = [r for r in reddit_results if not r.has_warning]
         
         # Dynamic result counts based on quality and availability:
-        # - Show 8-10 GitHub repos (most popular, lots of activity)
-        # - Show 6-8 HuggingFace models (specialized, high quality)
-        # - Show 8-10 Reddit discussions (high engagement)
-        # Total: ~22-28 trending items for comprehensive discovery
+        # - Fetch MORE than we show (30+ per category)
+        # - Rotate results on each page load for variety
+        # - Show 8-10 initially, but have 20+ available for "See More"
         
         # Rank by quality metrics
         github_results = rank_github_results(github_results, "trending projects")
         hf_results = rank_huggingface_results(hf_results, "trending models")
         reddit_results = rank_reddit_results(reddit_results, "trending discussions")
         
-        # Take top results with dynamic counts
-        github_count = min(len(github_results), 10)  # Up to 10 GitHub repos
-        hf_count = min(len(hf_results), 8)            # Up to 8 HF models
-        reddit_count = min(len(reddit_results), 10)  # Up to 10 Reddit threads
+        # Rotate results for variety on each load
+        import random
+        from datetime import datetime
+        
+        # Use current hour as seed so results change hourly but stay consistent within the hour
+        hour_seed = datetime.now().strftime("%Y-%m-%d-%H")
+        random.seed(hour_seed)
+        
+        # Shuffle top 30 results to show different items each hour
+        if len(github_results) > 15:
+            top_30_gh = github_results[:30]
+            random.shuffle(top_30_gh)
+            github_results = top_30_gh + github_results[30:]
+        
+        if len(hf_results) > 15:
+            top_30_hf = hf_results[:30]
+            random.shuffle(top_30_hf)
+            hf_results = top_30_hf + hf_results[30:]
+        
+        if len(reddit_results) > 15:
+            top_30_reddit = reddit_results[:30]
+            random.shuffle(top_30_reddit)
+            reddit_results = top_30_reddit + reddit_results[30:]
+        
+        # Take MORE results so frontend can paginate/expand
+        github_count = min(len(github_results), 20)  # Up to 20 GitHub repos
+        hf_count = min(len(hf_results), 15)           # Up to 15 HF models
+        reddit_count = min(len(reddit_results), 20)  # Up to 20 Reddit threads
         
         github_results = github_results[:github_count]
         hf_results = hf_results[:hf_count]
