@@ -247,7 +247,7 @@ async def fetch_and_cache_real_trending():
 
 
 async def fetch_real_trending() -> SearchResults:
-    """Fetch real trending data from APIs."""
+    """Fetch real trending data from APIs with dynamic result counts."""
     from datetime import datetime
     
     start_time = time.time()
@@ -257,7 +257,7 @@ async def fetch_real_trending() -> SearchResults:
         current_month = datetime.now().strftime("%B")
         
         # Trending searches optimized for each platform with time filters
-        # Use fewer results for faster loading
+        # Fetch MORE results for a comprehensive trending view
         github_results, hf_results, reddit_results, errors = await execute_parallel_search(
             github_query=f"stars:>500 pushed:>{current_year}-01-01",
             huggingface_query=f"trending most-downloaded",
@@ -267,19 +267,38 @@ async def fetch_real_trending() -> SearchResults:
         # Filter out flagged Reddit posts from trending
         reddit_results = [r for r in reddit_results if not r.has_warning]
         
-        # Take top results only for speed
-        github_results = github_results[:6]
-        hf_results = hf_results[:6]
-        reddit_results = reddit_results[:6]
+        # Dynamic result counts based on quality and availability:
+        # - Show 8-10 GitHub repos (most popular, lots of activity)
+        # - Show 6-8 HuggingFace models (specialized, high quality)
+        # - Show 8-10 Reddit discussions (high engagement)
+        # Total: ~22-28 trending items for comprehensive discovery
+        
+        # Rank by quality metrics
+        github_results = rank_github_results(github_results, "trending projects")
+        hf_results = rank_huggingface_results(hf_results, "trending models")
+        reddit_results = rank_reddit_results(reddit_results, "trending discussions")
+        
+        # Take top results with dynamic counts
+        github_count = min(len(github_results), 10)  # Up to 10 GitHub repos
+        hf_count = min(len(hf_results), 8)            # Up to 8 HF models
+        reddit_count = min(len(reddit_results), 10)  # Up to 10 Reddit threads
+        
+        github_results = github_results[:github_count]
+        hf_results = hf_results[:hf_count]
+        reddit_results = reddit_results[:reddit_count]
+        
+        total_results = len(github_results) + len(hf_results) + len(reddit_results)
         
         duration_ms = int((time.time() - start_time) * 1000)
+        
+        print(f"📊 Trending: {len(github_results)} GitHub + {len(hf_results)} HF + {len(reddit_results)} Reddit = {total_results} total")
         
         return SearchResults(
             github=github_results,
             huggingface=hf_results,
             reddit=reddit_results,
             generated_queries=None,
-            synthesis=f"Explore trending projects, models, and discussions from {current_month} {current_year}. Updated in real-time.",
+            synthesis=f"Explore {total_results} trending projects, models, and discussions from {current_month} {current_year}. Curated from the most active and popular content across all platforms.",
             search_duration_ms=duration_ms,
             errors=errors,
         )
