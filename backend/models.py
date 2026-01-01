@@ -8,6 +8,30 @@ from pydantic import BaseModel, Field
 class SearchRequest(BaseModel):
     """User's search query input."""
     query: str = Field(..., min_length=3, max_length=1000, description="The project idea to search for")
+    refinement_answers: Optional[dict[str, str]] = Field(default=None, description="Optional clarifying answers from user")
+
+
+class RefinementOption(BaseModel):
+    """An option for a refinement question."""
+    value: str
+    label: str
+    icon: str
+    description: str
+
+
+class RefinementQuestion(BaseModel):
+    """A clarifying question for ambiguous queries."""
+    id: str
+    question: str
+    options: list[RefinementOption]
+
+
+class QueryRefinementResponse(BaseModel):
+    """Response when a query needs refinement."""
+    needs_refinement: bool
+    original_query: str
+    questions: list[RefinementQuestion] = Field(default_factory=list)
+    message: Optional[str] = None
 
 
 class SourceType(str, Enum):

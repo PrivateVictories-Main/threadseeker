@@ -29,6 +29,21 @@ QueryIntent = Literal[
 ]
 
 
+class RefinementQuestion:
+    """Represents a clarifying question for ambiguous queries."""
+    def __init__(self, question_id: str, question: str, options: list[dict]):
+        self.id = question_id
+        self.question = question
+        self.options = options
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "question": self.question,
+            "options": self.options
+        }
+
+
 # Configure Gemini if available
 if settings.gemini_api_key:
     genai.configure(api_key=settings.gemini_api_key)
@@ -131,6 +146,202 @@ def classify_query_intent(user_query: str) -> tuple[QueryIntent, dict[str, float
     print(f"🎯 Query intent: {intent} | Weights: GitHub {weights['github']:.0%}, Reddit {weights['reddit']:.0%}, HF {weights['huggingface']:.0%}")
     
     return intent, weights
+
+
+def analyze_query_ambiguity(user_query: str) -> tuple[bool, list[RefinementQuestion]]:
+    """
+    Analyze if a query is ambiguous or too broad, and generate clarifying questions.
+    
+    Returns:
+        tuple: (needs_refinement, questions)
+        - needs_refinement: True if the query should be refined
+        - questions: List of RefinementQuestion objects to ask the user
+    """
+    query_lower = user_query.lower()
+    word_count = len(user_query.split())
+    
+    # Triggers for ambiguity
+    is_very_short = word_count <= 4
+    
+    has_no_explicit_context = not any(word in query_lower for word in [
+        'project', 'code', 'github', 'reddit', 'repository', 'repo',
+        'tutorial', 'guide', 'how to', 'build', 'create', 'implement', 
+        'discussion', 'documentation', 'example', 'template', 'library'
+    ])
+    
+    # Common ambiguous patterns
+    ambiguous_patterns = [
+        r'^(best|top|good|find|looking for)\s+\w+',  # "best autoclicker", "find tool"
+        r'^\w+\s+(tool|app|software|program|script)$',  # "autoclicker tool"
+        r'^(?!how|what|where|when|why|which)\w+(\s+\w+){0,3}$',  # Very short without question words
+        r'\b(mouse|keyboard|clicker|automation)\b.*(?!how|tutorial|guide)',  # Hardware/software ambiguity
+    ]
+    
+    matches_ambiguous_pattern = any(
+        re.search(pattern, query_lower, re.IGNORECASE) for pattern in ambiguous_patterns
+    )
+    
+    needs_refinement = (is_very_short and has_no_explicit_context) or matches_ambiguous_pattern
+    
+    if not needs_refinement:
+        return False, []
+    
+    # Generate clarifying questions
+    questions = []
+    
+    # Question 1: What are you looking for?
+    questions.append(RefinementQuestion(
+        question_id="q1_intent",
+        question="What are you looking for?",
+        options=[
+            {
+                "value": "code_project",
+                "label": "Code/Project",
+                "icon": "💻",
+                "description": "Open-source repositories, code examples, or project templates"
+            },
+            {
+                "value": "discussion",
+                "label": "Discussions",
+                "icon": "💬",
+                "description": "Community opinions, reviews, or Reddit discussions"
+            },
+            {
+                "value": "tutorial",
+                "label": "Tutorial/Guide",
+                "icon": "📚",
+                "description": "Step-by-step guides or how-to articles"
+            },
+            {
+                "value": "ai_model",
+                "label": "AI Model",
+                "icon": "🤖",
+                "description": "Pre-trained models or machine learning resources"
+            }
+        ]
+    ))
+    
+    # Question 2: What's your goal?
+    questions.append(RefinementQuestion(
+        question_id="q2_goal",
+        question="What do you want to do with it?",
+        options=[
+            {
+                "value": "use_existing",
+                "label": "Use an existing solution",
+                "icon": "🚀",
+                "description": "Find ready-to-use tools or projects"
+            },
+            {
+                "value": "learn_build",
+                "label": "Learn how to build it",
+                "icon": "🛠️",
+                "description": "Understand how it works and build from scratch"
+            },
+            {
+                "value": "compare_options",
+                "label": "Compare different options",
+                "icon": "⚖️",
+                "description": "See reviews and comparisons to choose the best"
+            },
+            {
+                "value": "troubleshoot",
+                "label": "Solve a problem",
+                "icon": "🔧",
+                "description": "Fix issues or get help with something not working"
+            }
+        ]
+    ))
+    
+    # Question 3: Programming language/platform preference (conditional)
+    if any(word in query_lower for word in ['tool', 'software', 'program', 'app', 'script', 'clicker', 'automation']):
+        questions.append(RefinementQuestion(
+            question_id="q3_platform",
+            question="What platform or language do you prefer?",
+            options=[
+                {
+                    "value": "python",
+                    "label": "Python",
+                    "icon": "🐍",
+                    "description": "Python scripts and libraries"
+                },
+                {
+                    "value": "javascript",
+                    "label": "JavaScript/TypeScript",
+                    "icon": "🟨",
+                    "description": "Web-based tools or Node.js projects"
+                },
+                {
+                    "value": "desktop",
+                    "label": "Desktop Application",
+                    "icon": "🖥️",
+                    "description": "Windows/Mac/Linux desktop software"
+                },
+                {
+                    "value": "any",
+                    "label": "No Preference",
+                    "icon": "🌐",
+                    "description": "Any language or platform works"
+                }
+            ]
+        ))
+    
+    print(f"🔍 Query analysis: '{user_query}' - Needs refinement: {needs_refinement} ({len(questions)} questions)")
+    
+    return needs_refinement, questions
+
+
+def refine_query_with_answers(original_query: str, answers: dict[str, str]) -> str:
+    """
+    Refine the original query based on user's clarifying answers.
+    
+    Args:
+        original_query: The original user query
+        answers: Dict of question_id -> selected_value
+        
+    Returns:
+        Enhanced query string with context
+    """
+    enhancements = []
+    
+    # Map answers to query enhancements
+    intent_map = {
+        "code_project": "github project",
+        "discussion": "reddit discussion community opinion",
+        "tutorial": "tutorial guide how to",
+        "ai_model": "AI model huggingface"
+    }
+    
+    goal_map = {
+        "use_existing": "ready to use implementation",
+        "learn_build": "tutorial how to build",
+        "compare_options": "comparison best",
+        "troubleshoot": "troubleshooting fix"
+    }
+    
+    platform_map = {
+        "python": "python",
+        "javascript": "javascript typescript",
+        "desktop": "desktop application",
+        "any": ""
+    }
+    
+    # Build enhanced query
+    if "q1_intent" in answers:
+        enhancements.append(intent_map.get(answers["q1_intent"], ""))
+    
+    if "q2_goal" in answers:
+        enhancements.append(goal_map.get(answers["q2_goal"], ""))
+    
+    if "q3_platform" in answers and answers["q3_platform"] != "any":
+        enhancements.append(platform_map.get(answers["q3_platform"], ""))
+    
+    # Combine original query with enhancements
+    enhanced = f"{original_query} {' '.join(enhancements)}".strip()
+    
+    print(f"🔄 Query refined: '{original_query}' → '{enhanced}'")
+    
+    return enhanced
 
 
 def merge_and_prioritize_results(

@@ -6,11 +6,18 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 
-from ai_logic import generate_search_queries, synthesize_results, merge_and_prioritize_results
+from ai_logic import (
+    generate_search_queries, 
+    synthesize_results, 
+    merge_and_prioritize_results,
+    analyze_query_ambiguity,
+    refine_query_with_answers
+)
 from models import (
     HealthResponse,
     SearchRequest,
     SearchResults,
+    QueryRefinementResponse,
 )
 from search_logic import execute_parallel_search
 from ranking import rank_github_results, rank_huggingface_results, rank_reddit_results
@@ -67,6 +74,25 @@ async def health_check():
     )
 
 
+@app.post("/analyze-query", response_model=QueryRefinementResponse)
+async def analyze_query(request: SearchRequest):
+    """
+    Analyze if a query is ambiguous and needs refinement.
+    
+    Returns clarifying questions if the query is too broad or unclear.
+    """
+    needs_refinement, questions = analyze_query_ambiguity(request.query)
+    
+    question_dicts = [q.to_dict() for q in questions]
+    
+    return QueryRefinementResponse(
+        needs_refinement=needs_refinement,
+        original_query=request.query,
+        questions=question_dicts,
+        message="Please answer these questions to get better results" if needs_refinement else "Query is clear, proceeding with search"
+    )
+
+
 @app.post("/search", response_model=SearchResults)
 async def search(request: SearchRequest, x_groq_api_key: Optional[str] = Header(None)):
     """
@@ -84,19 +110,25 @@ async def search(request: SearchRequest, x_groq_api_key: Optional[str] = Header(
     start_time = time.time()
     cache = get_cache()
     
-    # Check cache first
-    cache_key = f"{request.query}:{x_groq_api_key[:8] if x_groq_api_key else 'default'}"
+    # If refinement answers provided, enhance the query
+    query_to_search = request.query
+    if request.refinement_answers:
+        query_to_search = refine_query_with_answers(request.query, request.refinement_answers)
+        print(f"✨ Query refined with user answers: {query_to_search}")
+    
+    # Check cache first (using refined query if applicable)
+    cache_key = f"{query_to_search}:{x_groq_api_key[:8] if x_groq_api_key else 'default'}"
     cached_result = await cache.get("search", cache_key)
     
     if cached_result:
-        print(f"🎯 Returning cached results for: {request.query}")
+        print(f"🎯 Returning cached results for: {query_to_search}")
         # Update timing to reflect cache hit speed
         cached_result["search_duration_ms"] = int((time.time() - start_time) * 1000)
         return SearchResults(**cached_result)
     
     try:
         # Step 1: Generate optimized search queries using AI (with optional user API key)
-        generated_queries = await generate_search_queries(request.query, api_key=x_groq_api_key)
+        generated_queries = await generate_search_queries(query_to_search, api_key=x_groq_api_key)
         
         # Step 2: Execute parallel searches with time filter for freshness
         github_results, hf_results, reddit_results, errors = await execute_parallel_search(
