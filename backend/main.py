@@ -23,6 +23,11 @@ from search_logic import execute_parallel_search
 from ranking import rank_github_results, rank_huggingface_results, rank_reddit_results
 from cache import get_cache
 from content_extractor import extract_multiple_urls
+from security import (
+    setup_security_middleware,
+    APIKeyValidator,
+    QuerySanitizer
+)
 
 
 @asynccontextmanager
@@ -43,6 +48,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Setup comprehensive security middleware
+setup_security_middleware(app)
+
 # CORS configuration for frontend
 app.add_middleware(
     CORSMiddleware,
@@ -50,11 +58,12 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
-        "*",  # Allow all for Vercel deployments
+        "https://*.vercel.app",  # Allow Vercel deployments
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],  # Only allowed methods
+    allow_headers=["Content-Type", "X-Groq-API-Key"],  # Only allowed headers
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 
@@ -81,13 +90,22 @@ async def analyze_query(request: SearchRequest):
     
     Returns clarifying questions if the query is too broad or unclear.
     """
-    needs_refinement, questions = analyze_query_ambiguity(request.query)
+    # Sanitize query input
+    sanitized_query = QuerySanitizer.sanitize_query(request.query)
+    
+    if not QuerySanitizer.validate_query_length(sanitized_query):
+        raise HTTPException(
+            status_code=400,
+            detail="Query must be between 3 and 1000 characters"
+        )
+    
+    needs_refinement, questions = analyze_query_ambiguity(sanitized_query)
     
     question_dicts = [q.to_dict() for q in questions]
     
     return QueryRefinementResponse(
         needs_refinement=needs_refinement,
-        original_query=request.query,
+        original_query=sanitized_query,
         questions=question_dicts,
         message="Please answer these questions to get better results" if needs_refinement else "Query is clear, proceeding with search"
     )
@@ -103,6 +121,7 @@ async def search(request: SearchRequest, x_groq_api_key: Optional[str] = Header(
     - Redis caching for infinite scaling (10-minute TTL)
     - Groq -> Gemini AI fallback
     - Time-filtered searches for maximum freshness
+    - Enterprise-grade security & input validation
     
     Optional Header:
     - X-Groq-API-Key: User's Groq API key for faster AI processing
@@ -110,10 +129,29 @@ async def search(request: SearchRequest, x_groq_api_key: Optional[str] = Header(
     start_time = time.time()
     cache = get_cache()
     
+    # 🔒 SECURITY: Sanitize and validate query input
+    sanitized_query = QuerySanitizer.sanitize_query(request.query)
+    
+    if not QuerySanitizer.validate_query_length(sanitized_query):
+        raise HTTPException(
+            status_code=400,
+            detail="Query must be between 3 and 1000 characters"
+        )
+    
+    # 🔒 SECURITY: Validate API key if provided
+    if x_groq_api_key:
+        sanitized_api_key = APIKeyValidator.sanitize_key(x_groq_api_key)
+        if not APIKeyValidator.validate_groq_key(sanitized_api_key):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid API key format"
+            )
+        x_groq_api_key = sanitized_api_key
+    
     # If refinement answers provided, enhance the query
-    query_to_search = request.query
+    query_to_search = sanitized_query
     if request.refinement_answers:
-        query_to_search = refine_query_with_answers(request.query, request.refinement_answers)
+        query_to_search = refine_query_with_answers(sanitized_query, request.refinement_answers)
         print(f"✨ Query refined with user answers: {query_to_search}")
     
     # Check cache first (using refined query if applicable)
