@@ -1,320 +1,100 @@
-# 🔍 ThreadSeeker - The Autonomous Research Engine
+# ThreadSeeker
 
-<div align="center">
+**A unified search engine for the open-source world.** One query, 11 sources,
+zero paid APIs.
 
-![ThreadSeeker](https://img.shields.io/badge/ThreadSeeker-v1.0-blue?style=for-the-badge)
-![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.127-009688?style=for-the-badge&logo=fastapi)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)
-![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python)
+ThreadSeeker searches GitHub, Hugging Face, GitLab, Codeberg, npm, PyPI,
+crates.io, Packagist, RubyGems, Hacker News, and Reddit in parallel, then
+lets you copy the install/clone command for whatever you find — right from
+the result card.
 
-**Find code, models, and community validation for your project ideas — all in one place.**
-
-[Features](#-features) • [Demo](#-demo) • [Installation](#-installation) • [Documentation](#-documentation) • [Contributing](#-contributing)
-
-</div>
-
----
-
-## 🌟 Overview
-
-ThreadSeeker is an intelligent search engine that helps developers discover the perfect tools and resources for their projects by searching across **GitHub**, **Hugging Face**, and **Reddit** simultaneously. With AI-powered query optimization and intelligent ranking, you'll find exactly what you need in seconds.
-
-### ✨ What Makes ThreadSeeker Special?
-
-- 🤖 **AI-Powered Search**: Uses Groq's LLM to generate optimized queries for each platform
-- ⚡ **Instant Results**: Parallel search across multiple platforms with sub-second response times
-- 🎯 **Smart Autocomplete**: 100+ intelligent suggestions with fuzzy spell-checking
-- 🔥 **Real-Time Trending**: See what's hot in the dev community right now
-- 🎨 **Premium UI**: Beautiful, modern interface inspired by Gemini and Perplexity
-- 💬 **Voice Input**: Search using your voice with built-in speech recognition
-- 📊 **Intelligent Ranking**: Results sorted by relevance, stars, and community engagement
-- 🎭 **In-App Previews**: View project details without leaving the app
+It's built to be **free to run**: the frontend is a static Next.js site
+(Cloudflare Pages free tier), the backend is a single FastAPI container
+(your own VPS), and every data source is a public API or a free scraping
+route. The only optional expense is a domain.
 
 ---
 
-## 🚀 Features
+## Architecture
 
-### 🔍 Multi-Platform Search
-Search across three major platforms simultaneously:
-- **GitHub**: Find repositories, libraries, and frameworks
-- **Hugging Face**: Discover AI models and datasets
-- **Reddit**: Get community discussions and real-world insights
-
-### 🧠 Intelligent Autocomplete
-- **100+ curated suggestions** across 10 categories (Web, AI/ML, Mobile, Backend, DevOps, Games, Data, Blockchain, IoT)
-- **Advanced fuzzy spell-checking** with Levenshtein distance algorithm
-- **150+ spell corrections** for common typos
-- **Search history integration** for personalized suggestions
-- **Context-aware matching** with multi-factor scoring
-
-### 🎯 Smart Features
-- **AI Query Optimization**: Automatically generates the best search queries for each platform
-- **Intelligent Ranking**: Results sorted by relevance, popularity, and freshness
-- **Community Warnings**: Flags NSFW or quarantined Reddit content
-- **Instant Caching**: Lightning-fast repeat searches with smart caching
-- **Offline Support**: Works with cached data when offline
-
-### 🎨 Premium UI/UX
-- **Glassmorphism Design**: Modern frosted-glass aesthetics
-- **Smooth Animations**: Powered by Framer Motion
-- **Dark Mode**: Easy on the eyes, perfect for coding sessions
-- **Responsive Layout**: Works beautifully on all screen sizes
-- **Voice Input**: Search hands-free with Web Speech API
-- **Keyboard Navigation**: Full keyboard support for power users
-
----
-
-## 🎬 Demo
-
-### Search Interface
-![Search Interface](https://via.placeholder.com/800x400/18181b/ffffff?text=ThreadSeeker+Search+Interface)
-
-### Autocomplete
-![Autocomplete](https://via.placeholder.com/800x400/18181b/ffffff?text=Smart+Autocomplete+with+100%2B+Suggestions)
-
-### Results View
-![Results](https://via.placeholder.com/800x400/18181b/ffffff?text=Beautiful+Results+Grid)
-
----
-
-## 📦 Installation
-
-### Prerequisites
-- **Node.js** 18+ and npm/yarn
-- **Python** 3.10+
-- **Groq API Key** (get it free at [console.groq.com](https://console.groq.com))
-
-### Quick Start
-
-#### 1. Clone the repository
-```bash
-git clone https://github.com/PrivateVictories-Main/RedditSearchEngine.git
-cd RedditSearchEngine
+```
+┌────────────────────┐         ┌──────────────────────────┐
+│   Browser (SPA)    │ ──────► │  Public APIs (direct)    │
+│                    │         │  GitHub, HF, npm, PyPI,  │
+│  Next.js 14 SPA    │         │  GitLab, Codeberg,       │
+│  WebLLM (WebGPU)   │         │  crates.io, Packagist,   │
+│  Multi-AI provider │         │  RubyGems, Hacker News   │
+└────────┬───────────┘         └──────────────────────────┘
+         │
+         │ (only for things the browser can't do)
+         ▼
+┌────────────────────┐
+│   FastAPI backend  │
+│                    │
+│  - Reddit search   │  (CORS-blocked, needs server proxy)
+│  - AI optimization │  (Groq / Gemini keys stay server-side)
+│  - AI synthesis    │  (multi-source summary)
+│  - Content extract │  (Trafilatura, Python-only)
+└────────────────────┘
 ```
 
-#### 2. Set up the Backend
+The frontend works on its own — the backend adds Reddit, server-side AI,
+and content extraction but isn't required.
+
+---
+
+## Features
+
+- **11 sources**, unified card UI: GitHub, Hugging Face, GitLab, Codeberg,
+  npm, PyPI, crates.io, Packagist, RubyGems, Hacker News, Reddit.
+- **Level 1 integration actions** — per-source copy-to-clipboard commands
+  (`git clone …`, `npm install …`, `pip install …`, `cargo add …`,
+  `composer require …`, `gem install …`, `huggingface-cli download …`,
+  etc.) rendered inline on every result.
+- **Query optimization** — natural-language query → three per-platform
+  optimized queries, with intent classification.
+- **Query refinement** — ambiguous queries prompt clarifying questions.
+- **Cross-source synthesis** — single AI-written summary of the unified
+  result set.
+- **In-browser AI** — WebLLM runs Llama/Qwen on the user's GPU; no API
+  keys required.
+- **Bring-your-own-key** — optional OpenAI, Anthropic, or OpenRouter keys
+  stored locally in the browser.
+
+---
+
+## Quickstart
+
+See [`docs/DEPLOY.md`](docs/DEPLOY.md) for the full playbook. The short
+version:
+
 ```bash
+# Backend
 cd backend
+cp .env.example .env  # fill in GROQ_API_KEY (optional)
+docker compose up -d --build  # from repo root
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Create .env file
-echo "GROQ_API_KEY=your_api_key_here" > .env
-
-# Start the server
-python -m uvicorn main:app --reload --port 8000
-```
-
-#### 3. Set up the Frontend
-```bash
-cd ../frontend
-
-# Install dependencies
+# Frontend
+cd frontend
+cp .env.example .env.local    # set NEXT_PUBLIC_BACKEND_URL
 npm install
-
-# Start the development server
-npm run dev
-```
-
-#### 4. Open your browser
-Navigate to [http://localhost:3000](http://localhost:3000)
-
----
-
-## 🔧 Configuration
-
-### Backend Configuration (`backend/.env`)
-```env
-GROQ_API_KEY=your_groq_api_key_here
-```
-
-### Frontend Configuration
-The frontend automatically connects to `http://localhost:8000`. To change this, set:
-```env
-NEXT_PUBLIC_API_URL=your_backend_url
+npm run dev                   # dev
+NEXT_OUTPUT=export npm run build  # static build → out/
 ```
 
 ---
 
-## 🏗️ Architecture
+## Repo layout
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     Frontend (Next.js)                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
-│  │ Autocomplete │  │  Voice Input │  │  Results UI  │ │
-│  └──────────────┘  └──────────────┘  └──────────────┘ │
-└────────────────────────┬────────────────────────────────┘
-                         │ HTTP/REST
-┌────────────────────────▼────────────────────────────────┐
-│                   Backend (FastAPI)                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
-│  │  AI Logic    │  │Search Engine │  │   Ranking    │ │
-│  │  (Groq LLM)  │  │  (Parallel)  │  │  Algorithm   │ │
-│  └──────────────┘  └──────────────┘  └──────────────┘ │
-└────────────────────────┬────────────────────────────────┘
-                         │
-         ┌───────────────┼───────────────┐
-         │               │               │
-         ▼               ▼               ▼
-    ┌────────┐     ┌──────────┐    ┌────────┐
-    │ GitHub │     │ Hugging  │    │ Reddit │
-    │  API   │     │Face API  │    │  API   │
-    └────────┘     └──────────┘    └────────┘
-```
-
-### Tech Stack
-
-**Frontend:**
-- Next.js 15 (React 19)
-- TypeScript
-- Tailwind CSS
-- Framer Motion
-- shadcn/ui components
-
-**Backend:**
-- FastAPI (Python)
-- Groq (Llama 3.3 70B)
-- DuckDuckGo Search
-- Pydantic for validation
-
----
-
-## 📚 Documentation
-
-Comprehensive documentation is available in the repository:
-
-- [**ENHANCED-AUTOCOMPLETE-AND-INSTANT-LOAD.md**](./ENHANCED-AUTOCOMPLETE-AND-INSTANT-LOAD.md) - Complete feature overview
-- [**INSTANT-LOAD-OPTIMIZATIONS.md**](./INSTANT-LOAD-OPTIMIZATIONS.md) - Performance optimizations
-- [**AUTOCOMPLETE-FEATURE.md**](./AUTOCOMPLETE-FEATURE.md) - Autocomplete system details
-- [**VOICE-INPUT-FEATURE.md**](./VOICE-INPUT-FEATURE.md) - Voice search implementation
-- [**DETAILED-VIEW-FEATURE.md**](./DETAILED-VIEW-FEATURE.md) - In-app preview modal
-- [**TRENDING-FEATURE.md**](./TRENDING-FEATURE.md) - Trending content system
-
----
-
-## 🎯 Usage Examples
-
-### Basic Search
-```
-Type: "react authentication"
-→ AI generates optimized queries
-→ Searches GitHub, Hugging Face, Reddit
-→ Returns ranked results in <2s
-```
-
-### Voice Search
-```
-Click microphone icon
-→ Say: "machine learning image classifier"
-→ Automatic speech-to-text
-→ Instant search results
-```
-
-### Autocomplete
-```
-Type: "flutter"
-→ See 6 relevant suggestions instantly
-→ "flutter mobile app"
-→ "react native weather app"
-→ Navigate with ↑↓ keys, select with Enter
+backend/        FastAPI service (Dockerfile, requirements.txt)
+frontend/       Next.js 14 SPA (static-export ready for Cloudflare Pages)
+docs/           DEPLOY.md and historical design docs
+docker-compose.yml   Traefik-ready compose for the backend
 ```
 
 ---
 
-## 🚀 Performance
+## License
 
-### Speed Metrics
-- **First Load**: <800ms (with cache: <100ms)
-- **Search Results**: ~2s average
-- **Autocomplete**: <50ms response time
-- **Trending Content**: Instant (cached)
-
-### Optimization Features
-- Triple-cache system (memory + localStorage + background refresh)
-- Parallel API requests
-- Smart query debouncing
-- Lazy loading components
-- Optimized animations
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Here's how you can help:
-
-### Ways to Contribute
-1. 🐛 Report bugs via [Issues](https://github.com/PrivateVictories-Main/RedditSearchEngine/issues)
-2. 💡 Suggest features or improvements
-3. 📝 Improve documentation
-4. 🔧 Submit pull requests
-
-### Development Setup
-```bash
-# Fork the repo
-git clone https://github.com/YOUR_USERNAME/RedditSearchEngine.git
-cd RedditSearchEngine
-
-# Create a feature branch
-git checkout -b feature/amazing-feature
-
-# Make your changes and commit
-git commit -m "Add amazing feature"
-
-# Push to your fork
-git push origin feature/amazing-feature
-
-# Open a Pull Request
-```
-
-### Code Style
-- **Frontend**: ESLint + Prettier (already configured)
-- **Backend**: PEP 8 style guide
-- **Commits**: Conventional Commits format
-
----
-
-## 📝 License
-
-This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **Groq** - For lightning-fast LLM inference
-- **DuckDuckGo** - For privacy-respecting search
-- **shadcn/ui** - For beautiful UI components
-- **Framer Motion** - For smooth animations
-- The open-source community for inspiration
-
----
-
-## 🔗 Links
-
-- **Repository**: [github.com/PrivateVictories-Main/RedditSearchEngine](https://github.com/PrivateVictories-Main/RedditSearchEngine)
-- **Issues**: [Report a bug](https://github.com/PrivateVictories-Main/RedditSearchEngine/issues)
-- **Groq API**: [console.groq.com](https://console.groq.com)
-
----
-
-## 📧 Contact
-
-Have questions? Feel free to reach out!
-
-- **GitHub Issues**: [Create an issue](https://github.com/PrivateVictories-Main/RedditSearchEngine/issues)
-- **Discussions**: [Start a discussion](https://github.com/PrivateVictories-Main/RedditSearchEngine/discussions)
-
----
-
-<div align="center">
-
-**Made with ❤️ by the ThreadSeeker Team**
-
-⭐ Star this repo if you find it helpful!</div>
+See [LICENSE](LICENSE).

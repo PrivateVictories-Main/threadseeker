@@ -1,438 +1,373 @@
-"""ThreadSeeker V2 - The Autonomous Research Engine API with Zero-Cost Scaling."""
+"""ThreadSeeker backend — slim API surface for the unified search frontend.
+
+Responsibilities (what the browser can't do itself):
+  - Reddit search (CORS blocked) with sentiment analysis
+  - AI query optimization (keeps Groq/Gemini keys server-side)
+  - AI synthesis across multi-source results
+  - Content extraction via Trafilatura (Python-only)
+  - Query ambiguity analysis and refinement
+
+The frontend calls public APIs directly (GitHub, HF, GitLab, npm, PyPI,
+crates.io, HN, Codeberg, Packagist, RubyGems) — the backend never touches
+those sources.
+"""
 import time
 from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 from ai_logic import (
-    generate_search_queries, 
-    synthesize_results, 
-    merge_and_prioritize_results,
+    generate_search_queries,
+    synthesize_results,
     analyze_query_ambiguity,
-    refine_query_with_answers
+    refine_query_with_answers,
+    get_groq_client,
+    get_gemini_model,
 )
 from models import (
     HealthResponse,
     SearchRequest,
-    SearchResults,
     QueryRefinementResponse,
+    GitHubResult,
+    HuggingFaceResult,
+    RedditResult,
 )
-from search_logic import execute_parallel_search
-from ranking import rank_github_results, rank_huggingface_results, rank_reddit_results
+from search_logic import search_reddit
+from ranking import rank_reddit_results
 from cache import get_cache
 from content_extractor import extract_multiple_urls
 from security import (
     setup_security_middleware,
     APIKeyValidator,
-    QuerySanitizer
+    QuerySanitizer,
 )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan handler."""
-    print("🚀 ThreadSeeker V2 API starting...")
-    print("🔄 Initializing cache...")
+    print("🚀 ThreadSeeker API starting...")
     cache = get_cache()
-    print(f"✅ Cache status: {'enabled' if cache.enabled else 'disabled'}")
+    print(f"✅ Cache: {'enabled' if cache.enabled else 'disabled'}")
     yield
-    print("👋 ThreadSeeker V2 API shutting down...")
+    print("👋 ThreadSeeker API shutting down...")
 
 
 app = FastAPI(
-    title="ThreadSeeker V2 API",
-    description="The Autonomous Research Engine - Real-time, zero-cost search across GitHub, Hugging Face, and Reddit.",
-    version="2.0.0",
+    title="ThreadSeeker API",
+    description="Backend for the unified open-source search engine. Handles Reddit, AI, and content extraction.",
+    version="3.0.0",
     lifespan=lifespan,
 )
 
-# Setup comprehensive security middleware
 setup_security_middleware(app)
 
-# CORS configuration for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
-        "https://*.vercel.app",  # Allow Vercel deployments
+        "https://threadseeker.pages.dev",
+        "https://*.pages.dev",
+        "https://*.vercel.app",
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],  # Only allowed methods
-    allow_headers=["Content-Type", "X-Groq-API-Key"],  # Only allowed headers
-    max_age=3600,  # Cache preflight requests for 1 hour
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Groq-API-Key"],
+    max_age=3600,
 )
 
 
+# ---------------------------------------------------------------------------
+# Request/response models for slim endpoints
+# ---------------------------------------------------------------------------
+
+class OptimizeQueriesResponse(BaseModel):
+    github_query: str
+    huggingface_query: str
+    reddit_query: str
+    intent: Optional[str] = None
+    source_weights: Optional[dict[str, float]] = None
+    reasoning: Optional[str] = None
+
+
+class RedditSearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=1000)
+    max_results: int = Field(default=10, ge=1, le=30)
+
+
+class RedditThreadOut(BaseModel):
+    title: str
+    url: str
+    subreddit: str
+    score: int = 0
+    num_comments: int = 0
+    created_utc: Optional[float] = None
+    selftext: Optional[str] = None
+    community_sentiment: Optional[str] = None
+    has_warning: bool = False
+    warning_reason: Optional[str] = None
+
+
+class RedditSearchResponse(BaseModel):
+    results: list[RedditThreadOut]
+
+
+class UnifiedProjectLite(BaseModel):
+    source: str
+    name: str
+    description: Optional[str] = None
+    url: str
+    stars: int = 0
+
+
+class SynthesizeRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=1000)
+    projects: list[UnifiedProjectLite] = Field(default_factory=list)
+
+
+class SynthesizeResponse(BaseModel):
+    synthesis: Optional[str] = None
+
+
+class ExtractRequest(BaseModel):
+    urls: list[str] = Field(..., min_length=1, max_length=10)
+
+
+class ExtractResponse(BaseModel):
+    content: dict[str, Optional[str]]
+
+
+# ---------------------------------------------------------------------------
+# Health
+# ---------------------------------------------------------------------------
+
 @app.get("/", response_model=HealthResponse)
 async def root():
-    """Health check endpoint."""
     return HealthResponse()
 
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Health check endpoint."""
     cache = get_cache()
     return HealthResponse(
         status="healthy",
-        message=f"ThreadSeeker V2 is running! Cache: {'enabled' if cache.enabled else 'disabled'}"
+        message=f"ThreadSeeker running. Cache: {'on' if cache.enabled else 'off'}",
     )
 
+
+# ---------------------------------------------------------------------------
+# Query analysis & optimization
+# ---------------------------------------------------------------------------
 
 @app.post("/analyze-query", response_model=QueryRefinementResponse)
 async def analyze_query(request: SearchRequest):
-    """
-    Analyze if a query is ambiguous and needs refinement.
-    
-    Returns clarifying questions if the query is too broad or unclear.
-    """
-    # Sanitize query input
-    sanitized_query = QuerySanitizer.sanitize_query(request.query)
-    
-    if not QuerySanitizer.validate_query_length(sanitized_query):
-        raise HTTPException(
-            status_code=400,
-            detail="Query must be between 3 and 1000 characters"
-        )
-    
-    needs_refinement, questions = analyze_query_ambiguity(sanitized_query)
-    
-    question_dicts = [q.to_dict() for q in questions]
-    
+    """Check whether a query is too broad and needs clarifying questions."""
+    sanitized = QuerySanitizer.sanitize_query(request.query)
+    if not QuerySanitizer.validate_query_length(sanitized):
+        raise HTTPException(status_code=400, detail="Query must be 3-1000 characters")
+
+    needs_refinement, questions = analyze_query_ambiguity(sanitized)
     return QueryRefinementResponse(
         needs_refinement=needs_refinement,
-        original_query=sanitized_query,
-        questions=question_dicts,
-        message="Please answer these questions to get better results" if needs_refinement else "Query is clear, proceeding with search"
+        original_query=sanitized,
+        questions=[q.to_dict() for q in questions],
+        message=(
+            "Please answer these to get better results"
+            if needs_refinement
+            else "Query is clear"
+        ),
     )
 
 
-@app.post("/search", response_model=SearchResults)
-async def search(request: SearchRequest, x_groq_api_key: Optional[str] = Header(None)):
-    """
-    Execute a comprehensive parallel search across GitHub, HuggingFace, and Reddit.
-    
-    V2 Features:
-    - Real-time content extraction from top results
-    - Redis caching for infinite scaling (10-minute TTL)
-    - Groq -> Gemini AI fallback
-    - Time-filtered searches for maximum freshness
-    - Enterprise-grade security & input validation
-    
-    Optional Header:
-    - X-Groq-API-Key: User's Groq API key for faster AI processing
-    """
-    start_time = time.time()
-    cache = get_cache()
-    
-    # 🔒 SECURITY: Sanitize and validate query input
-    sanitized_query = QuerySanitizer.sanitize_query(request.query)
-    
-    if not QuerySanitizer.validate_query_length(sanitized_query):
-        raise HTTPException(
-            status_code=400,
-            detail="Query must be between 3 and 1000 characters"
-        )
-    
-    # 🔒 SECURITY: Validate API key if provided
+@app.post("/optimize-queries", response_model=OptimizeQueriesResponse)
+async def optimize_queries(
+    request: SearchRequest,
+    x_groq_api_key: Optional[str] = Header(None),
+):
+    """Turn a natural-language query into per-platform optimized queries."""
+    sanitized = QuerySanitizer.sanitize_query(request.query)
+    if not QuerySanitizer.validate_query_length(sanitized):
+        raise HTTPException(status_code=400, detail="Query must be 3-1000 characters")
+
+    api_key = None
     if x_groq_api_key:
-        sanitized_api_key = APIKeyValidator.sanitize_key(x_groq_api_key)
-        if not APIKeyValidator.validate_groq_key(sanitized_api_key):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid API key format"
-            )
-        x_groq_api_key = sanitized_api_key
-    
-    # If refinement answers provided, enhance the query
-    query_to_search = sanitized_query
+        clean_key = APIKeyValidator.sanitize_key(x_groq_api_key)
+        if not APIKeyValidator.validate_groq_key(clean_key):
+            raise HTTPException(status_code=400, detail="Invalid API key format")
+        api_key = clean_key
+
+    query_to_optimize = sanitized
     if request.refinement_answers:
-        query_to_search = refine_query_with_answers(sanitized_query, request.refinement_answers)
-        print(f"✨ Query refined with user answers: {query_to_search}")
-    
-    # Check cache first (using refined query if applicable)
-    cache_key = f"{query_to_search}:{x_groq_api_key[:8] if x_groq_api_key else 'default'}"
-    cached_result = await cache.get("search", cache_key)
-    
-    if cached_result:
-        print(f"🎯 Returning cached results for: {query_to_search}")
-        # Update timing to reflect cache hit speed
-        cached_result["search_duration_ms"] = int((time.time() - start_time) * 1000)
-        return SearchResults(**cached_result)
-    
-    try:
-        # Step 1: Generate optimized search queries using AI (with optional user API key)
-        generated_queries = await generate_search_queries(query_to_search, api_key=x_groq_api_key)
-        
-        # Step 2: Execute parallel searches with time filter for freshness
-        github_results, hf_results, reddit_results, errors = await execute_parallel_search(
-            github_query=generated_queries.github_query,
-            huggingface_query=generated_queries.huggingface_query,
-            reddit_query=generated_queries.reddit_query,
-        )
-        
-        # Step 2.5: Extract real-time content from top 3 results (if available)
-        extracted_content = {}
-        urls_to_extract = []
-        
-        if github_results:
-            urls_to_extract.extend([r.url for r in github_results[:2]])
-        if hf_results:
-            urls_to_extract.extend([r.url for r in hf_results[:1]])
-        
-        if urls_to_extract:
-            print(f"📄 Extracting content from {len(urls_to_extract)} URLs...")
-            extracted_content = await extract_multiple_urls(urls_to_extract, max_concurrent=3)
-            print(f"✅ Extracted {sum(1 for v in extracted_content.values() if v)} content pieces")
-        
-        # Step 3: Rank results by relevance
-        github_results = rank_github_results(github_results, request.query)
-        hf_results = rank_huggingface_results(hf_results, request.query)
-        reddit_results = rank_reddit_results(reddit_results, request.query)
-        
-        # Step 3.5: Intelligently merge and prioritize results based on intent
-        intent = generated_queries.intent or "general"
-        weights = generated_queries.source_weights or {"github": 0.4, "reddit": 0.4, "huggingface": 0.2}
-        prioritized_results = merge_and_prioritize_results(
-            github_results=github_results,
-            huggingface_results=hf_results,
-            reddit_results=reddit_results,
-            intent=intent,
-            weights=weights
-        )
-        
-        # Step 4: Synthesize results with AI (with optional user API key and extracted content)
-        synthesis = await synthesize_results(
-            user_query=request.query,
-            github_results=github_results,
-            huggingface_results=hf_results,
-            reddit_results=reddit_results,
-            api_key=x_groq_api_key,
-            extracted_content=extracted_content if extracted_content else None,
-        )
-        
-        # Calculate duration
-        duration_ms = int((time.time() - start_time) * 1000)
-        
-        result = SearchResults(
-            github=github_results,
-            huggingface=hf_results,
-            reddit=reddit_results,
-            generated_queries=generated_queries,
-            synthesis=synthesis,
-            search_duration_ms=duration_ms,
-            errors=errors,
-            intent=intent,
-            prioritized_results=prioritized_results,
-        )
-        
-        # Cache the result (10 minutes TTL)
-        await cache.set("search", cache_key, result.model_dump(), ttl_seconds=600)
-        
-        return result
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Search failed: {str(e)}"
-        )
+        query_to_optimize = refine_query_with_answers(sanitized, request.refinement_answers)
 
-
-@app.get("/trending", response_model=SearchResults)
-async def get_trending():
-    """
-    Get trending content across GitHub, HuggingFace, and Reddit.
-    Returns curated, up-to-date projects and discussions with aggressive caching.
-    Uses static fallback for instant loading while fetching fresh data in background.
-    """
-    from datetime import datetime
-    from static_trending import STATIC_TRENDING
-    import asyncio
-    
-    start_time = time.time()
     cache = get_cache()
-    
-    # Check cache first (aggressive caching for trending - longer TTL)
-    cached_trending = await cache.get("trending", "latest")
-    
-    if cached_trending:
-        print("🎯 Returning cached trending content")
-        cached_trending["search_duration_ms"] = int((time.time() - start_time) * 1000)
-        return SearchResults(**cached_trending)
-    
-    # Check if we have static data as fallback
+    cache_key = f"opt:{query_to_optimize}"
+    cached = await cache.get("optimize", cache_key)
+    if cached:
+        return OptimizeQueriesResponse(**cached)
+
+    generated = await generate_search_queries(query_to_optimize, api_key=api_key)
+
+    payload = OptimizeQueriesResponse(
+        github_query=generated.github_query,
+        huggingface_query=generated.huggingface_query,
+        reddit_query=generated.reddit_query,
+        intent=generated.intent,
+        source_weights=generated.source_weights,
+        reasoning=generated.reasoning,
+    )
+    await cache.set("optimize", cache_key, payload.model_dump(), ttl_seconds=600)
+    return payload
+
+
+# ---------------------------------------------------------------------------
+# Reddit search (frontend cannot reach Reddit directly — CORS)
+# ---------------------------------------------------------------------------
+
+@app.post("/search-reddit", response_model=RedditSearchResponse)
+async def search_reddit_endpoint(request: RedditSearchRequest):
+    """Search Reddit via DuckDuckGo + .json hack. Runs sentiment analysis on threads."""
+    sanitized = QuerySanitizer.sanitize_query(request.query)
+    if not QuerySanitizer.validate_query_length(sanitized):
+        raise HTTPException(status_code=400, detail="Query must be 3-1000 characters")
+
+    cache = get_cache()
+    cache_key = f"reddit:{sanitized}:{request.max_results}"
+    cached = await cache.get("reddit", cache_key)
+    if cached:
+        return RedditSearchResponse(**cached)
+
     try:
-        # Parse static data into proper models
-        from models import GitHubResult, HuggingFaceResult, RedditResult, RedditComment
-        
-        github_static = [GitHubResult(**item) for item in STATIC_TRENDING["github"]]
-        hf_static = [HuggingFaceResult(**item) for item in STATIC_TRENDING["huggingface"]]
-        reddit_static = []
-        for item in STATIC_TRENDING["reddit"]:
-            reddit_data = item.copy()
-            if reddit_data.get("top_comments"):
-                reddit_data["top_comments"] = [RedditComment(**c) for c in reddit_data["top_comments"]]
-            reddit_static.append(RedditResult(**reddit_data))
-        
-        # Return static data immediately
-        static_result = SearchResults(
-            github=github_static,
-            huggingface=hf_static,
-            reddit=reddit_static,
-            generated_queries=None,
-            synthesis=f"Explore trending projects, models, and discussions. Loading fresh data...",
-            search_duration_ms=int((time.time() - start_time) * 1000),
-            errors=[]
-        )
-        
-        # Cache static data briefly (1 minute) so repeated calls are instant
-        await cache.set("trending", "latest", static_result.model_dump(), ttl_seconds=60)
-        
-        # Start background task to fetch real data (don't await)
-        asyncio.create_task(fetch_and_cache_real_trending())
-        
-        return static_result
-        
+        threads = await search_reddit(sanitized, max_results=request.max_results)
     except Exception as e:
-        print(f"⚠️ Static fallback failed: {e}")
-    
-    # If static fails, fetch real data (slow but reliable)
-    return await fetch_real_trending()
+        raise HTTPException(status_code=502, detail=f"Reddit search failed: {e}")
 
+    threads = rank_reddit_results(threads, sanitized)
 
-async def fetch_and_cache_real_trending():
-    """Background task to fetch real trending data and cache it."""
-    try:
-        result = await fetch_real_trending()
-        cache = get_cache()
-        # Cache for 30 minutes
-        await cache.set("trending", "latest", result.model_dump(), ttl_seconds=1800)
-        print("✅ Background: Fresh trending data cached")
-    except Exception as e:
-        print(f"⚠️ Background trending fetch failed: {e}")
-
-
-async def fetch_real_trending() -> SearchResults:
-    """Fetch real trending data from APIs with dynamic result counts."""
-    from datetime import datetime
-    
-    start_time = time.time()
-    
-    try:
-        current_year = datetime.now().year
-        current_month = datetime.now().strftime("%B")
-        
-        # Trending searches optimized for each platform with time filters
-        # Fetch MORE results for a comprehensive trending view
-        github_results, hf_results, reddit_results, errors = await execute_parallel_search(
-            github_query=f"stars:>500 pushed:>{current_year}-01-01",
-            huggingface_query=f"trending most-downloaded",
-            reddit_query=f"site:reddit.com/r/programming OR site:reddit.com/r/webdev {current_year}",
+    out = [
+        RedditThreadOut(
+            title=t.title,
+            url=t.url,
+            subreddit=t.subreddit,
+            score=t.score,
+            num_comments=t.num_comments,
+            created_utc=t.created_utc,
+            selftext=t.selftext,
+            community_sentiment=(
+                t.community_sentiment.value if t.community_sentiment else None
+            ),
+            has_warning=t.has_warning,
+            warning_reason=t.warning_reason,
         )
-        
-        # Filter out flagged Reddit posts from trending
-        reddit_results = [r for r in reddit_results if not r.has_warning]
-        
-        # Dynamic result counts based on quality and availability:
-        # - Fetch MORE than we show (30+ per category)
-        # - Rotate results on each page load for variety
-        # - Show 8-10 initially, but have 20+ available for "See More"
-        
-        # Rank by quality metrics
-        github_results = rank_github_results(github_results, "trending projects")
-        hf_results = rank_huggingface_results(hf_results, "trending models")
-        reddit_results = rank_reddit_results(reddit_results, "trending discussions")
-        
-        # Rotate results for variety on each load
-        import random
-        from datetime import datetime
-        
-        # Use current hour as seed so results change hourly but stay consistent within the hour
-        hour_seed = datetime.now().strftime("%Y-%m-%d-%H")
-        random.seed(hour_seed)
-        
-        # Shuffle top 30 results to show different items each hour
-        if len(github_results) > 15:
-            top_30_gh = github_results[:30]
-            random.shuffle(top_30_gh)
-            github_results = top_30_gh + github_results[30:]
-        
-        if len(hf_results) > 15:
-            top_30_hf = hf_results[:30]
-            random.shuffle(top_30_hf)
-            hf_results = top_30_hf + hf_results[30:]
-        
-        if len(reddit_results) > 15:
-            top_30_reddit = reddit_results[:30]
-            random.shuffle(top_30_reddit)
-            reddit_results = top_30_reddit + reddit_results[30:]
-        
-        # Take MORE results so frontend can paginate/expand
-        github_count = min(len(github_results), 20)  # Up to 20 GitHub repos
-        hf_count = min(len(hf_results), 15)           # Up to 15 HF models
-        reddit_count = min(len(reddit_results), 20)  # Up to 20 Reddit threads
-        
-        github_results = github_results[:github_count]
-        hf_results = hf_results[:hf_count]
-        reddit_results = reddit_results[:reddit_count]
-        
-        total_results = len(github_results) + len(hf_results) + len(reddit_results)
-        
-        duration_ms = int((time.time() - start_time) * 1000)
-        
-        print(f"📊 Trending: {len(github_results)} GitHub + {len(hf_results)} HF + {len(reddit_results)} Reddit = {total_results} total")
-        
-        return SearchResults(
-            github=github_results,
-            huggingface=hf_results,
-            reddit=reddit_results,
-            generated_queries=None,
-            synthesis=f"Explore {total_results} trending projects, models, and discussions from {current_month} {current_year}. Curated from the most active and popular content across all platforms.",
-            search_duration_ms=duration_ms,
-            errors=errors,
-        )
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to fetch trending content: {str(e)}"
-        )
+        for t in threads
+    ]
+    payload = RedditSearchResponse(results=out)
+    await cache.set("reddit", cache_key, payload.model_dump(), ttl_seconds=600)
+    return payload
 
 
-@app.get("/test-search")
-async def test_search():
-    """Test endpoint to verify search functionality."""
-    from search_logic import search_github, search_huggingface, search_reddit
-    
-    results = {
-        "github": [],
-        "huggingface": [],
-        "reddit": [],
+# ---------------------------------------------------------------------------
+# AI synthesis across a unified project list
+# ---------------------------------------------------------------------------
+
+@app.post("/synthesize", response_model=SynthesizeResponse)
+async def synthesize(
+    request: SynthesizeRequest,
+    x_groq_api_key: Optional[str] = Header(None),
+):
+    """Summarize a list of multi-source project results for the user."""
+    if not request.projects:
+        return SynthesizeResponse(synthesis=None)
+
+    sanitized = QuerySanitizer.sanitize_query(request.query)
+    if not QuerySanitizer.validate_query_length(sanitized):
+        raise HTTPException(status_code=400, detail="Query must be 3-1000 characters")
+
+    api_key = None
+    if x_groq_api_key:
+        clean_key = APIKeyValidator.sanitize_key(x_groq_api_key)
+        if not APIKeyValidator.validate_groq_key(clean_key):
+            raise HTTPException(status_code=400, detail="Invalid API key format")
+        api_key = clean_key
+
+    # Bucket into the shapes ai_logic expects
+    gh_results: list[GitHubResult] = []
+    hf_results: list[HuggingFaceResult] = []
+    reddit_results: list[RedditResult] = []
+
+    for p in request.projects[:20]:
+        if p.source in ("github", "gitlab", "codeberg"):
+            gh_results.append(
+                GitHubResult(
+                    title=p.name,
+                    url=p.url,
+                    description=p.description,
+                    stars=p.stars,
+                )
+            )
+        elif p.source == "huggingface":
+            hf_results.append(
+                HuggingFaceResult(
+                    title=p.name,
+                    url=p.url,
+                    description=p.description,
+                )
+            )
+        elif p.source == "reddit":
+            reddit_results.append(
+                RedditResult(
+                    title=p.name,
+                    url=p.url,
+                    subreddit=p.name,
+                    selftext=p.description,
+                )
+            )
+        else:
+            gh_results.append(
+                GitHubResult(
+                    title=f"[{p.source}] {p.name}",
+                    url=p.url,
+                    description=p.description,
+                    stars=p.stars,
+                )
+            )
+
+    synthesis = await synthesize_results(
+        user_query=sanitized,
+        github_results=gh_results,
+        huggingface_results=hf_results,
+        reddit_results=reddit_results,
+        api_key=api_key,
+    )
+    return SynthesizeResponse(synthesis=synthesis)
+
+
+# ---------------------------------------------------------------------------
+# Content extraction (Trafilatura — Python-only)
+# ---------------------------------------------------------------------------
+
+@app.post("/extract-content", response_model=ExtractResponse)
+async def extract_content(request: ExtractRequest):
+    """Fetch and extract clean main-content text from URLs using Trafilatura."""
+    clean_urls = [u for u in request.urls if u.startswith(("http://", "https://"))][:10]
+    if not clean_urls:
+        raise HTTPException(status_code=400, detail="No valid URLs provided")
+
+    content = await extract_multiple_urls(clean_urls, max_concurrent=3)
+    return ExtractResponse(content=content)
+
+
+@app.get("/ai-status")
+async def ai_status():
+    """Report which AI providers the server has keys for."""
+    return {
+        "groq": bool(get_groq_client()),
+        "gemini": bool(get_gemini_model()),
     }
-    
-    try:
-        github = await search_github("voice changer python", max_results=2)
-        results["github"] = [r.model_dump() for r in github]
-    except Exception as e:
-        results["github_error"] = str(e)
-    
-    try:
-        hf = await search_huggingface("voice conversion", max_results=2)
-        results["huggingface"] = [r.model_dump() for r in hf]
-    except Exception as e:
-        results["huggingface_error"] = str(e)
-    
-    try:
-        reddit = await search_reddit("best voice changer software", max_results=2)
-        results["reddit"] = [r.model_dump() for r in reddit]
-    except Exception as e:
-        results["reddit_error"] = str(e)
-    
-    return results
 
 
 if __name__ == "__main__":

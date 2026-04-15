@@ -1,0 +1,36 @@
+services:
+  threadseeker-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: threadseeker-api:3.0.0
+    container_name: threadseeker-api
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      - PORT=8000
+    networks:
+      - traefik-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-net"
+      - "traefik.http.routers.threadseeker-api.rule=Host(`api.threadseeker.${DOMAIN:-srv1447996.hstgr.cloud}`)"
+      - "traefik.http.routers.threadseeker-api.entrypoints=websecure"
+      - "traefik.http.routers.threadseeker-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.threadseeker-api.loadbalancer.server.port=8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  traefik-net:
+    external: true

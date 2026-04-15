@@ -137,6 +137,7 @@ class SearchResults(BaseModel):
 class HealthResponse(BaseModel):
     """Health check response."""
     status: str = "healthy"
-    version: str = "1.0.0"
+    version: str = "3.0.0"
+    message: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
