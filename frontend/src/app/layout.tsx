@@ -15,9 +15,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GitSeeker - AI-Powered GitHub Explorer",
-  description: "Find and analyze GitHub projects using in-browser AI. No servers, no API keys - just pure local AI magic.",
-  keywords: ["GitHub", "AI", "WebGPU", "WebLLM", "Repository Analysis", "Open Source"],
+  title: "ThreadSeeker — Search open source everywhere",
+  description: "One search across GitHub, Hugging Face, GitLab, npm, PyPI, crates.io, and more. Find projects, models, and packages instantly.",
 };
 
 export default function RootLayout({

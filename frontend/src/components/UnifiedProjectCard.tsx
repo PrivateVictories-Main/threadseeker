@@ -1,29 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useUnifiedAI } from "@/contexts/UnifiedAIContext";
 import { UnifiedProject, getProjectReadme, getSourceConfig } from "@/lib/sources";
-import { getProjectActions, getPrimaryAction, ProjectAction } from "@/lib/actions";
+import {
+  getProjectActions,
+  getPrimaryAction,
+  ProjectAction,
+} from "@/lib/actions";
 import { formatNumber, timeAgo } from "@/lib/github";
 import {
   Star,
   Download,
   ExternalLink,
-  Zap,
-  X,
-  Loader2,
-  Sparkles,
   Copy,
-  GitBranch,
-  FileDown,
-  MessageSquare,
-  AlertTriangle,
+  Terminal,
   ChevronDown,
   ChevronUp,
-  Terminal,
+  Sparkles,
+  Loader2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,23 +32,21 @@ export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
-  const [showAllCommands, setShowAllCommands] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const sourceConfig = getSourceConfig(project.source);
   const allActions = getProjectActions(project);
   const primaryAction = getPrimaryAction(project);
-  const hasInstallActions = allActions.some(
-    (a) => a.kind === "install" || a.kind === "clone" || a.kind === "snippet"
-  );
+  const installActions = allActions.filter((a) => a.kind !== "visit");
 
-  const copyAction = (action: ProjectAction) => {
+  const copyCommand = (action: ProjectAction) => {
     navigator.clipboard.writeText(action.command);
-    toast.success(`Copied: ${action.label}`);
+    toast.success(`Copied: ${action.command}`);
   };
 
   const handleAnalyze = async () => {
     if (!isReady) {
-      toast.error("AI is not ready. Please configure your AI provider in settings or initialize WebLLM.");
+      toast.error("Configure an AI provider in settings first.");
       return;
     }
 
@@ -62,60 +56,34 @@ export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
 
     try {
       const readme = await getProjectReadme(project);
-
       if (!readme) {
-        setAnalysis("❌ Could not find documentation for this project.");
+        setAnalysis("No documentation found for this project.");
         setIsAnalyzing(false);
         return;
       }
 
-      const truncatedReadme = readme.length > 6000 
-        ? readme.substring(0, 6000) + "\n\n[Documentation truncated...]" 
-        : readme;
-
-      // Enhanced AI prompt for better accuracy
-      const systemPrompt = `You are an expert software engineer and technical analyst. Your task is to analyze project documentation and provide actionable insights.
-
-ANALYSIS GUIDELINES:
-1. Focus on WHAT the project does (core purpose)
-2. Highlight KEY features or unique capabilities
-3. Explain WHO should use it and WHEN
-4. Mention technical requirements or prerequisites if critical
-5. Be concise but informative - aim for 3-4 bullet points
-6. Use clear, professional language
-7. If it's an AI model, mention the model type and use cases
-
-Format your response as bullet points starting with • or -`;
+      const truncated =
+        readme.length > 6000 ? readme.substring(0, 6000) + "\n..." : readme;
 
       await chat(
         [
           {
             role: "system",
-            content: systemPrompt,
+            content:
+              "You are a concise technical analyst. Summarize projects in 3-4 bullet points. Use - for bullets. Focus on: what it does, key features, who should use it, and any prerequisites.",
           },
           {
             role: "user",
-            content: `Analyze this ${sourceConfig.name} project: "${project.fullName}"
-
-Project Description: ${project.description || "No description provided"}
-Language/Framework: ${project.language || "Not specified"}
-Topics/Tags: ${project.topics.join(", ") || "None"}
-
-Documentation:
-${truncatedReadme}
-
-Provide a clear, actionable analysis in 3-4 bullet points.`,
+            content: `Analyze "${project.fullName}" (${sourceConfig.name}).\n\nDescription: ${project.description || "None"}\nLanguage: ${project.language || "N/A"}\nTopics: ${project.topics.join(", ") || "None"}\n\nDocumentation:\n${truncated}`,
           },
         ],
-        (token) => {
-          setAnalysis((prev) => (prev || "") + token);
-        }
+        (token) => setAnalysis((prev) => (prev || "") + token)
       );
     } catch (error) {
       if (error instanceof Error && error.message === "Aborted") {
-        setAnalysis((prev) => prev + "\n\n[Analysis stopped]");
+        setAnalysis((prev) => prev + "\n\n[Stopped]");
       } else {
-        toast.error("Failed to analyze project");
+        toast.error("Analysis failed");
         console.error(error);
       }
     } finally {
@@ -123,274 +91,198 @@ Provide a clear, actionable analysis in 3-4 bullet points.`,
     }
   };
 
-  const handleAbort = () => {
-    abort();
-    setIsAnalyzing(false);
-  };
-
-  const handleCopyPrimary = () => copyAction(primaryAction);
-
   return (
-    <Card className="group relative overflow-hidden bg-slate-900/40 border-slate-800/60 hover:border-slate-700/60 transition-all duration-200">
-      
-      {/* Source indicator */}
-      <div className="absolute top-2.5 right-2.5 z-10">
-        <Badge className="bg-slate-950/90 text-slate-500 border-slate-800/60 text-[10px] backdrop-blur-sm px-1.5 py-0.5">
-          <span className="mr-0.5 text-[10px]">{sourceConfig.icon}</span>
-          <span>{sourceConfig.name}</span>
-        </Badge>
-      </div>
-
-      <CardHeader className="relative pb-2">
-        <div className="flex items-start gap-3 pr-20">
-          {/* Project Logo/Avatar */}
-          <div className="relative flex-shrink-0">
-            {project.author.avatar ? (
-              <img
-                src={project.author.avatar}
-                alt={project.name}
-                className="w-14 h-14 rounded-lg border border-slate-800/50 object-cover bg-slate-900"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const fallback = target.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = 'flex';
-                }}
-              />
-            ) : null}
-            <div 
-              className="w-14 h-14 rounded-lg border border-slate-800/50 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center"
-              style={{ display: project.author.avatar ? 'none' : 'flex' }}
-            >
-              <span className="text-slate-300 font-semibold text-xl">
+    <div className="group rounded-xl border border-slate-800/50 bg-slate-950/40 hover:border-slate-700/50 transition-colors overflow-hidden">
+      {/* Header */}
+      <div className="p-4 pb-0">
+        <div className="flex items-start gap-3">
+          {/* Avatar */}
+          {project.author.avatar ? (
+            <img
+              src={project.author.avatar}
+              alt=""
+              className="w-10 h-10 rounded-lg border border-slate-800/50 bg-slate-900 object-cover flex-shrink-0"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-lg border border-slate-800/50 bg-slate-900 flex items-center justify-center flex-shrink-0">
+              <span className="text-slate-500 font-medium text-sm">
                 {project.name.charAt(0).toUpperCase()}
               </span>
             </div>
-          </div>
-          
-          {/* Project Info */}
-          <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-sm text-slate-100 truncate mb-0.5 leading-tight">
-              {project.name}
-            </h3>
-            <p className="text-xs text-slate-600 truncate mb-1">by {project.author.name}</p>
-            
-            {/* Quick Stats */}
-            <div className="flex items-center gap-2 text-[10px] text-slate-600">
-              <div className="flex items-center gap-0.5">
-                <Star className="w-2.5 h-2.5 fill-slate-700 text-slate-700" />
-                <span>{formatNumber(project.stars)}</span>
-              </div>
-              {project.downloads !== undefined && project.downloads > 0 && (
-                <>
-                  <span>•</span>
-                  <div className="flex items-center gap-0.5">
-                    <Download className="w-2.5 h-2.5" />
-                    <span>{formatNumber(project.downloads)}</span>
-                  </div>
-                </>
-              )}
-              {project.language && (
-                <>
-                  <span>•</span>
-                  <span>{project.language}</span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="relative space-y-3">
-        {/* Description */}
-        <div>
-          <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
-            {project.description || "No description available"}
-          </p>
-        </div>
-
-        {/* Detailed Info Section */}
-        <div className="space-y-2 pt-1 border-t border-slate-900/50">
-          {/* Topics/Tags */}
-          {project.topics && project.topics.length > 0 && (
-            <div>
-              <p className="text-[10px] text-slate-600 mb-1 font-medium">Topics</p>
-              <div className="flex flex-wrap gap-1">
-                {project.topics.slice(0, 6).map((topic) => (
-                  <Badge
-                    key={topic}
-                    variant="secondary"
-                    className="bg-slate-950/60 text-slate-500 border-slate-900/60 text-[10px] px-1.5 py-0 font-normal"
-                  >
-                    {topic}
-                  </Badge>
-                ))}
-                {project.topics.length > 6 && (
-                  <Badge variant="secondary" className="bg-slate-950/60 text-slate-500 text-[10px] border-slate-900/60 px-1.5 py-0 font-normal">
-                    +{project.topics.length - 6}
-                  </Badge>
-                )}
-              </div>
-            </div>
           )}
 
-          {/* Additional Details */}
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <div className="space-y-1">
-              <p className="text-slate-600 font-medium">Activity</p>
-              <p className="text-slate-500">{timeAgo(project.updatedAt)}</p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-medium text-slate-200 truncate">
+                {project.name}
+              </h3>
+              <span className="text-[10px] text-slate-600 flex-shrink-0">
+                {sourceConfig.icon} {sourceConfig.name}
+              </span>
             </div>
-            {project.license && (
-              <div className="space-y-1">
-                <p className="text-slate-600 font-medium">License</p>
-                <p className="text-slate-500 truncate">{project.license}</p>
+            <p className="text-xs text-slate-600 truncate">
+              {project.author.name}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Description */}
+      <div className="px-4 pt-2 pb-3">
+        <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+          {project.description || "No description"}
+        </p>
+      </div>
+
+      {/* Stats row */}
+      <div className="px-4 pb-3 flex items-center gap-3 text-[11px] text-slate-600">
+        {project.stars > 0 && (
+          <span className="flex items-center gap-1">
+            <Star className="w-3 h-3" />
+            {formatNumber(project.stars)}
+          </span>
+        )}
+        {project.downloads !== undefined && project.downloads > 0 && (
+          <span className="flex items-center gap-1">
+            <Download className="w-3 h-3" />
+            {formatNumber(project.downloads)}
+          </span>
+        )}
+        {project.language && <span>{project.language}</span>}
+        {project.updatedAt && (
+          <span className="ml-auto">{timeAgo(project.updatedAt)}</span>
+        )}
+      </div>
+
+      {/* Topics */}
+      {project.topics.length > 0 && (
+        <div className="px-4 pb-3 flex flex-wrap gap-1">
+          {project.topics.slice(0, 4).map((topic) => (
+            <span
+              key={topic}
+              className="text-[10px] text-slate-500 bg-slate-900/60 border border-slate-800/40 rounded px-1.5 py-0.5"
+            >
+              {topic}
+            </span>
+          ))}
+          {project.topics.length > 4 && (
+            <span className="text-[10px] text-slate-600">
+              +{project.topics.length - 4}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="border-t border-slate-800/40 p-3 space-y-2">
+        {/* Primary action row */}
+        <div className="flex items-center gap-2">
+          {installActions.length > 0 ? (
+            <>
+              <button
+                onClick={() => copyCommand(primaryAction)}
+                className="flex-1 flex items-center gap-2 text-left text-xs text-slate-400 hover:text-slate-200 bg-slate-900/50 hover:bg-slate-800/50 border border-slate-800/40 rounded-lg px-3 py-2 transition-colors min-w-0"
+                title={primaryAction.command}
+              >
+                <Terminal className="w-3.5 h-3.5 flex-shrink-0 text-slate-600" />
+                <code className="truncate font-mono text-[11px]">
+                  {primaryAction.command}
+                </code>
+                <Copy className="w-3 h-3 flex-shrink-0 ml-auto text-slate-700" />
+              </button>
+              {installActions.length > 1 && (
+                <button
+                  onClick={() => setExpanded((v) => !v)}
+                  className="p-2 text-slate-600 hover:text-slate-400 border border-slate-800/40 rounded-lg hover:bg-slate-800/40 transition-colors"
+                  title="More install commands"
+                >
+                  {expanded ? (
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              )}
+            </>
+          ) : null}
+
+          <a
+            href={project.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 text-slate-600 hover:text-slate-400 border border-slate-800/40 rounded-lg hover:bg-slate-800/40 transition-colors"
+            title="Open in new tab"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+
+        {/* Expanded install list */}
+        {expanded && installActions.length > 1 && (
+          <div className="rounded-lg bg-slate-900/40 border border-slate-800/30 divide-y divide-slate-800/30">
+            {installActions.map((action, idx) => (
+              <button
+                key={`${action.kind}-${idx}`}
+                onClick={() => copyCommand(action)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-800/30 transition-colors"
+              >
+                <span className="text-[10px] text-slate-600 w-16 flex-shrink-0 font-medium">
+                  {action.label}
+                </span>
+                <code className="text-[10px] text-slate-400 font-mono truncate flex-1">
+                  {action.command.split("\n")[0]}
+                </code>
+                <Copy className="w-2.5 h-2.5 text-slate-700 flex-shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* AI Analysis */}
+        {showAnalysis ? (
+          <div className="rounded-lg bg-slate-900/40 border border-slate-800/30 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                AI Analysis
+              </span>
+              <button
+                onClick={() => {
+                  if (isAnalyzing) abort();
+                  setShowAnalysis(false);
+                  setAnalysis(null);
+                }}
+                className="text-slate-600 hover:text-slate-400"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {analysis ? (
+              <p className="text-xs text-slate-400 whitespace-pre-wrap leading-relaxed">
+                {analysis}
+              </p>
+            ) : (
+              <div className="flex items-center gap-2 text-slate-600 py-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-xs">Analyzing...</span>
               </div>
             )}
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="space-y-2 pt-2 border-t border-slate-900/50">
-          {!showAnalysis ? (
-            <>
-              {/* Primary Action - AI Analysis */}
-              <Button
-                onClick={handleAnalyze}
-                disabled={!isReady}
-                size="sm"
-                className="w-full bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 border-0 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 h-9 text-xs justify-center"
-              >
-                <Zap className="w-3.5 h-3.5 mr-1.5" />
-                {isReady ? "Analyze with AI" : "AI Not Ready"}
-              </Button>
-
-              {/* Primary install/clone action + toggle for all commands + view */}
-              {hasInstallActions ? (
-                <div className="grid grid-cols-[1fr_auto_auto] gap-1.5">
-                  <Button
-                    onClick={handleCopyPrimary}
-                    variant="outline"
-                    size="sm"
-                    className="bg-slate-900/40 border-slate-800/50 hover:border-slate-700/50 hover:bg-slate-800/40 transition-all duration-200 h-8 text-[11px] text-slate-400 hover:text-slate-300 px-2 min-w-0"
-                    title={`Copy: ${primaryAction.command}`}
-                  >
-                    <Terminal className="w-3 h-3 mr-1 flex-shrink-0" />
-                    <span className="truncate">{primaryAction.label}</span>
-                  </Button>
-                  <Button
-                    onClick={() => setShowAllCommands((v) => !v)}
-                    variant="outline"
-                    size="sm"
-                    className="bg-slate-900/40 border-slate-800/50 hover:border-slate-700/50 hover:bg-slate-800/40 transition-all duration-200 h-8 w-8 p-0 text-slate-400 hover:text-slate-300"
-                    title="All install commands"
-                  >
-                    {showAllCommands ? (
-                      <ChevronUp className="w-3 h-3" />
-                    ) : (
-                      <ChevronDown className="w-3 h-3" />
-                    )}
-                  </Button>
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="bg-slate-900/40 border-slate-800/50 hover:border-slate-700/50 hover:bg-slate-800/40 transition-all duration-200 h-8 w-8 p-0 text-slate-400 hover:text-slate-300"
-                    title="Open in new tab"
-                  >
-                    <a
-                      href={project.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="w-full bg-slate-900/40 border-slate-800/50 hover:border-slate-700/50 hover:bg-slate-800/40 transition-all duration-200 h-8 text-[11px] text-slate-400 hover:text-slate-300"
-                >
-                  <a
-                    href={project.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Open
-                  </a>
-                </Button>
-              )}
-
-              {/* All commands expanded list */}
-              {showAllCommands && hasInstallActions && (
-                <div className="rounded-lg bg-slate-950/60 border border-slate-900/60 p-2 space-y-1">
-                  {allActions
-                    .filter((a) => a.kind !== "visit")
-                    .map((action, idx) => (
-                      <button
-                        key={`${action.kind}-${idx}`}
-                        onClick={() => copyAction(action)}
-                        className="group w-full text-left flex items-center gap-2 px-2 py-1.5 rounded hover:bg-slate-900/60 transition-colors"
-                        title={action.description || action.command}
-                      >
-                        <Terminal className="w-3 h-3 text-slate-600 flex-shrink-0" />
-                        <span className="text-[10px] text-slate-500 font-medium w-20 flex-shrink-0">
-                          {action.label}
-                        </span>
-                        <code className="text-[10px] text-slate-400 font-mono truncate flex-1">
-                          {action.command.split("\n")[0]}
-                        </code>
-                        <Copy className="w-2.5 h-2.5 text-slate-700 group-hover:text-slate-500 flex-shrink-0" />
-                      </button>
-                    ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="w-full space-y-2 border-t border-slate-900/50 pt-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="text-xs text-slate-500 font-medium">AI Analysis</span>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    if (isAnalyzing) handleAbort();
-                    setShowAnalysis(false);
-                    setAnalysis(null);
-                  }}
-                  className="h-6 w-6 p-0 text-slate-600 hover:text-slate-400"
-                  title="Close analysis"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-              <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-900/50 min-h-[100px]">
-                {analysis ? (
-                  <div className="space-y-2">
-                    <p className="text-xs text-slate-400 whitespace-pre-wrap leading-relaxed">
-                      {analysis}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center gap-2 text-slate-600 py-4">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span className="text-xs">Reading documentation and analyzing...</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+        ) : (
+          isReady && (
+            <button
+              onClick={handleAnalyze}
+              className="w-full flex items-center justify-center gap-1.5 text-[11px] text-slate-600 hover:text-slate-400 py-1.5 transition-colors"
+            >
+              <Sparkles className="w-3 h-3" />
+              Analyze with AI
+            </button>
+          )
+        )}
+      </div>
+    </div>
   );
 }
-
