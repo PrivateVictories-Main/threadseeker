@@ -121,19 +121,6 @@ class GeneratedQueries(BaseModel):
     source_weights: Optional[dict[str, float]] = None  # Prioritization weights
 
 
-class SearchResults(BaseModel):
-    """Combined search results from all sources."""
-    github: list[GitHubResult] = Field(default_factory=list)
-    huggingface: list[HuggingFaceResult] = Field(default_factory=list)
-    reddit: list[RedditResult] = Field(default_factory=list)
-    generated_queries: Optional[GeneratedQueries] = None
-    synthesis: Optional[str] = None
-    search_duration_ms: int = 0
-    errors: list[str] = Field(default_factory=list)
-    intent: Optional[str] = None  # Query intent
-    prioritized_results: Optional[list[dict]] = None  # Intelligently merged results
-
-
 class HealthResponse(BaseModel):
     """Health check response."""
     status: str = "healthy"
