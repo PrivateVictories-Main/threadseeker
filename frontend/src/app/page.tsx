@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { SearchBar } from "@/components/SearchBar";
 import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
 import { SourceFilter } from "@/components/SourceFilter";
+import { SynthesisBox } from "@/components/SynthesisBox";
 import { searchAllSources, UnifiedProject, SourceType } from "@/lib/sources";
 import { toast } from "sonner";
 import { Search, Globe, ArrowRight } from "lucide-react";
@@ -142,6 +143,7 @@ export default function Home() {
           </div>
         ) : resultCount > 0 ? (
           <div className="space-y-4">
+            <SynthesisBox query={query} projects={projects} />
             <div className="flex items-center justify-between">
               <p className="text-sm text-slate-500">
                 {resultCount} {resultCount === 1 ? "result" : "results"}
