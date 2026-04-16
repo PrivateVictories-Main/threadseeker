@@ -299,68 +299,29 @@ export async function searchNpm(query: string, deepSearch: boolean = true): Prom
   };
 }
 
-// PyPI Search - Enhanced with deep search using multiple APIs
+// PyPI Search — no free search API exists, so we try exact name + common variations
 export async function searchPyPI(query: string, deepSearch: boolean = true): Promise<SearchResult> {
   const allResults: any[] = [];
   const seenNames = new Set<string>();
-  
-  // Strategy 1: Try exact package match
-  try {
-    const exactResponse = await fetch(
-      `https://pypi.org/pypi/${encodeURIComponent(query)}/json`
-    );
-    if (exactResponse.ok) {
-      const data = await exactResponse.json();
-      seenNames.add(data.info.name);
-      allResults.push(data);
-    }
-  } catch {}
 
-  // Strategy 2: Search common variations (only if deep search)
-  if (deepSearch && allResults.length < 10) {
-    const searchTerms = [
-      `${query}-python`,
-      `python-${query}`,
-      `py${query}`,
-    ];
-
-    for (const term of searchTerms) {
-      try {
-        const response = await fetch(`https://pypi.org/pypi/${encodeURIComponent(term)}/json`);
-        if (response.ok) {
-          const data = await response.json();
-          if (!seenNames.has(data.info.name)) {
-            seenNames.add(data.info.name);
-            allResults.push(data);
-          }
-        }
-      } catch {}
-    }
+  const terms = [query];
+  if (deepSearch) {
+    const q = query.toLowerCase().replace(/\s+/g, "-");
+    terms.push(`python-${q}`, `${q}-python`, `py${q.replace(/-/g, "")}`);
   }
 
-  // Strategy 3: Search popular related packages (only if still not enough results)
-  if (deepSearch && allResults.length < 5) {
-    const popularPyPIPackages = [
-      'django', 'flask', 'fastapi', 'requests', 'numpy', 'pandas', 
-      'tensorflow', 'pytorch', 'scikit-learn', 'matplotlib', 'pytest',
-      'sqlalchemy', 'celery', 'redis', 'pillow', 'beautifulsoup4'
-    ];
-    
-    const relatedPackages = popularPyPIPackages.filter(pkg => 
-      pkg.includes(query.toLowerCase()) || query.toLowerCase().includes(pkg)
-    ).slice(0, 5);
+  const fetches = terms.map(async (term) => {
+    try {
+      const res = await fetch(`https://pypi.org/pypi/${encodeURIComponent(term)}/json`);
+      if (res.ok) return await res.json();
+    } catch {}
+    return null;
+  });
 
-    for (const pkg of relatedPackages) {
-      try {
-        const response = await fetch(`https://pypi.org/pypi/${pkg}/json`);
-        if (response.ok) {
-          const data = await response.json();
-          if (!seenNames.has(data.info.name)) {
-            seenNames.add(data.info.name);
-            allResults.push(data);
-          }
-        }
-      } catch {}
+  for (const data of await Promise.all(fetches)) {
+    if (data && !seenNames.has(data.info.name)) {
+      seenNames.add(data.info.name);
+      allResults.push(data);
     }
   }
 
@@ -649,198 +610,93 @@ export async function searchAllSources(
   });
 }
 
-// Calculate relevance score for intelligent ranking (best first)
-// This is a comprehensive scoring algorithm that considers multiple factors
 function calculateRelevanceScore(project: UnifiedProject, query: string): number {
-  const queryLower = query.toLowerCase().trim();
-  const queryWords = queryLower.split(/\s+/).filter(w => w.length > 1);
-  let score = 0;
+  const q = query.toLowerCase().trim();
+  const qWords = q.split(/\s+/).filter((w) => w.length > 1);
+  const name = project.name.toLowerCase();
+  const nameTokens = name.split(/[-_\s.]+/).filter(Boolean);
+  let s = 0;
 
-  // === NAME MATCHING (Highest Priority) ===
-  const nameLower = project.name.toLowerCase();
-  const nameWords = nameLower.split(/[-_\s.]+/).filter(Boolean);
-  
-  // Perfect exact match
-  if (nameLower === queryLower) {
-    score += 15000;
-  }
-  // Exact match ignoring separators
-  else if (nameLower.replace(/[-_\s.]/g, '') === queryLower.replace(/[-_\s.]/g, '')) {
-    score += 12000;
-  }
-  // Name starts with query
-  else if (nameLower.startsWith(queryLower)) {
-    score += 8000;
-  }
-  // Name ends with query (e.g., "react" matches "preact")
-  else if (nameLower.endsWith(queryLower)) {
-    score += 6000;
-  }
-  // Name contains query as whole word
-  else if (nameWords.includes(queryLower)) {
-    score += 5000;
-  }
-  // Name contains query as substring
-  else if (nameLower.includes(queryLower)) {
-    score += 3000;
+  // --- Name match (dominant signal) ---
+  if (name === q) s += 15_000;
+  else if (name.replace(/[-_\s.]/g, "") === q.replace(/[-_\s.]/g, "")) s += 12_000;
+  else if (name.startsWith(q)) s += 8_000;
+  else if (nameTokens.includes(q)) s += 5_000;
+  else if (name.includes(q)) s += 3_000;
+
+  if (qWords.length > 1) {
+    const hits = qWords.filter((w) => nameTokens.some((n) => n.includes(w) || w.includes(n)));
+    if (hits.length === qWords.length) s += 4_000;
+    s += hits.length * 1_000;
   }
 
-  // Multi-word query matching in name
-  if (queryWords.length > 1) {
-    const allWordsInName = queryWords.every(qw => 
-      nameWords.some(nw => nw.includes(qw) || qw.includes(nw))
-    );
-    if (allWordsInName) score += 4000;
-    
-    // Partial word matches
-    const matchingWords = queryWords.filter(qw =>
-      nameWords.some(nw => nw.includes(qw) || qw.includes(nw))
-    ).length;
-    score += matchingWords * 1000;
+  for (const w of qWords) {
+    for (const n of nameTokens) {
+      if (n === w) s += 1_200;
+      else if (n.startsWith(w)) s += 800;
+      else if (n.includes(w)) s += 400;
+    }
   }
 
-  // Single word matches in name
-  queryWords.forEach(qWord => {
-    nameWords.forEach(nWord => {
-      if (nWord === qWord) score += 1200; // Exact word match
-      else if (nWord.startsWith(qWord)) score += 800; // Word starts with query
-      else if (nWord.includes(qWord)) score += 400; // Word contains query
-    });
-  });
+  // --- Full path ---
+  const full = project.fullName.toLowerCase();
+  if (full.includes(q)) s += 600;
+  for (const w of qWords) if (full.includes(w)) s += 250;
 
-  // === FULL NAME / PATH MATCHING ===
-  const fullNameLower = project.fullName.toLowerCase();
-  if (fullNameLower.includes(queryLower)) score += 600;
-  queryWords.forEach(qw => {
-    if (fullNameLower.includes(qw)) score += 250;
-  });
-
-  // === DESCRIPTION MATCHING ===
+  // --- Description ---
   if (project.description) {
-    const descLower = project.description.toLowerCase();
-    const descWords = descLower.split(/\s+/);
-    
-    // Exact phrase in description
-    if (descLower.includes(queryLower)) score += 800;
-    
-    // All query words in description
-    if (queryWords.length > 1) {
-      const allWordsInDesc = queryWords.every(qw => descLower.includes(qw));
-      if (allWordsInDesc) score += 600;
+    const d = project.description.toLowerCase();
+    if (d.includes(q)) s += 800;
+    if (qWords.length > 1 && qWords.every((w) => d.includes(w))) s += 600;
+    for (const w of qWords) {
+      const hits = (d.match(new RegExp(w, "g")) || []).length;
+      s += Math.min(hits * 150, 600);
     }
-    
-    // Individual word matches
-    queryWords.forEach(qWord => {
-      // Count occurrences (more mentions = more relevant)
-      const occurrences = (descLower.match(new RegExp(qWord, 'g')) || []).length;
-      score += Math.min(occurrences * 150, 600); // Cap at 600
-      
-      // Bonus if word appears early in description
-      const firstIndex = descWords.findIndex(w => w.includes(qWord));
-      if (firstIndex !== -1 && firstIndex < 10) {
-        score += (10 - firstIndex) * 20;
-      }
-    });
   }
 
-  // === TOPIC/TAG MATCHING (Very Important) ===
-  const topicsLower = project.topics.map(t => t.toLowerCase());
-  
-  // Exact topic match
-  const exactTopicMatches = topicsLower.filter(t => t === queryLower).length;
-  score += exactTopicMatches * 2000;
-  
-  // Topic contains query
-  const containsTopicMatches = topicsLower.filter(t => t.includes(queryLower)).length;
-  score += containsTopicMatches * 800;
-  
-  // Query words match topics
-  queryWords.forEach(qw => {
-    const matches = topicsLower.filter(t => t === qw || t.includes(qw)).length;
-    score += matches * 500;
-  });
+  // --- Topics ---
+  const topics = project.topics.map((t) => t.toLowerCase());
+  s += topics.filter((t) => t === q).length * 2_000;
+  s += topics.filter((t) => t.includes(q)).length * 800;
+  for (const w of qWords) s += topics.filter((t) => t.includes(w)).length * 500;
 
-  // === AUTHOR MATCHING ===
-  if (project.author.name.toLowerCase().includes(queryLower)) {
-    score += 400;
-  }
-
-  // === POPULARITY METRICS ===
-  // Stars (logarithmic scale to prevent mega-popular projects from dominating)
-  if (project.stars > 0) {
-    const starScore = Math.log10(project.stars + 1) * 200;
-    score += Math.min(starScore, 2000); // Cap at 2000
-    
-    // Bonus for extremely popular projects
-    if (project.stars > 10000) score += 500;
-    if (project.stars > 50000) score += 500;
-  }
-  
-  // Downloads (for npm, PyPI, Hugging Face)
-  if (project.downloads && project.downloads > 0) {
-    const downloadScore = Math.log10(project.downloads + 1) * 150;
-    score += Math.min(downloadScore, 1500); // Cap at 1500
-  }
-
-  // === RECENCY & MAINTENANCE ===
-  const daysSinceUpdate = Math.floor(
-    (Date.now() - new Date(project.updatedAt).getTime()) / (1000 * 60 * 60 * 24)
-  );
-  
-  if (daysSinceUpdate < 7) score += 500;       // Updated this week
-  else if (daysSinceUpdate < 30) score += 300; // Updated this month
-  else if (daysSinceUpdate < 90) score += 150; // Updated this quarter
-  else if (daysSinceUpdate < 180) score += 50; // Updated within 6 months
-  else if (daysSinceUpdate > 365) score -= 200; // Stale (1+ year)
-  else if (daysSinceUpdate > 730) score -= 500; // Very stale (2+ years)
-
-  // === SOURCE QUALITY ===
-  // Different sources have different quality indicators
-  const sourceBonus: Record<SourceType, number> = {
-    github: 150,       // Most popular for general code
-    npm: 120,          // Popular for JS packages
-    huggingface: 140,  // Popular for AI/ML
-    pypi: 120,         // Popular for Python packages
-    gitlab: 100,       // Less popular but still valuable
-    crates: 120,       // Rust ecosystem
-    codeberg: 100,     // FOSS git hosting
-    packagist: 110,    // PHP packages
-    rubygems: 110,     // Ruby gems
-    hackernews: 90,    // Community discussion
-    reddit: 90,        // Community discussion
-  };
-  score += sourceBonus[project.source] || 0;
-
-  // === LICENSE ===
-  if (project.license) {
-    const licenseLower = project.license.toLowerCase();
-    // Prefer permissive open source licenses
-    if (licenseLower.includes('mit')) score += 100;
-    else if (licenseLower.includes('apache')) score += 100;
-    else if (licenseLower.includes('bsd')) score += 80;
-    else if (licenseLower.includes('gpl')) score += 60;
-    else if (!licenseLower.includes('proprietary')) score += 40;
-  }
-
-  // === LANGUAGE MATCHING ===
+  // --- Language match ---
   if (project.language) {
-    const langLower = project.language.toLowerCase();
-    // Bonus if query matches language
-    if (queryLower.includes(langLower) || langLower.includes(queryLower)) {
-      score += 600;
-    }
+    const lang = project.language.toLowerCase();
+    if (q.includes(lang) || lang.includes(q)) s += 600;
   }
 
-  // === QUALITY INDICATORS ===
-  // Projects with more topics tend to be better documented
-  if (project.topics.length > 3) score += 100;
-  if (project.topics.length > 6) score += 100;
-  
-  // Projects with descriptions are better
-  if (project.description && project.description.length > 50) score += 150;
-  if (project.description && project.description.length > 150) score += 100;
+  // --- Popularity (log-scaled, capped) ---
+  if (project.stars > 0) {
+    s += Math.min(Math.log10(project.stars + 1) * 200, 2_000);
+    if (project.stars > 10_000) s += 500;
+    if (project.stars > 50_000) s += 500;
+  }
+  if (project.downloads && project.downloads > 0) {
+    s += Math.min(Math.log10(project.downloads + 1) * 150, 1_500);
+  }
 
-  return Math.max(0, score); // Ensure non-negative
+  // --- Recency ---
+  const ageDays = (Date.now() - new Date(project.updatedAt).getTime()) / 86_400_000;
+  if (ageDays < 7) s += 500;
+  else if (ageDays < 30) s += 300;
+  else if (ageDays < 90) s += 150;
+  else if (ageDays > 730) s -= 500;
+  else if (ageDays > 365) s -= 200;
+
+  // --- Source baseline ---
+  const srcBonus: Record<SourceType, number> = {
+    github: 150, huggingface: 140, npm: 120, pypi: 120, crates: 120,
+    packagist: 110, rubygems: 110, gitlab: 100, codeberg: 100,
+    hackernews: 90, reddit: 90,
+  };
+  s += srcBonus[project.source] ?? 0;
+
+  // --- Quality signals ---
+  if (project.description && project.description.length > 50) s += 150;
+  if (project.topics.length > 3) s += 100;
+
+  return Math.max(0, s);
 }
 
 export async function getProjectReadme(project: UnifiedProject): Promise<string | null> {
