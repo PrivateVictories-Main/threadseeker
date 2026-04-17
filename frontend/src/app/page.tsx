@@ -11,6 +11,7 @@ import {
   UnifiedProject,
   SourceType,
   mergeRelatedProjects,
+  getSourceConfig,
 } from "@/lib/sources";
 import { optimizeQueries, isBackendConfigured } from "@/lib/api-client";
 import { toast } from "sonner";
@@ -55,6 +56,7 @@ export default function Home() {
   const [projects, setProjects] = useState<UnifiedProject[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pendingSources, setPendingSources] = useState(0);
+  const [pendingSourceList, setPendingSourceList] = useState<SourceType[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedSources, setSelectedSources] = useState<SourceType[]>(ALL_SOURCES);
@@ -76,6 +78,7 @@ export default function Home() {
       setProjects([]);
       setIsLoading(true);
       setPendingSources(selectedSources.length);
+      setPendingSourceList(selectedSources);
       setHasSearched(true);
       // Preserve URL-restored view on initial auto-search; otherwise reset.
       if (!preserveView) {
@@ -114,6 +117,7 @@ export default function Home() {
           (event) => {
             if (searchRunIdRef.current !== runId) return; // stale run
             setPendingSources(event.remaining);
+            setPendingSourceList((prev) => prev.filter((s) => s !== event.source));
             if (event.projects.length > 0) {
               setProjects((prev) => {
                 // Merge by id (projects arrive per-source, so collisions are
@@ -147,6 +151,7 @@ export default function Home() {
         if (searchRunIdRef.current === runId) {
           setIsLoading(false);
           setPendingSources(0);
+          setPendingSourceList([]);
         }
       }
     },
@@ -263,8 +268,24 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {isLoading && resultCount === 0 ? (
           <div className="space-y-4">
-            <div className="text-sm text-slate-500">
-              Searching {activeSources} sources...
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <span>Searching {activeSources} sources</span>
+              <span className="inline-flex items-center gap-1 text-slate-400">
+                {pendingSourceList.slice(0, 10).map((src) => (
+                  <span
+                    key={src}
+                    title={getSourceConfig(src).name}
+                    className="inline-block animate-pulse"
+                  >
+                    {getSourceConfig(src).icon}
+                  </span>
+                ))}
+                {pendingSourceList.length > 10 && (
+                  <span className="text-slate-600">
+                    +{pendingSourceList.length - 10}
+                  </span>
+                )}
+              </span>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 9 }).map((_, i) => (
@@ -307,8 +328,23 @@ export default function Home() {
                   {isLoading && pendingSources > 0 && (
                     <span className="ml-2 inline-flex items-center gap-1.5 text-xs text-slate-500">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      still searching {pendingSources}{" "}
-                      {pendingSources === 1 ? "source" : "sources"}…
+                      still searching
+                      <span className="inline-flex items-center gap-1 text-slate-400">
+                        {pendingSourceList.slice(0, 6).map((src) => (
+                          <span
+                            key={src}
+                            title={getSourceConfig(src).name}
+                            className="inline-block"
+                          >
+                            {getSourceConfig(src).icon}
+                          </span>
+                        ))}
+                        {pendingSourceList.length > 6 && (
+                          <span className="text-slate-600">
+                            +{pendingSourceList.length - 6}
+                          </span>
+                        )}
+                      </span>
                     </span>
                   )}
                 </p>
