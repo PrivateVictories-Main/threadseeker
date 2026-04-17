@@ -5,6 +5,47 @@ All notable changes to ThreadSeeker will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-04-17
+
+### Added — 10 new sources + dedup + highlighting
+
+- **10 new sources**: Docker Hub, JSR, Flathub, Dev.to, Lobsters, Stack
+  Overflow, Papers with Code, Homebrew, F-Droid, arXiv — bringing the
+  total to 21.
+- **CORS proxy Pages Function** (`/api/proxy`) with host allowlist for
+  sources that block browser CORS (Docker Hub, Flathub, Lobsters, Stack
+  Overflow, Papers with Code).
+- **Server-side index search** for sources with no search API
+  (`/api/search-homebrew`, `/api/search-fdroid`).
+- **arXiv Atom-XML adapter** (`/api/search-arxiv`).
+- **Cross-source dedup**: same project on GitHub + PyPI + Docker Hub
+  folds into a single card with "Also on" chips.
+- **Query-term highlighting**: matched terms wrapped in `<mark>` in card
+  name + description.
+- **Streaming results**: skeleton clears the moment the first source
+  returns; remaining sources stream in.
+- **Edge-cached Groq calls**: query optimization cached 24h, synthesis
+  cached 1h via Cloudflare Cache API.
+- **`<link rel="preconnect">`** for 11 API hosts — shaves first-query
+  latency.
+
+### Changed
+
+- Ranking: trending boost (1k+ stars, <90d updated → +800), abandonment
+  penalty (>3y stale AND <500 stars), zero-signal penalty, all-token
+  whole-word match boost, intent-aware language/source matching.
+- GitHub and Hugging Face search strategies run in parallel instead of
+  sequential — ~40% latency cut on the slowest sources.
+- Synthesis prompt expanded to 5 buckets (repos / models+papers /
+  packages / containers+desktop / community).
+
+### Removed
+
+- **BYOK (bring-your-own-key)**: no browser-side API key input. Server's
+  `GROQ_API_KEY` serves all users; AI degrades gracefully without it.
+- WebLLM / in-browser LLM inference — the server-side Groq path is
+  faster, free, and doesn't require a GPU.
+
 ## [2.0.0] - 2026-04-17
 
 ### Changed — serverless architecture
@@ -85,19 +126,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned Features
-- [ ] User authentication and profiles
-- [ ] Saved searches and favorites
-- [ ] Dark/Light mode toggle
-- [ ] More search platforms (GitLab, Bitbucket, Stack Overflow)
-- [ ] Advanced filters (language, date, popularity)
-- [ ] Export results (PDF, CSV, JSON)
-- [ ] Browser extension
-- [ ] Mobile app (React Native)
-- [ ] Collaborative features (share searches, comments)
-- [ ] API rate limiting and quotas
-- [ ] Analytics dashboard
-- [ ] Webhook integrations
+### Planned
+- [ ] Saved searches / bookmarks (local-first, no account required)
+- [ ] More registries: Bitbucket, Launchpad, AUR, conda-forge
+- [ ] Date-range and language filters in the results toolbar
+- [ ] Browser extension (omnibox search)
+- [ ] Shareable permalink that also restores sort + source filter
 
 ---
 
@@ -133,6 +167,6 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to contribute to 
 
 ## Links
 
-- [Homepage](https://github.com/PrivateVictories-Main/RedditSearchEngine)
-- [Issues](https://github.com/PrivateVictories-Main/RedditSearchEngine/issues)
-- [Pull Requests](https://github.com/PrivateVictories-Main/RedditSearchEngine/pulls)
+- [Homepage](https://github.com/PrivateVictories-Main/threadseeker)
+- [Issues](https://github.com/PrivateVictories-Main/threadseeker/issues)
+- [Pull Requests](https://github.com/PrivateVictories-Main/threadseeker/pulls)

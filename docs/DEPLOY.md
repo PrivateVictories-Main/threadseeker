@@ -3,9 +3,9 @@
 One deployment. One URL. No servers.
 
 ThreadSeeker is a fully static Next.js site plus a handful of Cloudflare
-Pages Functions that ship alongside it. The whole app — frontend, Reddit
-search, AI query optimization, cross-source synthesis — runs on Cloudflare's
-free tier.
+Pages Functions that ship alongside it. The whole app — frontend, 21
+source adapters, AI query optimization, cross-source synthesis — runs on
+Cloudflare's free tier.
 
 ---
 
@@ -41,7 +41,7 @@ so there's no `NEXT_PUBLIC_BACKEND_URL` to configure.
 
 If `GROQ_API_KEY` isn't set, the AI features degrade gracefully — query
 optimization falls back to rule-based queries and the synthesis box hides
-itself. Everything else (Reddit search, 10 public-API sources) still works.
+itself. Everything else (20 other sources) still works.
 
 ## 4. Deploy
 
@@ -51,24 +51,33 @@ Cloudflare builds on every push. That's it.
 
 ## What runs where
 
-| Feature                                       | Where         | Needs secret? |
-|-----------------------------------------------|---------------|---------------|
-| GitHub / GitLab / Codeberg search             | Browser       | No            |
-| npm / PyPI / crates.io / Packagist / RubyGems | Browser       | No            |
-| Hugging Face search                           | Browser       | No            |
-| Hacker News search                            | Browser       | No            |
-| WebLLM (in-browser LLM)                       | Browser       | No            |
-| Reddit search + sentiment                     | Pages Function| No            |
-| AI query optimization                         | Pages Function| `GROQ_API_KEY`|
-| Cross-source synthesis                        | Pages Function| `GROQ_API_KEY`|
+| Feature                                        | Where          | Needs secret?  |
+|------------------------------------------------|----------------|----------------|
+| GitHub / GitLab / Codeberg search              | Browser        | No             |
+| npm / PyPI / crates / Packagist / RubyGems / JSR | Browser      | No             |
+| Hugging Face search                            | Browser        | No             |
+| Hacker News / Dev.to search                    | Browser        | No             |
+| Reddit search + sentiment                      | Pages Function | No             |
+| Docker Hub / Flathub / Lobsters / SO / Papers with Code | Pages Function (CORS proxy) | No |
+| Homebrew search                                | Pages Function | No             |
+| F-Droid search                                 | Pages Function | No             |
+| arXiv search                                   | Pages Function | No             |
+| AI query optimization                          | Pages Function | `GROQ_API_KEY` |
+| Cross-source synthesis                         | Pages Function | `GROQ_API_KEY` |
 
 ---
 
-## COOP/COEP headers
+## Caching
 
-Required so WebLLM (in-browser LLM inference) can use `SharedArrayBuffer`
-and WebGPU. Already provisioned via `frontend/public/_headers` — Cloudflare
-Pages reads that file automatically.
+Groq calls are edge-cached via the Cloudflare Cache API so the second person
+to search `"react state management"` never waits for an LLM call:
+
+- `/api/optimize-queries` — 24 h TTL, keyed by `[query, intent, year]`
+- `/api/synthesize` — 1 h TTL, keyed by `[query, top-8 project names]`
+- `/api/search-homebrew` — 30 min TTL per query; upstream index cached 24 h
+- `/api/search-fdroid` — 1 h in-isolate cache; upstream index cached 24 h
+- `/api/search-arxiv` — 6 h TTL per query
+- `/api/proxy` — 5 min TTL per upstream URL
 
 ---
 
@@ -79,8 +88,10 @@ Pages reads that file automatically.
 cd frontend
 npm install
 
-# Option A — frontend only (no backend features)
-# Works with all 10 public-API sources + WebLLM. Reddit + AI are disabled.
+# Option A — frontend only (most sources work)
+# Works with the public-API sources. Sources that go through Pages
+# Functions (Reddit, Docker Hub, Flathub, Lobsters, Stack Overflow, Papers
+# with Code, Homebrew, F-Droid, arXiv, AI features) are disabled.
 echo "NEXT_PUBLIC_BACKEND_URL=disabled" > .env.local
 npm run dev
 # -> http://localhost:3000
@@ -88,7 +99,7 @@ npm run dev
 # Option B — frontend + Pages Functions (full feature set)
 # Requires the Cloudflare Wrangler CLI:
 npm install -g wrangler
-export GROQ_API_KEY=gsk_...          # your Groq key
+export GROQ_API_KEY=gsk_…              # your Groq key (optional)
 NEXT_OUTPUT=export npm run build
 wrangler pages dev out
 # -> http://localhost:8788
