@@ -24,7 +24,10 @@ export type SourceType =
   | "paperswithcode"
   | "homebrew"
   | "fdroid"
-  | "arxiv";
+  | "arxiv"
+  | "aur"
+  | "openvsx"
+  | "conda";
 
 export interface RelatedSource {
   source: SourceType;
@@ -928,6 +931,118 @@ export async function searchArxiv(query: string): Promise<SearchResult> {
   };
 }
 
+// AUR — Arch Linux User Repository. RPC returns JSON; proxied because the
+// AUR endpoint's CORS headers are inconsistent across browsers.
+export async function searchAUR(query: string): Promise<SearchResult> {
+  try {
+    const url = `https://aur.archlinux.org/rpc/?v=5&type=search&by=name-desc&arg=${encodeURIComponent(query)}`;
+    const data = await fetchViaProxy<{ results: any[] }>(url);
+    const results = (data?.results || []).slice(0, 25);
+    return {
+      projects: results.map((p: any) => ({
+        id: `aur-${p.ID}`,
+        source: "aur" as const,
+        name: p.Name,
+        fullName: p.Name,
+        description: p.Description || null,
+        url: `https://aur.archlinux.org/packages/${p.Name}`,
+        stars: p.NumVotes || 0,
+        downloads: undefined,
+        language: null,
+        topics: (p.Keywords || []).slice(0, 6),
+        author: {
+          name: p.Maintainer || "orphaned",
+          avatar: "",
+        },
+        updatedAt: p.LastModified
+          ? new Date(p.LastModified * 1000).toISOString()
+          : new Date().toISOString(),
+        license: Array.isArray(p.License) ? p.License[0] : p.License,
+      })),
+      totalCount: results.length,
+      source: "aur",
+    };
+  } catch (error) {
+    console.error("AUR search error:", error);
+    return { projects: [], totalCount: 0, source: "aur" };
+  }
+}
+
+// Open VSX — open-source VS Code extension marketplace (Eclipse Foundation).
+// CORS-enabled public API, called directly from the browser.
+export async function searchOpenVsx(query: string): Promise<SearchResult> {
+  try {
+    const url = `https://open-vsx.org/api/-/search?query=${encodeURIComponent(query)}&size=25&sortBy=relevance&sortOrder=desc`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Open VSX ${res.status}`);
+    const data = (await res.json()) as { extensions: any[] };
+    const results = data.extensions || [];
+    return {
+      projects: results.map((ext: any) => ({
+        id: `openvsx-${ext.namespace}.${ext.name}`,
+        source: "openvsx" as const,
+        name: ext.displayName || ext.name,
+        fullName: `${ext.namespace}/${ext.name}`,
+        description: ext.description || null,
+        url: ext.url || `https://open-vsx.org/extension/${ext.namespace}/${ext.name}`,
+        stars: 0,
+        downloads: ext.downloadCount || 0,
+        language: null,
+        topics: [ext.namespace].concat((ext.categories || []).slice(0, 3)).filter(Boolean),
+        author: {
+          name: ext.namespace || "unknown",
+          avatar: ext.namespaceAccess === "public" ? "" : "",
+        },
+        updatedAt: ext.timestamp || new Date().toISOString(),
+        license: ext.license ?? undefined,
+      })),
+      totalCount: results.length,
+      source: "openvsx",
+    };
+  } catch (error) {
+    console.error("Open VSX search error:", error);
+    return { projects: [], totalCount: 0, source: "openvsx" };
+  }
+}
+
+// conda-forge — anaconda.org public search. Returns packages from
+// conda-forge, bioconda, and other channels.
+export async function searchCondaForge(query: string): Promise<SearchResult> {
+  try {
+    const url = `https://api.anaconda.org/search?name=${encodeURIComponent(query)}`;
+    const data = await fetchViaProxy<any[]>(url);
+    if (!Array.isArray(data)) return { projects: [], totalCount: 0, source: "conda" };
+    // Filter to conda-forge channel primarily, then the top 25.
+    const filtered = data
+      .filter((p: any) => p.owner === "conda-forge" || p.owner === "bioconda")
+      .slice(0, 25);
+    return {
+      projects: filtered.map((p: any) => ({
+        id: `conda-${p.owner}-${p.name}`,
+        source: "conda" as const,
+        name: p.name,
+        fullName: `${p.owner}/${p.name}`,
+        description: p.summary || null,
+        url: `https://anaconda.org/${p.owner}/${p.name}`,
+        stars: 0,
+        downloads: p.total_downloads || 0,
+        language: null,
+        topics: [p.owner, ...(p.platforms || []).slice(0, 3)].filter(Boolean),
+        author: { name: p.owner, avatar: "" },
+        updatedAt: p.latest_upload_time
+          ? new Date(p.latest_upload_time).toISOString()
+          : new Date().toISOString(),
+        license: p.license ?? undefined,
+      })),
+      totalCount: filtered.length,
+      source: "conda",
+    };
+  } catch (error) {
+    console.error("conda-forge search error:", error);
+    return { projects: [], totalCount: 0, source: "conda" };
+  }
+}
+
 // Reddit — CORS blocked client-side, proxied through our Pages Function
 export async function searchReddit(query: string): Promise<SearchResult> {
   try {
@@ -980,6 +1095,9 @@ export async function searchAllSources(
     "homebrew",
     "fdroid",
     "arxiv",
+    "aur",
+    "openvsx",
+    "conda",
   ],
   deepSearch: boolean = true,
   queryOverrides: Partial<Record<SourceType, string>> = {},
@@ -1050,6 +1168,12 @@ export async function searchAllSources(
         return searchFDroid(q("fdroid"));
       case "arxiv":
         return searchArxiv(q("arxiv"));
+      case "aur":
+        return searchAUR(q("aur"));
+      case "openvsx":
+        return searchOpenVsx(q("openvsx"));
+      case "conda":
+        return searchCondaForge(q("conda"));
       default:
         return { projects: [], totalCount: 0, source };
     }
@@ -1175,6 +1299,7 @@ function calculateRelevanceScore(project: UnifiedProject, query: string): number
     homebrew: 110, fdroid: 100, arxiv: 110,
     paperswithcode: 115, stackoverflow: 95,
     hackernews: 90, reddit: 90, lobsters: 90, devto: 85,
+    aur: 100, openvsx: 110, conda: 115,
   };
   s += srcBonus[project.source] ?? 0;
 
@@ -1399,6 +1524,27 @@ export function getSourceConfig(source: SourceType) {
       borderColor: "border-red-500/30",
       bgColor: "bg-red-500/10",
     },
+    aur: {
+      name: "AUR",
+      icon: "🏛️",
+      color: "from-sky-500 to-blue-600",
+      borderColor: "border-sky-500/30",
+      bgColor: "bg-sky-500/10",
+    },
+    openvsx: {
+      name: "Open VSX",
+      icon: "🧩",
+      color: "from-violet-500 to-purple-600",
+      borderColor: "border-violet-500/30",
+      bgColor: "bg-violet-500/10",
+    },
+    conda: {
+      name: "conda-forge",
+      icon: "🥬",
+      color: "from-green-500 to-emerald-600",
+      borderColor: "border-green-500/30",
+      bgColor: "bg-green-500/10",
+    },
   };
   return configs[source];
 }
@@ -1421,6 +1567,9 @@ const DEDUPABLE_SOURCES: ReadonlySet<SourceType> = new Set<SourceType>([
   "flathub",
   "homebrew",
   "fdroid",
+  "aur",
+  "openvsx",
+  "conda",
 ]);
 
 // Normalize a project's name/identifier for comparison: strip scopes, cases,

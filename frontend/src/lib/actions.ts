@@ -250,6 +250,50 @@ export function getProjectActions(project: UnifiedProject): ProjectAction[] {
       });
       break;
     }
+    case "aur": {
+      actions.push({
+        kind: "install",
+        label: "yay",
+        command: `yay -S ${project.name}`,
+      });
+      actions.push({
+        kind: "install",
+        label: "paru",
+        command: `paru -S ${project.name}`,
+      });
+      actions.push({
+        kind: "clone",
+        label: "git clone",
+        command: `git clone https://aur.archlinux.org/${project.name}.git`,
+      });
+      break;
+    }
+    case "openvsx": {
+      actions.push({
+        kind: "install",
+        label: "code",
+        command: `code --install-extension ${project.fullName.replace("/", ".")}`,
+      });
+      actions.push({
+        kind: "install",
+        label: "codium",
+        command: `codium --install-extension ${project.fullName.replace("/", ".")}`,
+      });
+      break;
+    }
+    case "conda": {
+      actions.push({
+        kind: "install",
+        label: "conda",
+        command: `conda install -c conda-forge ${project.name}`,
+      });
+      actions.push({
+        kind: "install",
+        label: "mamba",
+        command: `mamba install -c conda-forge ${project.name}`,
+      });
+      break;
+    }
   }
 
   actions.push({

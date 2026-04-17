@@ -20,6 +20,8 @@ const HOST_ALLOWLIST = new Set<string>([
   "sourceforge.net",
   "arxiv.org",
   "export.arxiv.org",
+  "aur.archlinux.org",
+  "api.anaconda.org",
 ]);
 
 export const onRequestOptions: PagesFunction = async () => corsPreflight();
