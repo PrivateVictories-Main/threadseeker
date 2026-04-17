@@ -14,6 +14,7 @@ import {
   emitBookmarksChanged,
   onBookmarksChanged,
 } from "@/lib/bookmarks";
+import { supportsReadme, fetchReadmeExcerpt } from "@/lib/readme";
 import {
   Star,
   Download,
@@ -28,6 +29,8 @@ import {
   ArrowUpRight,
   Bookmark,
   BookmarkCheck,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -80,6 +83,27 @@ function SentimentBadge({
 export function UnifiedProjectCard({ project, query = "" }: UnifiedProjectCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [pinned, setPinned] = useState(false);
+  const [readmeOpen, setReadmeOpen] = useState(false);
+  const [readme, setReadme] = useState<string | null>(null);
+  const [readmeLoading, setReadmeLoading] = useState(false);
+  const canPreview = supportsReadme(project.source);
+
+  const handleTogglePreview = async () => {
+    if (readmeOpen) {
+      setReadmeOpen(false);
+      return;
+    }
+    setReadmeOpen(true);
+    if (readme === null && !readmeLoading) {
+      setReadmeLoading(true);
+      try {
+        const text = await fetchReadmeExcerpt(project.source, project.fullName);
+        setReadme(text || "");
+      } finally {
+        setReadmeLoading(false);
+      }
+    }
+  };
 
   // Hydrate bookmark state after mount — reading localStorage at render time
   // would break SSR for the static export.
@@ -329,6 +353,22 @@ export function UnifiedProjectCard({ project, query = "" }: UnifiedProjectCardPr
               </>
             ) : null}
 
+            {canPreview && (
+              <button
+                onClick={handleTogglePreview}
+                className={`p-2 border border-slate-800/40 rounded-lg hover:bg-slate-800/40 transition-colors ${
+                  readmeOpen ? "text-slate-300 bg-slate-800/40" : "text-slate-600 hover:text-slate-400"
+                }`}
+                title={readmeOpen ? "Hide README" : "Preview README"}
+              >
+                {readmeLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <FileText className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
+
             <a
               href={project.url}
               target="_blank"
@@ -338,6 +378,28 @@ export function UnifiedProjectCard({ project, query = "" }: UnifiedProjectCardPr
             >
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
+          </div>
+        )}
+
+        {/* README preview — plain-text excerpt, no markdown rendering to
+            keep the bundle tiny and sidestep XSS. */}
+        {readmeOpen && (
+          <div className="rounded-lg bg-slate-900/60 border border-slate-800/40 p-3 max-h-64 overflow-y-auto">
+            {readmeLoading ? (
+              <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Loading README…
+              </div>
+            ) : readme ? (
+              <pre className="text-[11px] text-slate-400 whitespace-pre-wrap font-sans leading-relaxed">
+                {readme}
+                {readme.length >= 1200 && (
+                  <span className="text-slate-600">… (truncated)</span>
+                )}
+              </pre>
+            ) : (
+              <p className="text-[11px] text-slate-600">No README available.</p>
+            )}
           </div>
         )}
 

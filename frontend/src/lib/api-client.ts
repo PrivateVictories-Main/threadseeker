@@ -86,6 +86,22 @@ export async function searchRedditViaBackend(
   }
 }
 
+export async function relatedQueries(query: string): Promise<string[]> {
+  try {
+    const response = await fetch(apiUrl("/related-queries"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    if (!response.ok) return [];
+    const data = (await response.json()) as { related?: string[] };
+    return Array.isArray(data.related) ? data.related : [];
+  } catch (error) {
+    console.error("relatedQueries failed:", error);
+    return [];
+  }
+}
+
 export async function synthesizeResults(
   query: string,
   projects: UnifiedProject[],

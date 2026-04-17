@@ -16,7 +16,7 @@ import {
   getSourceConfig,
   getSourceSearchUrl,
 } from "@/lib/sources";
-import { optimizeQueries, isBackendConfigured } from "@/lib/api-client";
+import { optimizeQueries, relatedQueries, isBackendConfigured } from "@/lib/api-client";
 import { parseQuery, applyOperators, describeOperators } from "@/lib/query-parser";
 import { toast } from "sonner";
 import { Search, Globe, ArrowRight, Clock, X } from "lucide-react";
@@ -93,6 +93,7 @@ export default function Home() {
   const [activeSourceFilter, setActiveSourceFilter] = useState<SourceType | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [searchDurationMs, setSearchDurationMs] = useState<number | null>(null);
+  const [related, setRelated] = useState<string[]>([]);
   const [focusedIdx, setFocusedIdx] = useState<number>(-1);
   const initialLoadDone = useRef(false);
   const searchRunIdRef = useRef(0);
@@ -171,6 +172,7 @@ export default function Home() {
       setProjects([]);
       setIsLoading(true);
       setSearchDurationMs(null);
+      setRelated([]);
       // If the query pins a specific source, only search that one.
       const targetSources = parsed.source && (selectedSources as string[]).includes(parsed.source)
         ? [parsed.source]
@@ -247,6 +249,13 @@ export default function Home() {
 
         if (results.length === 0) {
           toast.info("No results found. Try different keywords or enable more sources.");
+        }
+
+        // Fire-and-forget related queries — not critical, just decorative.
+        if (isBackendConfigured() && results.length > 0) {
+          relatedQueries(freeText).then((list) => {
+            if (searchRunIdRef.current === runId) setRelated(list);
+          });
         }
       } catch (error) {
         if (searchRunIdRef.current !== runId) return;
@@ -516,6 +525,25 @@ export default function Home() {
                     </span>
                   )}
                 </p>
+
+                {/* Related searches — Groq-suggested sibling queries. */}
+                {related.length > 0 && !isLoading && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wide text-slate-600">
+                      Related
+                    </span>
+                    {related.map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => handleSearch(r)}
+                        className="text-[11px] text-slate-400 hover:text-slate-100 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-2.5 py-1 transition-colors"
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <div
                   ref={resultsGridRef}
                   className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
