@@ -15,7 +15,29 @@ import {
 } from "@/lib/sources";
 import { optimizeQueries, isBackendConfigured } from "@/lib/api-client";
 import { toast } from "sonner";
-import { Search, Globe, ArrowRight } from "lucide-react";
+import { Search, Globe, ArrowRight, Clock, X } from "lucide-react";
+
+const HISTORY_KEY = "threadseeker:history:v1";
+const HISTORY_MAX = 8;
+
+function loadHistory(): string[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((s) => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(list: string[]) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, HISTORY_MAX)));
+  } catch {
+    /* quota, private mode — silently ignore */
+  }
+}
 
 const ALL_SOURCES: SourceType[] = [
   "github",
@@ -65,6 +87,7 @@ export default function Home() {
   const [selectedSources, setSelectedSources] = useState<SourceType[]>(ALL_SOURCES);
   const [sortMode, setSortMode] = useState<SortMode>("relevance");
   const [activeSourceFilter, setActiveSourceFilter] = useState<SourceType | null>(null);
+  const [history, setHistory] = useState<string[]>([]);
   const initialLoadDone = useRef(false);
   const searchRunIdRef = useRef(0);
 
@@ -83,6 +106,13 @@ export default function Home() {
       setPendingSources(selectedSources.length);
       setPendingSourceList(selectedSources);
       setHasSearched(true);
+
+      // Record the query in local history (most-recent first, deduped).
+      setHistory((prev) => {
+        const next = [q, ...prev.filter((h) => h !== q)].slice(0, HISTORY_MAX);
+        saveHistory(next);
+        return next;
+      });
       // Preserve URL-restored view on initial auto-search; otherwise reset.
       if (!preserveView) {
         setActiveSourceFilter(null);
@@ -165,6 +195,7 @@ export default function Home() {
   useEffect(() => {
     if (initialLoadDone.current) return;
     initialLoadDone.current = true;
+    setHistory(loadHistory());
 
     const params = new URLSearchParams(window.location.search);
     const urlQuery = params.get("q")?.trim();
@@ -249,19 +280,58 @@ export default function Home() {
             />
           </div>
 
+          {/* Recent searches — from local storage */}
+          {!hasSearched && !isLoading && history.length > 0 && (
+            <div className="mt-6">
+              <div className="flex items-center justify-center gap-2 mb-2 text-[10px] uppercase tracking-wide text-slate-600">
+                <Clock className="w-3 h-3" />
+                Recent
+                <button
+                  onClick={() => {
+                    setHistory([]);
+                    saveHistory([]);
+                  }}
+                  className="ml-1 text-slate-700 hover:text-slate-500 transition-colors"
+                  title="Clear history"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                {history.map((h) => (
+                  <button
+                    key={h}
+                    onClick={() => handleSearch(h)}
+                    className="group flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 bg-slate-900/60 hover:bg-slate-800/70 border border-slate-800/60 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-all"
+                  >
+                    <span>{h}</span>
+                    <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Example queries — only on landing */}
           {!hasSearched && !isLoading && (
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
-              {EXAMPLE_QUERIES.map((eq) => (
-                <button
-                  key={eq}
-                  onClick={() => handleSearch(eq)}
-                  className="group flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/50 rounded-full px-3 py-1.5 transition-all"
-                >
-                  <span>{eq}</span>
-                  <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
-              ))}
+            <div className="mt-6">
+              {history.length > 0 && (
+                <div className="flex items-center justify-center mb-2 text-[10px] uppercase tracking-wide text-slate-600">
+                  Try
+                </div>
+              )}
+              <div className="flex flex-wrap justify-center gap-2">
+                {EXAMPLE_QUERIES.map((eq) => (
+                  <button
+                    key={eq}
+                    onClick={() => handleSearch(eq)}
+                    className="group flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/50 rounded-full px-3 py-1.5 transition-all"
+                  >
+                    <span>{eq}</span>
+                    <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
