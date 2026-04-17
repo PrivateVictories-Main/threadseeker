@@ -39,20 +39,28 @@ const EXAMPLE_QUERIES = [
 export default function Home() {
   const [projects, setProjects] = useState<UnifiedProject[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingSources, setPendingSources] = useState(0);
   const [hasSearched, setHasSearched] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedSources, setSelectedSources] = useState<SourceType[]>(ALL_SOURCES);
   const [sortMode, setSortMode] = useState<SortMode>("relevance");
   const [activeSourceFilter, setActiveSourceFilter] = useState<SourceType | null>(null);
   const initialLoadDone = useRef(false);
+  const searchRunIdRef = useRef(0);
 
   const handleSearch = useCallback(
     async (searchQuery: string) => {
       const q = searchQuery.trim();
       if (!q) return;
 
+      // Bump run id so stale progress events from an older search are ignored.
+      searchRunIdRef.current += 1;
+      const runId = searchRunIdRef.current;
+
       setQuery(q);
+      setProjects([]);
       setIsLoading(true);
+      setPendingSources(selectedSources.length);
       setHasSearched(true);
       setActiveSourceFilter(null);
       setSortMode("relevance");
@@ -78,17 +86,50 @@ export default function Home() {
           }
         }
 
-        const results = await searchAllSources(q, selectedSources, true, overrides);
+        // Stream each source's results into state as they arrive. The
+        // skeleton disappears the moment the first source returns.
+        const results = await searchAllSources(
+          q,
+          selectedSources,
+          true,
+          overrides,
+          (event) => {
+            if (searchRunIdRef.current !== runId) return; // stale run
+            setPendingSources(event.remaining);
+            if (event.projects.length > 0) {
+              setProjects((prev) => {
+                // Merge by id (projects arrive per-source, so collisions are
+                // rare but we dedupe defensively), then re-rank as a whole.
+                const seen = new Set(prev.map((p) => p.id));
+                const merged = prev.slice();
+                for (const p of event.projects) {
+                  if (!seen.has(p.id)) {
+                    seen.add(p.id);
+                    merged.push(p);
+                  }
+                }
+                return merged;
+              });
+            }
+          },
+        );
+
+        if (searchRunIdRef.current !== runId) return;
+        // Final authoritative sort once everything is in.
         setProjects(results);
 
         if (results.length === 0) {
           toast.info("No results found. Try different keywords or enable more sources.");
         }
       } catch (error) {
+        if (searchRunIdRef.current !== runId) return;
         toast.error("Search failed. Please try again.");
         console.error(error);
       } finally {
-        setIsLoading(false);
+        if (searchRunIdRef.current === runId) {
+          setIsLoading(false);
+          setPendingSources(0);
+        }
       }
     },
     [selectedSources]
@@ -190,7 +231,7 @@ export default function Home() {
 
       {/* Results */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {isLoading ? (
+        {isLoading && resultCount === 0 ? (
           <div className="space-y-4">
             <div className="text-sm text-slate-500">
               Searching {activeSources} sources...
@@ -209,7 +250,9 @@ export default function Home() {
             const view = applyResultsView(projects, sortMode, activeSourceFilter);
             return (
               <div className="space-y-4">
-                <SynthesisBox query={query} projects={projects} />
+                {/* Synthesis only renders once everything has landed, so we
+                    don't spam the API with partial snapshots. */}
+                {!isLoading && <SynthesisBox query={query} projects={projects} />}
                 <ResultsToolbar
                   projects={projects}
                   sortMode={sortMode}
@@ -229,6 +272,13 @@ export default function Home() {
                     <span className="text-slate-600">
                       {" "}
                       for <span className="text-slate-400">{query}</span>
+                    </span>
+                  )}
+                  {isLoading && pendingSources > 0 && (
+                    <span className="ml-2 inline-flex items-center gap-1.5 text-xs text-slate-500">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      still searching {pendingSources}{" "}
+                      {pendingSources === 1 ? "source" : "sources"}…
                     </span>
                   )}
                 </p>

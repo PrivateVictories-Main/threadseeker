@@ -547,8 +547,19 @@ export async function searchReddit(query: string): Promise<SearchResult> {
   }
 }
 
-// Unified multi-source search. When `queryOverrides` is provided, each source
-// uses its per-platform AI-optimized query; otherwise every source uses `query`.
+export interface SearchProgressEvent {
+  source: SourceType;
+  projects: UnifiedProject[];  // ranked slice for this source alone
+  done: boolean;               // true once every source has completed
+  remaining: number;           // sources still in flight after this event
+}
+
+export type SearchProgressCallback = (event: SearchProgressEvent) => void;
+
+// Unified multi-source search. Each source fires `onProgress` the moment it
+// resolves so the UI can render fast sources (GitHub, npm) without waiting
+// on slow ones. The returned promise still resolves with every project,
+// sorted by relevance against the original user query.
 export async function searchAllSources(
   query: string,
   sources: SourceType[] = [
@@ -566,41 +577,72 @@ export async function searchAllSources(
   ],
   deepSearch: boolean = true,
   queryOverrides: Partial<Record<SourceType, string>> = {},
+  onProgress?: SearchProgressCallback,
 ): Promise<UnifiedProject[]> {
   const q = (source: SourceType) => queryOverrides[source] || query;
+  let remaining = sources.length;
 
   const searchPromises = sources.map(async (source) => {
+    let result: SearchResult;
     try {
       switch (source) {
         case "github":
-          return await searchGitHub(q("github"), 1, deepSearch);
+          result = await searchGitHub(q("github"), 1, deepSearch);
+          break;
         case "huggingface":
-          return await searchHuggingFace(q("huggingface"), 1, deepSearch);
+          result = await searchHuggingFace(q("huggingface"), 1, deepSearch);
+          break;
         case "gitlab":
-          return await searchGitLab(q("gitlab"), 1, deepSearch);
+          result = await searchGitLab(q("gitlab"), 1, deepSearch);
+          break;
         case "npm":
-          return await searchNpm(q("npm"), deepSearch);
+          result = await searchNpm(q("npm"), deepSearch);
+          break;
         case "pypi":
-          return await searchPyPI(q("pypi"), deepSearch);
+          result = await searchPyPI(q("pypi"), deepSearch);
+          break;
         case "crates":
-          return await searchCrates(q("crates"));
+          result = await searchCrates(q("crates"));
+          break;
         case "hackernews":
-          return await searchHackerNews(q("hackernews"));
+          result = await searchHackerNews(q("hackernews"));
+          break;
         case "codeberg":
-          return await searchCodeberg(q("codeberg"));
+          result = await searchCodeberg(q("codeberg"));
+          break;
         case "packagist":
-          return await searchPackagist(q("packagist"));
+          result = await searchPackagist(q("packagist"));
+          break;
         case "rubygems":
-          return await searchRubyGems(q("rubygems"));
+          result = await searchRubyGems(q("rubygems"));
+          break;
         case "reddit":
-          return await searchReddit(q("reddit"));
+          result = await searchReddit(q("reddit"));
+          break;
         default:
-          return { projects: [], totalCount: 0, source };
+          result = { projects: [], totalCount: 0, source };
       }
     } catch (error) {
       console.error(`Error searching ${source}:`, error);
-      return { projects: [], totalCount: 0, source };
+      result = { projects: [], totalCount: 0, source };
     }
+
+    remaining -= 1;
+    if (onProgress) {
+      // Sort this source's projects on their own so partial UI renders are
+      // already usefully ordered before later sources arrive.
+      const ranked = [...result.projects].sort(
+        (a, b) =>
+          calculateRelevanceScore(b, query) - calculateRelevanceScore(a, query),
+      );
+      onProgress({
+        source,
+        projects: ranked,
+        done: remaining === 0,
+        remaining,
+      });
+    }
+    return result;
   });
 
   const results = await Promise.all(searchPromises);
