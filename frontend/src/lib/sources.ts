@@ -1181,6 +1181,62 @@ function calculateRelevanceScore(project: UnifiedProject, query: string): number
   if (project.description && project.description.length > 50) s += 150;
   if (project.topics.length > 3) s += 100;
 
+  // --- Trending: actively maintained AND popular ---
+  // Strong signal that this is a live, maintained, well-known project —
+  // exactly what most "find me a library for X" queries want.
+  if (project.stars >= 1_000 && ageDays < 90) s += 800;
+  if (project.stars >= 10_000 && ageDays < 180) s += 400;
+
+  // --- Abandonment penalty ---
+  // Dead repos with few stars clutter results. Don't penalize popular
+  // classics (they may just be done), but punish the long tail.
+  if (ageDays > 365 * 3 && project.stars < 500) s -= 400;
+
+  // --- Zero-signal penalty ---
+  // No stars, no downloads, no description — probably noise.
+  const noStars = project.stars === 0;
+  const noDownloads = !project.downloads || project.downloads === 0;
+  const noDesc = !project.description || project.description.length < 20;
+  if (noStars && noDownloads && noDesc) s -= 600;
+
+  // --- All query terms present (whole-token) in name OR description ---
+  // Much stronger signal than substring hits — means the project actually
+  // is about what the user asked for.
+  if (qWords.length >= 2) {
+    const d = (project.description || "").toLowerCase();
+    const haystack = new Set([...nameTokens, ...d.split(/[^a-z0-9]+/).filter(Boolean)]);
+    const allHit = qWords.every((w) => haystack.has(w));
+    if (allHit) s += 1_500;
+  }
+
+  // --- Intent token boosts ---
+  // When the query mentions an ecosystem (e.g. "react", "python", "rust"),
+  // strongly prefer projects whose language or source matches.
+  const LANG_INTENT: Record<string, { lang?: string[]; sources?: SourceType[] }> = {
+    python: { lang: ["python"], sources: ["pypi"] },
+    py: { lang: ["python"], sources: ["pypi"] },
+    javascript: { lang: ["javascript", "typescript"], sources: ["npm", "jsr"] },
+    js: { lang: ["javascript", "typescript"], sources: ["npm", "jsr"] },
+    typescript: { lang: ["typescript"], sources: ["npm", "jsr"] },
+    ts: { lang: ["typescript"], sources: ["npm", "jsr"] },
+    rust: { lang: ["rust"], sources: ["crates"] },
+    go: { lang: ["go"] },
+    golang: { lang: ["go"] },
+    ruby: { lang: ["ruby"], sources: ["rubygems"] },
+    php: { lang: ["php"], sources: ["packagist"] },
+    react: { lang: ["javascript", "typescript"] },
+    vue: { lang: ["javascript", "typescript"] },
+    svelte: { lang: ["javascript", "typescript"] },
+  };
+  for (const w of qWords) {
+    const intent = LANG_INTENT[w];
+    if (!intent) continue;
+    if (project.language && intent.lang?.some((l) => project.language!.toLowerCase() === l)) {
+      s += 600;
+    }
+    if (intent.sources?.includes(project.source)) s += 300;
+  }
+
   return Math.max(0, s);
 }
 
