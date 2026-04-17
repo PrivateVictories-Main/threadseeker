@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUnifiedAI } from "@/contexts/UnifiedAIContext";
-import { UnifiedProject, getProjectReadme, getSourceConfig } from "@/lib/sources";
+import { UnifiedProject, getSourceConfig } from "@/lib/sources";
 import {
   getProjectActions,
   getPrimaryAction,
@@ -17,9 +16,6 @@ import {
   Terminal,
   ChevronDown,
   ChevronUp,
-  Sparkles,
-  Loader2,
-  X,
   MessageSquare,
   TrendingUp,
   AlertTriangle,
@@ -52,10 +48,6 @@ function SentimentBadge({
 }
 
 export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
-  const { chat, abort, isGenerating, isReady } = useUnifiedAI();
-  const [analysis, setAnalysis] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [showAnalysis, setShowAnalysis] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
   const sourceConfig = getSourceConfig(project.source);
@@ -67,53 +59,6 @@ export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
   const copyCommand = (action: ProjectAction) => {
     navigator.clipboard.writeText(action.command);
     toast.success(`Copied: ${action.command}`);
-  };
-
-  const handleAnalyze = async () => {
-    if (!isReady) {
-      toast.error("Configure an AI provider in settings first.");
-      return;
-    }
-
-    setIsAnalyzing(true);
-    setShowAnalysis(true);
-    setAnalysis("");
-
-    try {
-      const readme = await getProjectReadme(project);
-      if (!readme) {
-        setAnalysis("No documentation found for this project.");
-        setIsAnalyzing(false);
-        return;
-      }
-
-      const truncated =
-        readme.length > 6000 ? readme.substring(0, 6000) + "\n..." : readme;
-
-      await chat(
-        [
-          {
-            role: "system",
-            content:
-              "You are a concise technical analyst. Summarize projects in 3-4 bullet points. Use - for bullets. Focus on: what it does, key features, who should use it, and any prerequisites.",
-          },
-          {
-            role: "user",
-            content: `Analyze "${project.fullName}" (${sourceConfig.name}).\n\nDescription: ${project.description || "None"}\nLanguage: ${project.language || "N/A"}\nTopics: ${project.topics.join(", ") || "None"}\n\nDocumentation:\n${truncated}`,
-          },
-        ],
-        (token) => setAnalysis((prev) => (prev || "") + token)
-      );
-    } catch (error) {
-      if (error instanceof Error && error.message === "Aborted") {
-        setAnalysis((prev) => prev + "\n\n[Stopped]");
-      } else {
-        toast.error("Analysis failed");
-        console.error(error);
-      }
-    } finally {
-      setIsAnalyzing(false);
-    }
   };
 
   return (
@@ -314,47 +259,6 @@ export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
           </div>
         )}
 
-        {/* AI Analysis */}
-        {showAnalysis ? (
-          <div className="rounded-lg bg-slate-900/40 border border-slate-800/30 p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
-                <Sparkles className="w-3 h-3" />
-                AI Analysis
-              </span>
-              <button
-                onClick={() => {
-                  if (isAnalyzing) abort();
-                  setShowAnalysis(false);
-                  setAnalysis(null);
-                }}
-                className="text-slate-600 hover:text-slate-400"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            {analysis ? (
-              <p className="text-xs text-slate-400 whitespace-pre-wrap leading-relaxed">
-                {analysis}
-              </p>
-            ) : (
-              <div className="flex items-center gap-2 text-slate-600 py-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-xs">Analyzing...</span>
-              </div>
-            )}
-          </div>
-        ) : (
-          isReady && (
-            <button
-              onClick={handleAnalyze}
-              className="w-full flex items-center justify-center gap-1.5 text-[11px] text-slate-600 hover:text-slate-400 py-1.5 transition-colors"
-            >
-              <Sparkles className="w-3 h-3" />
-              Analyze with AI
-            </button>
-          )
-        )}
       </div>
     </div>
   );

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import { Providers } from "./providers";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -29,9 +28,7 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen bg-black`}
       >
-        <Providers>
-          {children}
-        </Providers>
+        {children}
         <Toaster 
           position="bottom-right"
           toastOptions={{
