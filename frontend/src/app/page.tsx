@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { SearchBar } from "@/components/SearchBar";
 import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
 import { SourceFilter } from "@/components/SourceFilter";
@@ -15,6 +15,7 @@ import {
   getSourceSearchUrl,
 } from "@/lib/sources";
 import { optimizeQueries, isBackendConfigured } from "@/lib/api-client";
+import { parseQuery, applyOperators, describeOperators } from "@/lib/query-parser";
 import { toast } from "sonner";
 import { Search, Globe, ArrowRight, Clock, X } from "lucide-react";
 
@@ -89,23 +90,39 @@ export default function Home() {
   const [sortMode, setSortMode] = useState<SortMode>("relevance");
   const [activeSourceFilter, setActiveSourceFilter] = useState<SourceType | null>(null);
   const [history, setHistory] = useState<string[]>([]);
+  const [searchDurationMs, setSearchDurationMs] = useState<number | null>(null);
   const initialLoadDone = useRef(false);
   const searchRunIdRef = useRef(0);
+
+  // Parsed query operators (lang:, source:, stars:>, license:) derived from
+  // the raw query each render. Applied as a post-filter on projects below.
+  const parsedQuery = useMemo(() => parseQuery(query), [query]);
 
   const handleSearch = useCallback(
     async (searchQuery: string, preserveView: boolean = false) => {
       const q = searchQuery.trim();
       if (!q) return;
 
+      // Strip operators so upstream APIs only see free-text; operator filters
+      // are applied as a post-filter on the merged result set.
+      const parsed = parseQuery(q);
+      const freeText = parsed.freeText || q;
+
       // Bump run id so stale progress events from an older search are ignored.
       searchRunIdRef.current += 1;
       const runId = searchRunIdRef.current;
+      const startedAt = performance.now();
 
       setQuery(q);
       setProjects([]);
       setIsLoading(true);
-      setPendingSources(selectedSources.length);
-      setPendingSourceList(selectedSources);
+      setSearchDurationMs(null);
+      // If the query pins a specific source, only search that one.
+      const targetSources = parsed.source && (selectedSources as string[]).includes(parsed.source)
+        ? [parsed.source]
+        : selectedSources;
+      setPendingSources(targetSources.length);
+      setPendingSourceList(targetSources);
       setHasSearched(true);
 
       // Record the query in local history (most-recent first, deduped).
@@ -128,7 +145,7 @@ export default function Home() {
           const timeoutP = new Promise<null>((resolve) =>
             setTimeout(() => resolve(null), 3500),
           );
-          const optimized = await Promise.race([optimizeQueries(q), timeoutP]);
+          const optimized = await Promise.race([optimizeQueries(freeText), timeoutP]);
           if (optimized) {
             overrides = {
               github: optimized.github_query,
@@ -144,8 +161,8 @@ export default function Home() {
         // Stream each source's results into state as they arrive. The
         // skeleton disappears the moment the first source returns.
         const results = await searchAllSources(
-          q,
-          selectedSources,
+          freeText,
+          targetSources,
           true,
           overrides,
           (event) => {
@@ -186,6 +203,7 @@ export default function Home() {
           setIsLoading(false);
           setPendingSources(0);
           setPendingSourceList([]);
+          setSearchDurationMs(Math.round(performance.now() - startedAt));
         }
       }
     },
@@ -372,7 +390,9 @@ export default function Home() {
           </div>
         ) : resultCount > 0 ? (
           (() => {
-            const view = applyResultsView(projects, sortMode, activeSourceFilter);
+            const sortedView = applyResultsView(projects, sortMode, activeSourceFilter);
+            const view = applyOperators(sortedView, parsedQuery);
+            const opSummary = describeOperators(parsedQuery);
             return (
               <div className="space-y-4">
                 {/* Synthesis only renders once everything has landed, so we
@@ -393,10 +413,22 @@ export default function Home() {
                       from <span className="text-slate-400">{activeSourceFilter}</span>
                     </span>
                   )}
-                  {query && (
+                  {parsedQuery.freeText && (
                     <span className="text-slate-600">
                       {" "}
-                      for <span className="text-slate-400">{query}</span>
+                      for <span className="text-slate-400">{parsedQuery.freeText}</span>
+                    </span>
+                  )}
+                  {opSummary && (
+                    <span className="text-slate-600">
+                      {" · "}
+                      <span className="text-slate-400 font-mono text-xs">{opSummary}</span>
+                    </span>
+                  )}
+                  {!isLoading && searchDurationMs !== null && (
+                    <span className="text-slate-700">
+                      {" · "}
+                      {(searchDurationMs / 1000).toFixed(2)}s
                     </span>
                   )}
                   {isLoading && pendingSources > 0 && (
