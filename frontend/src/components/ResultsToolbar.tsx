@@ -1,7 +1,8 @@
 "use client";
 
 import { UnifiedProject, SourceType, getSourceConfig } from "@/lib/sources";
-import { ArrowDownWideNarrow } from "lucide-react";
+import { ArrowDownWideNarrow, Link2, Check } from "lucide-react";
+import { useState } from "react";
 
 export type SortMode = "relevance" | "stars" | "updated" | "downloads";
 
@@ -27,6 +28,21 @@ export function ResultsToolbar({
   activeSource,
   onSourceClick,
 }: Props) {
+  const [copied, setCopied] = useState(false);
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ url, title: "ThreadSeeker" });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* user cancelled or clipboard unavailable */
+    }
+  };
   // Count results per source.
   const counts = new Map<SourceType, number>();
   for (const p of projects) {
@@ -69,7 +85,24 @@ export function ResultsToolbar({
         })}
       </div>
 
-      <div className="ml-auto flex items-center gap-1.5">
+      <div className="ml-auto flex items-center gap-2">
+        <button
+          onClick={handleShare}
+          className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-200 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-md px-2 py-1 transition-colors"
+          title="Copy link to these results"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3 h-3 text-emerald-400" />
+              <span>Copied</span>
+            </>
+          ) : (
+            <>
+              <Link2 className="w-3 h-3" />
+              <span>Share</span>
+            </>
+          )}
+        </button>
         <ArrowDownWideNarrow className="w-3 h-3 text-slate-600" />
         <select
           value={sortMode}
