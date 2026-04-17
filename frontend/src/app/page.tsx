@@ -7,6 +7,7 @@ import { SourceFilter } from "@/components/SourceFilter";
 import { SynthesisBox } from "@/components/SynthesisBox";
 import { ResultsToolbar, SortMode, applyResultsView } from "@/components/ResultsToolbar";
 import { TrendingSection } from "@/components/TrendingSection";
+import { SavedSection } from "@/components/SavedSection";
 import {
   searchAllSources,
   UnifiedProject,
@@ -92,12 +93,64 @@ export default function Home() {
   const [activeSourceFilter, setActiveSourceFilter] = useState<SourceType | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [searchDurationMs, setSearchDurationMs] = useState<number | null>(null);
+  const [focusedIdx, setFocusedIdx] = useState<number>(-1);
   const initialLoadDone = useRef(false);
   const searchRunIdRef = useRef(0);
+  const resultsGridRef = useRef<HTMLDivElement | null>(null);
 
   // Parsed query operators (lang:, source:, stars:>, license:) derived from
   // the raw query each render. Applied as a post-filter on projects below.
   const parsedQuery = useMemo(() => parseQuery(query), [query]);
+
+  // Keyboard navigation across result cards. j/ArrowDown → next, k/ArrowUp →
+  // prev, Enter → open focused card's URL (cmd/ctrl-Enter opens in new tab
+  // explicitly; plain Enter also opens in a new tab so we never steal the
+  // ThreadSeeker page). Skipped while typing in inputs/textareas.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      if (!hasSearched) return;
+
+      const grid = resultsGridRef.current;
+      if (!grid) return;
+      const cards = grid.querySelectorAll<HTMLElement>("[data-result-card]");
+      if (cards.length === 0) return;
+
+      if (e.key === "j" || e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusedIdx((i) => {
+          const next = Math.min(cards.length - 1, i < 0 ? 0 : i + 1);
+          cards[next]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          return next;
+        });
+      } else if (e.key === "k" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusedIdx((i) => {
+          const next = Math.max(0, i <= 0 ? 0 : i - 1);
+          cards[next]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          return next;
+        });
+      } else if (e.key === "Enter" && focusedIdx >= 0) {
+        const card = cards[focusedIdx];
+        const url = card?.getAttribute("data-result-url");
+        if (url) {
+          e.preventDefault();
+          window.open(url, "_blank", "noopener,noreferrer");
+        }
+      } else if (e.key === "Escape") {
+        setFocusedIdx(-1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [hasSearched, focusedIdx]);
+
+  // Reset focus whenever results change underneath us.
+  useEffect(() => {
+    setFocusedIdx(-1);
+  }, [query, sortMode, activeSourceFilter, selectedSources]);
 
   const handleSearch = useCallback(
     async (searchQuery: string, preserveView: boolean = false) => {
@@ -332,6 +385,9 @@ export default function Home() {
             </div>
           )}
 
+          {/* Saved projects — only on landing, only when non-empty */}
+          {!hasSearched && !isLoading && <SavedSection />}
+
           {/* Trending — only on landing, behind the example queries */}
           {!hasSearched && !isLoading && (
             <TrendingSection onQueryClick={(q) => handleSearch(q)} />
@@ -460,13 +516,23 @@ export default function Home() {
                     </span>
                   )}
                 </p>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {view.map((project) => (
-                    <UnifiedProjectCard
+                <div
+                  ref={resultsGridRef}
+                  className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                >
+                  {view.map((project, idx) => (
+                    <div
                       key={project.id}
-                      project={project}
-                      query={query}
-                    />
+                      data-result-card
+                      data-result-url={project.url}
+                      className={`transition-shadow rounded-xl ${
+                        focusedIdx === idx
+                          ? "ring-2 ring-amber-500/60 ring-offset-2 ring-offset-black"
+                          : ""
+                      }`}
+                    >
+                      <UnifiedProjectCard project={project} query={query} />
+                    </div>
                   ))}
                 </div>
 
@@ -614,7 +680,12 @@ export default function Home() {
               GitHub
             </a>
             <span className="text-slate-800">·</span>
-            <span>Press <kbd className="px-1 py-0.5 rounded border border-slate-800 text-slate-500">/</kbd> to search</span>
+            <span>
+              Press <kbd className="px-1 py-0.5 rounded border border-slate-800 text-slate-500">/</kbd> to search ·{" "}
+              <kbd className="px-1 py-0.5 rounded border border-slate-800 text-slate-500">j</kbd>/
+              <kbd className="px-1 py-0.5 rounded border border-slate-800 text-slate-500">k</kbd> to navigate ·{" "}
+              <kbd className="px-1 py-0.5 rounded border border-slate-800 text-slate-500">↵</kbd> to open
+            </span>
           </div>
         </div>
       </footer>

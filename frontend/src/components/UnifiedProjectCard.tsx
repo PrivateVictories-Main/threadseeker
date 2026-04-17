@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UnifiedProject, getSourceConfig } from "@/lib/sources";
 import {
   getProjectActions,
@@ -8,6 +8,12 @@ import {
   ProjectAction,
 } from "@/lib/actions";
 import { formatNumber, highlightQuery, timeAgo } from "@/lib/utils";
+import {
+  isBookmarked,
+  toggleBookmark,
+  emitBookmarksChanged,
+  onBookmarksChanged,
+} from "@/lib/bookmarks";
 import {
   Star,
   Download,
@@ -20,6 +26,8 @@ import {
   TrendingUp,
   AlertTriangle,
   ArrowUpRight,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -71,6 +79,22 @@ function SentimentBadge({
 
 export function UnifiedProjectCard({ project, query = "" }: UnifiedProjectCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [pinned, setPinned] = useState(false);
+
+  // Hydrate bookmark state after mount — reading localStorage at render time
+  // would break SSR for the static export.
+  useEffect(() => {
+    setPinned(isBookmarked(project.id));
+    return onBookmarksChanged(() => setPinned(isBookmarked(project.id)));
+  }, [project.id]);
+
+  const handleTogglePin = () => {
+    toggleBookmark(project);
+    emitBookmarksChanged();
+    const nowPinned = !pinned;
+    setPinned(nowPinned);
+    toast.success(nowPinned ? "Saved" : "Removed from saved");
+  };
 
   const sourceConfig = getSourceConfig(project.source);
   const allActions = getProjectActions(project);
@@ -128,6 +152,23 @@ export function UnifiedProjectCard({ project, query = "" }: UnifiedProjectCardPr
               {project.author.name}
             </p>
           </div>
+
+          <button
+            onClick={handleTogglePin}
+            aria-label={pinned ? "Remove from saved" : "Save for later"}
+            title={pinned ? "Saved — click to remove" : "Save for later"}
+            className={`flex-shrink-0 p-1.5 rounded-md transition-colors border ${
+              pinned
+                ? "text-amber-400 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/15"
+                : "text-slate-600 border-slate-800/40 hover:text-slate-300 hover:border-slate-700/60 opacity-0 group-hover:opacity-100 focus:opacity-100"
+            }`}
+          >
+            {pinned ? (
+              <BookmarkCheck className="w-3.5 h-3.5" />
+            ) : (
+              <Bookmark className="w-3.5 h-3.5" />
+            )}
+          </button>
         </div>
       </div>
 
