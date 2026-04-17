@@ -157,10 +157,66 @@ export function getProjectActions(project: UnifiedProject): ProjectAction[] {
       break;
     }
     case "hackernews":
-    case "reddit": {
+    case "reddit":
+    case "lobsters":
+    case "stackoverflow": {
       actions.push({
         kind: "visit",
         label: "Open thread",
+        command: project.url,
+      });
+      break;
+    }
+    case "dockerhub": {
+      actions.push({
+        kind: "pull",
+        label: "docker pull",
+        command: `docker pull ${project.fullName}`,
+      });
+      actions.push({
+        kind: "snippet",
+        label: "compose",
+        command: `services:\n  ${project.name}:\n    image: ${project.fullName}`,
+        description: "docker-compose.yml snippet",
+      });
+      break;
+    }
+    case "jsr": {
+      actions.push({
+        kind: "install",
+        label: "deno",
+        command: `deno add jsr:${project.fullName}`,
+      });
+      actions.push({
+        kind: "install",
+        label: "npx jsr",
+        command: `npx jsr add ${project.fullName}`,
+      });
+      actions.push({
+        kind: "install",
+        label: "bunx jsr",
+        command: `bunx jsr add ${project.fullName}`,
+      });
+      break;
+    }
+    case "flathub": {
+      actions.push({
+        kind: "install",
+        label: "flatpak",
+        command: `flatpak install flathub ${project.fullName}`,
+      });
+      actions.push({
+        kind: "install",
+        label: "run",
+        command: `flatpak run ${project.fullName}`,
+      });
+      break;
+    }
+    case "devto":
+    case "paperswithcode": {
+      actions.push({
+        kind: "visit",
+        label: "Open article",
         command: project.url,
       });
       break;

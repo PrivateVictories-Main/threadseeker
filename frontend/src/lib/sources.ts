@@ -14,7 +14,14 @@ export type SourceType =
   | "hackernews"
   | "codeberg"
   | "packagist"
-  | "rubygems";
+  | "rubygems"
+  | "dockerhub"
+  | "jsr"
+  | "flathub"
+  | "devto"
+  | "lobsters"
+  | "stackoverflow"
+  | "paperswithcode";
 
 export interface UnifiedProject {
   id: string;
@@ -532,7 +539,301 @@ export async function searchRubyGems(query: string): Promise<SearchResult> {
   }
 }
 
-// Reddit — CORS blocked client-side, proxied through our Python backend
+// Helper: fetch through our Pages Function proxy for sources with no/bad CORS.
+// The proxy adds edge caching and a host allowlist on the server side.
+async function fetchViaProxy(targetUrl: string): Promise<Response> {
+  const base =
+    process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "";
+  const proxied = `${base}/api/proxy?url=${encodeURIComponent(targetUrl)}`;
+  return fetch(proxied);
+}
+
+// Docker Hub — container images. No CORS, so we go through the proxy.
+export async function searchDockerHub(query: string): Promise<SearchResult> {
+  try {
+    const response = await fetchViaProxy(
+      `https://hub.docker.com/v2/search/repositories/?query=${encodeURIComponent(query)}&page_size=30`,
+    );
+    if (!response.ok)
+      return { projects: [], totalCount: 0, source: "dockerhub" };
+    const data = await response.json();
+    const results = data.results || [];
+    return {
+      projects: results.map((r: any) => {
+        const repoName: string = r.repo_name || "";
+        const [owner, name] = repoName.includes("/")
+          ? repoName.split("/", 2)
+          : ["library", repoName];
+        return {
+          id: `dockerhub-${repoName}`,
+          source: "dockerhub" as const,
+          name,
+          fullName: repoName,
+          description: r.short_description || null,
+          url: `https://hub.docker.com/r/${owner === "library" ? "_" : owner}/${name}`,
+          stars: r.star_count || 0,
+          downloads: r.pull_count || 0,
+          language: null,
+          topics: [],
+          author: { name: owner, avatar: "" },
+          updatedAt: r.last_updated || new Date().toISOString(),
+        };
+      }),
+      totalCount: results.length,
+      source: "dockerhub",
+    };
+  } catch (error) {
+    console.error("Docker Hub search error:", error);
+    return { projects: [], totalCount: 0, source: "dockerhub" };
+  }
+}
+
+// JSR — modern JavaScript/TypeScript registry (Deno). Free CORS API.
+export async function searchJSR(query: string): Promise<SearchResult> {
+  try {
+    const response = await fetch(
+      `https://api.jsr.io/packages?query=${encodeURIComponent(query)}&limit=30`,
+      { headers: { Accept: "application/json" } },
+    );
+    if (!response.ok) return { projects: [], totalCount: 0, source: "jsr" };
+    const data = await response.json();
+    const items = data.items || [];
+    return {
+      projects: items.map((p: any) => {
+        const full = `@${p.scope}/${p.name}`;
+        return {
+          id: `jsr-${full}`,
+          source: "jsr" as const,
+          name: p.name,
+          fullName: full,
+          description: p.description || null,
+          url: `https://jsr.io/${full}`,
+          stars: p.score ?? 0,
+          downloads: 0,
+          language: "TypeScript",
+          topics: [],
+          author: { name: `@${p.scope}`, avatar: "" },
+          updatedAt: p.updatedAt || p.latestVersion?.publishedAt || new Date().toISOString(),
+        };
+      }),
+      totalCount: items.length,
+      source: "jsr",
+    };
+  } catch (error) {
+    console.error("JSR search error:", error);
+    return { projects: [], totalCount: 0, source: "jsr" };
+  }
+}
+
+// Flathub — Linux desktop FOSS apps. Proxied because CORS is inconsistent.
+export async function searchFlathub(query: string): Promise<SearchResult> {
+  try {
+    const response = await fetchViaProxy(
+      `https://flathub.org/api/v2/search?query=${encodeURIComponent(query)}`,
+    );
+    if (!response.ok) return { projects: [], totalCount: 0, source: "flathub" };
+    const data = await response.json();
+    const hits = data.hits || data.results || [];
+    return {
+      projects: hits.slice(0, 30).map((a: any) => ({
+        id: `flathub-${a.app_id || a.id}`,
+        source: "flathub" as const,
+        name: a.name || a.app_id,
+        fullName: a.app_id || a.id,
+        description: a.summary || a.description || null,
+        url: `https://flathub.org/apps/${a.app_id || a.id}`,
+        stars: 0,
+        downloads: a.installs_last_month || 0,
+        language: null,
+        topics: a.categories || [],
+        author: {
+          name: a.developer_name || "Flathub",
+          avatar: a.icon || "",
+        },
+        updatedAt: a.updated_at || new Date().toISOString(),
+      })),
+      totalCount: hits.length,
+      source: "flathub",
+    };
+  } catch (error) {
+    console.error("Flathub search error:", error);
+    return { projects: [], totalCount: 0, source: "flathub" };
+  }
+}
+
+// Dev.to — developer articles & tutorials. Free CORS API.
+export async function searchDevTo(query: string): Promise<SearchResult> {
+  try {
+    // Dev.to has no direct search endpoint — pivot on tag + top latest.
+    const tag = query.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const response = await fetch(
+      `https://dev.to/api/articles?tag=${encodeURIComponent(tag)}&per_page=30&top=7`,
+      { headers: { Accept: "application/json" } },
+    );
+    if (!response.ok) return { projects: [], totalCount: 0, source: "devto" };
+    const items = (await response.json()) as any[];
+    return {
+      projects: (Array.isArray(items) ? items : []).map((a: any) => ({
+        id: `devto-${a.id}`,
+        source: "devto" as const,
+        name: a.title,
+        fullName: `@${a.user?.username || "unknown"}/${a.slug || a.id}`,
+        description: a.description || null,
+        url: a.url,
+        stars: a.public_reactions_count || a.positive_reactions_count || 0,
+        commentsCount: a.comments_count || 0,
+        language: null,
+        topics: a.tag_list || [],
+        author: {
+          name: a.user?.name || a.user?.username || "unknown",
+          avatar: a.user?.profile_image_90 || a.user?.profile_image || "",
+        },
+        updatedAt: a.published_at || a.created_at || new Date().toISOString(),
+      })),
+      totalCount: items.length,
+      source: "devto",
+    };
+  } catch (error) {
+    console.error("Dev.to search error:", error);
+    return { projects: [], totalCount: 0, source: "devto" };
+  }
+}
+
+// Lobste.rs — higher-signal HN-style threads. Proxied (CORS varies).
+export async function searchLobsters(query: string): Promise<SearchResult> {
+  try {
+    const response = await fetchViaProxy(
+      `https://lobste.rs/search.json?q=${encodeURIComponent(query)}&what=stories&order=relevance`,
+    );
+    if (!response.ok) return { projects: [], totalCount: 0, source: "lobsters" };
+    const data = await response.json();
+    const stories = Array.isArray(data) ? data : data.stories || [];
+    return {
+      projects: stories.slice(0, 30).map((s: any) => ({
+        id: `lobsters-${s.short_id || s.id}`,
+        source: "lobsters" as const,
+        name: s.title,
+        fullName: `lobste.rs/${s.short_id || s.id}`,
+        description: s.description || null,
+        url: s.url || s.comments_url || `https://lobste.rs/s/${s.short_id}`,
+        stars: s.score || 0,
+        commentsCount: s.comment_count || 0,
+        language: null,
+        topics: s.tags || [],
+        author: {
+          name: s.submitter_user?.username || "unknown",
+          avatar: s.submitter_user?.avatar_url || "",
+        },
+        updatedAt: s.created_at || new Date().toISOString(),
+      })),
+      totalCount: stories.length,
+      source: "lobsters",
+    };
+  } catch (error) {
+    console.error("Lobsters search error:", error);
+    return { projects: [], totalCount: 0, source: "lobsters" };
+  }
+}
+
+// Stack Overflow — via StackExchange API. Free, CORS-friendly.
+export async function searchStackOverflow(query: string): Promise<SearchResult> {
+  try {
+    const response = await fetch(
+      `https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&q=${encodeURIComponent(query)}&site=stackoverflow&pagesize=30&filter=withbody`,
+      { headers: { Accept: "application/json" } },
+    );
+    if (!response.ok)
+      return { projects: [], totalCount: 0, source: "stackoverflow" };
+    const data = await response.json();
+    const items = data.items || [];
+    return {
+      projects: items.map((q: any) => ({
+        id: `stackoverflow-${q.question_id}`,
+        source: "stackoverflow" as const,
+        name: decodeHtml(q.title || ""),
+        fullName: `SO: ${decodeHtml(q.title || "")}`,
+        description: q.body
+          ? stripHtml(q.body).slice(0, 280)
+          : null,
+        url: q.link,
+        stars: q.score || 0,
+        commentsCount: q.answer_count || 0,
+        language: null,
+        topics: q.tags || [],
+        author: {
+          name: q.owner?.display_name || "unknown",
+          avatar: q.owner?.profile_image || "",
+        },
+        updatedAt: q.last_activity_date
+          ? new Date(q.last_activity_date * 1000).toISOString()
+          : new Date().toISOString(),
+      })),
+      totalCount: items.length,
+      source: "stackoverflow",
+    };
+  } catch (error) {
+    console.error("Stack Overflow search error:", error);
+    return { projects: [], totalCount: 0, source: "stackoverflow" };
+  }
+}
+
+// Papers with Code — ML papers + implementations. Proxied (inconsistent CORS).
+export async function searchPapersWithCode(
+  query: string,
+): Promise<SearchResult> {
+  try {
+    const response = await fetchViaProxy(
+      `https://paperswithcode.com/api/v1/papers/?q=${encodeURIComponent(query)}`,
+    );
+    if (!response.ok)
+      return { projects: [], totalCount: 0, source: "paperswithcode" };
+    const data = await response.json();
+    const results = data.results || [];
+    return {
+      projects: results.slice(0, 30).map((p: any) => ({
+        id: `pwc-${p.id}`,
+        source: "paperswithcode" as const,
+        name: p.title,
+        fullName: p.id,
+        description: p.abstract
+          ? String(p.abstract).slice(0, 300)
+          : null,
+        url:
+          p.url_abs ||
+          p.url_pdf ||
+          `https://paperswithcode.com/paper/${p.id}`,
+        stars: 0,
+        language: null,
+        topics: [],
+        author: {
+          name: (Array.isArray(p.authors) ? p.authors[0] : p.authors) || "unknown",
+          avatar: "",
+        },
+        updatedAt: p.published || new Date().toISOString(),
+      })),
+      totalCount: results.length,
+      source: "paperswithcode",
+    };
+  } catch (error) {
+    console.error("Papers with Code search error:", error);
+    return { projects: [], totalCount: 0, source: "paperswithcode" };
+  }
+}
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+}
+
+function decodeHtml(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+// Reddit — CORS blocked client-side, proxied through our Pages Function
 export async function searchReddit(query: string): Promise<SearchResult> {
   try {
     const projects = await searchRedditViaBackend(query);
@@ -574,6 +875,13 @@ export async function searchAllSources(
     "packagist",
     "rubygems",
     "reddit",
+    "dockerhub",
+    "jsr",
+    "flathub",
+    "devto",
+    "lobsters",
+    "stackoverflow",
+    "paperswithcode",
   ],
   deepSearch: boolean = true,
   queryOverrides: Partial<Record<SourceType, string>> = {},
@@ -618,6 +926,27 @@ export async function searchAllSources(
           break;
         case "reddit":
           result = await searchReddit(q("reddit"));
+          break;
+        case "dockerhub":
+          result = await searchDockerHub(q("dockerhub"));
+          break;
+        case "jsr":
+          result = await searchJSR(q("jsr"));
+          break;
+        case "flathub":
+          result = await searchFlathub(q("flathub"));
+          break;
+        case "devto":
+          result = await searchDevTo(q("devto"));
+          break;
+        case "lobsters":
+          result = await searchLobsters(q("lobsters"));
+          break;
+        case "stackoverflow":
+          result = await searchStackOverflow(q("stackoverflow"));
+          break;
+        case "paperswithcode":
+          result = await searchPapersWithCode(q("paperswithcode"));
           break;
         default:
           result = { projects: [], totalCount: 0, source };
@@ -734,7 +1063,9 @@ function calculateRelevanceScore(project: UnifiedProject, query: string): number
   const srcBonus: Record<SourceType, number> = {
     github: 150, huggingface: 140, npm: 120, pypi: 120, crates: 120,
     packagist: 110, rubygems: 110, gitlab: 100, codeberg: 100,
-    hackernews: 90, reddit: 90,
+    dockerhub: 120, jsr: 110, flathub: 105,
+    paperswithcode: 115, stackoverflow: 95,
+    hackernews: 90, reddit: 90, lobsters: 90, devto: 85,
   };
   s += srcBonus[project.source] ?? 0;
 
@@ -832,6 +1163,55 @@ export function getSourceConfig(source: SourceType) {
       color: "from-orange-500 to-red-500",
       borderColor: "border-orange-500/30",
       bgColor: "bg-orange-500/10",
+    },
+    dockerhub: {
+      name: "Docker Hub",
+      icon: "🐳",
+      color: "from-sky-500 to-blue-600",
+      borderColor: "border-sky-500/30",
+      bgColor: "bg-sky-500/10",
+    },
+    jsr: {
+      name: "JSR",
+      icon: "🦕",
+      color: "from-yellow-400 to-amber-500",
+      borderColor: "border-yellow-500/30",
+      bgColor: "bg-yellow-500/10",
+    },
+    flathub: {
+      name: "Flathub",
+      icon: "📦",
+      color: "from-sky-600 to-indigo-600",
+      borderColor: "border-indigo-500/30",
+      bgColor: "bg-indigo-500/10",
+    },
+    devto: {
+      name: "Dev.to",
+      icon: "✍️",
+      color: "from-zinc-400 to-zinc-600",
+      borderColor: "border-zinc-500/30",
+      bgColor: "bg-zinc-500/10",
+    },
+    lobsters: {
+      name: "Lobsters",
+      icon: "🦞",
+      color: "from-rose-400 to-red-500",
+      borderColor: "border-rose-500/30",
+      bgColor: "bg-rose-500/10",
+    },
+    stackoverflow: {
+      name: "Stack Overflow",
+      icon: "📚",
+      color: "from-orange-400 to-amber-500",
+      borderColor: "border-orange-500/30",
+      bgColor: "bg-orange-500/10",
+    },
+    paperswithcode: {
+      name: "Papers with Code",
+      icon: "📄",
+      color: "from-violet-500 to-fuchsia-500",
+      borderColor: "border-violet-500/30",
+      bgColor: "bg-violet-500/10",
     },
   };
   return configs[source];

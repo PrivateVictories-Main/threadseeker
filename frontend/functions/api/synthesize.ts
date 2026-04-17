@@ -83,17 +83,27 @@ export const onRequestPost: PagesFunction<{
 };
 
 function buildSynthesisPrompt(query: string, projects: ProjectLite[]): string {
-  const github = projects
+  const repos = projects
     .filter((p) => ["github", "gitlab", "codeberg"].includes(p.source))
     .slice(0, 5);
-  const hf = projects.filter((p) => p.source === "huggingface").slice(0, 5);
-  const reddit = projects.filter((p) => p.source === "reddit").slice(0, 5);
-  const other = projects
-    .filter(
-      (p) =>
-        !["github", "gitlab", "codeberg", "huggingface", "reddit"].includes(
-          p.source,
-        ),
+  const models = projects
+    .filter((p) => ["huggingface", "paperswithcode"].includes(p.source))
+    .slice(0, 5);
+  const packages = projects
+    .filter((p) =>
+      ["npm", "pypi", "crates", "packagist", "rubygems", "jsr"].includes(
+        p.source,
+      ),
+    )
+    .slice(0, 5);
+  const containers = projects
+    .filter((p) => ["dockerhub", "flathub"].includes(p.source))
+    .slice(0, 3);
+  const community = projects
+    .filter((p) =>
+      ["reddit", "hackernews", "lobsters", "stackoverflow", "devto"].includes(
+        p.source,
+      ),
     )
     .slice(0, 5);
 
@@ -104,17 +114,20 @@ function buildSynthesisPrompt(query: string, projects: ProjectLite[]): string {
 
 USER'S QUERY: "${query}"
 
-GITHUB / GITLAB / CODEBERG RESULTS:
-${github.length ? github.map(fmt).join("\n") : "None"}
+REPOSITORIES (GitHub / GitLab / Codeberg):
+${repos.length ? repos.map(fmt).join("\n") : "None"}
 
-HUGGING FACE RESULTS:
-${hf.length ? hf.map(fmt).join("\n") : "None"}
+MODELS & PAPERS (Hugging Face / Papers with Code):
+${models.length ? models.map(fmt).join("\n") : "None"}
 
-REDDIT DISCUSSIONS:
-${reddit.length ? reddit.map(fmt).join("\n") : "None"}
+PACKAGE REGISTRIES (npm / PyPI / crates / Packagist / RubyGems / JSR):
+${packages.length ? packages.map(fmt).join("\n") : "None"}
 
-PACKAGE REGISTRIES (npm/PyPI/crates/etc):
-${other.length ? other.map(fmt).join("\n") : "None"}
+CONTAINERS & DESKTOP APPS (Docker Hub / Flathub):
+${containers.length ? containers.map(fmt).join("\n") : "None"}
+
+COMMUNITY DISCUSSIONS (Reddit / HN / Lobsters / SO / Dev.to):
+${community.length ? community.map(fmt).join("\n") : "None"}
 
 Based on these findings, provide a concise verdict (3-4 sentences max):
 1. Is there a strong existing solution?

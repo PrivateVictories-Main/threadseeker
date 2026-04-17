@@ -54,7 +54,15 @@ export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
   const allActions = getProjectActions(project);
   const primaryAction = getPrimaryAction(project);
   const installActions = allActions.filter((a) => a.kind !== "visit");
-  const isThread = project.source === "reddit" || project.source === "hackernews";
+  const THREAD_SOURCES = new Set([
+    "reddit",
+    "hackernews",
+    "lobsters",
+    "stackoverflow",
+    "devto",
+    "paperswithcode",
+  ]);
+  const isThread = THREAD_SOURCES.has(project.source);
 
   const copyCommand = (action: ProjectAction) => {
     navigator.clipboard.writeText(action.command);

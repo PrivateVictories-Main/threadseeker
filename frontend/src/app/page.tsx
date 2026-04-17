@@ -21,8 +21,15 @@ const ALL_SOURCES: SourceType[] = [
   "codeberg",
   "packagist",
   "rubygems",
+  "jsr",
+  "dockerhub",
+  "flathub",
+  "paperswithcode",
   "hackernews",
   "reddit",
+  "lobsters",
+  "stackoverflow",
+  "devto",
 ];
 
 const EXAMPLE_QUERIES = [
