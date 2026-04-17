@@ -1,8 +1,9 @@
 "use client";
 
 import { UnifiedProject, SourceType, getSourceConfig } from "@/lib/sources";
-import { ArrowDownWideNarrow, Link2, Check } from "lucide-react";
+import { ArrowDownWideNarrow, Link2, Check, Download } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export type SortMode = "relevance" | "stars" | "updated" | "downloads";
 
@@ -21,6 +22,28 @@ interface Props {
   onSourceClick: (source: SourceType | null) => void;
 }
 
+function toMarkdown(projects: UnifiedProject[]): string {
+  const lines = ["# ThreadSeeker results", ""];
+  // Group by source so exports stay organized.
+  const bySource = new Map<SourceType, UnifiedProject[]>();
+  for (const p of projects) {
+    const arr = bySource.get(p.source) ?? [];
+    arr.push(p);
+    bySource.set(p.source, arr);
+  }
+  for (const [source, list] of bySource) {
+    const cfg = getSourceConfig(source);
+    lines.push(`## ${cfg.icon} ${cfg.name}`, "");
+    for (const p of list) {
+      const stars = p.stars ? ` · ⭐ ${p.stars.toLocaleString()}` : "";
+      const desc = p.description ? ` — ${p.description}` : "";
+      lines.push(`- [${p.fullName}](${p.url})${stars}${desc}`);
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
 export function ResultsToolbar({
   projects,
   sortMode,
@@ -29,6 +52,34 @@ export function ResultsToolbar({
   onSourceClick,
 }: Props) {
   const [copied, setCopied] = useState(false);
+  const [exportedAs, setExportedAs] = useState<null | "md" | "json">(null);
+
+  const handleExport = async (kind: "md" | "json") => {
+    const payload =
+      kind === "md"
+        ? toMarkdown(projects)
+        : JSON.stringify(
+            projects.map((p) => ({
+              name: p.fullName,
+              source: p.source,
+              url: p.url,
+              description: p.description,
+              stars: p.stars,
+              language: p.language,
+            })),
+            null,
+            2,
+          );
+    try {
+      await navigator.clipboard.writeText(payload);
+      setExportedAs(kind);
+      setTimeout(() => setExportedAs(null), 1600);
+      toast.success(`Copied ${projects.length} results as ${kind.toUpperCase()}`);
+    } catch {
+      toast.error("Clipboard unavailable");
+    }
+  };
+
   const handleShare = async () => {
     const url = window.location.href;
     try {
@@ -86,6 +137,32 @@ export function ResultsToolbar({
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center border border-slate-800/50 rounded-md overflow-hidden">
+          <button
+            onClick={() => handleExport("md")}
+            className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-200 bg-slate-900/40 hover:bg-slate-800/60 px-2 py-1 transition-colors"
+            title="Copy results as Markdown"
+          >
+            {exportedAs === "md" ? (
+              <Check className="w-3 h-3 text-emerald-400" />
+            ) : (
+              <Download className="w-3 h-3" />
+            )}
+            <span>MD</span>
+          </button>
+          <button
+            onClick={() => handleExport("json")}
+            className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-200 bg-slate-900/40 hover:bg-slate-800/60 px-2 py-1 transition-colors border-l border-slate-800/50"
+            title="Copy results as JSON"
+          >
+            {exportedAs === "json" ? (
+              <Check className="w-3 h-3 text-emerald-400" />
+            ) : (
+              <Download className="w-3 h-3" />
+            )}
+            <span>JSON</span>
+          </button>
+        </div>
         <button
           onClick={handleShare}
           className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-200 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-md px-2 py-1 transition-colors"
