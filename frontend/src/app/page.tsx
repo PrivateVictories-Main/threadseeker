@@ -445,11 +445,33 @@ export default function Home() {
           <div className="text-center py-20">
             <Globe className="w-8 h-8 text-slate-700 mx-auto mb-3" />
             <p className="text-sm text-slate-500">
-              Search across GitHub, npm, PyPI, Hugging Face, and more
+              Search across GitHub, npm, PyPI, Hugging Face, Docker Hub,
+              conda-forge, AUR, and {ALL_SOURCES.length - 7} more
             </p>
           </div>
         )}
       </section>
+
+      <footer className="mt-auto border-t border-slate-800/40 mt-12">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-600">
+          <div>
+            ThreadSeeker — unified search across {ALL_SOURCES.length} open-source
+            platforms · no paid APIs · no tracking
+          </div>
+          <div className="flex items-center gap-4">
+            <a
+              href="https://github.com/PrivateVictories-Main/threadseeker"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-slate-400 transition-colors"
+            >
+              GitHub
+            </a>
+            <span className="text-slate-800">·</span>
+            <span>Press <kbd className="px-1 py-0.5 rounded border border-slate-800 text-slate-500">/</kbd> to search</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
