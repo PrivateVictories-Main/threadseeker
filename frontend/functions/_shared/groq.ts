@@ -1,7 +1,6 @@
 // Minimal Groq client for Cloudflare Pages Functions.
-// Uses the OpenAI-compatible /chat/completions endpoint.
-// Supports an optional user-provided key (via X-Groq-API-Key header) that
-// overrides the Pages secret — mirrors the old FastAPI behavior.
+// Uses the OpenAI-compatible /chat/completions endpoint. The Groq key is
+// Ryan's Pages secret — there is no BYOK path; users never see/need a key.
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
@@ -44,26 +43,28 @@ export async function callGroq(opts: GroqCallOptions): Promise<string> {
   return data.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
-// Look up a Groq key: user-supplied header takes priority over Pages env.
+// Resolve the Pages secret. Returns null if unset — callers degrade gracefully.
 export function resolveGroqKey(
-  request: Request,
+  _request: Request,
   env: { GROQ_API_KEY?: string },
 ): string | null {
-  const userKey = request.headers.get("x-groq-api-key")?.trim();
-  if (userKey && /^gsk_[a-zA-Z0-9]{20,}$/.test(userKey)) return userKey;
-  if (env.GROQ_API_KEY) return env.GROQ_API_KEY;
-  return null;
+  return env.GROQ_API_KEY ?? null;
 }
 
 // Shared JSON response helper with permissive CORS for local dev.
-export function jsonResponse(body: unknown, status = 200): Response {
+export function jsonResponse(
+  body: unknown,
+  status = 200,
+  extraHeaders: Record<string, string> = {},
+): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, X-Groq-API-Key",
+      "Access-Control-Allow-Headers": "Content-Type",
+      ...extraHeaders,
     },
   });
 }
@@ -74,7 +75,7 @@ export function corsPreflight(): Response {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, X-Groq-API-Key",
+      "Access-Control-Allow-Headers": "Content-Type",
       "Access-Control-Max-Age": "3600",
     },
   });
@@ -86,4 +87,31 @@ export function sanitizeQuery(raw: unknown): string | null {
   const cleaned = raw.replace(/[\u0000-\u001f\u007f]/g, "").trim();
   if (cleaned.length < 1 || cleaned.length > 1000) return null;
   return cleaned;
+}
+
+// Cache a POST handler's JSON response in Cloudflare's edge cache, keyed by
+// the request URL + a deterministic body hash. Same (query) => instant reply
+// without the Groq round-trip.
+export async function cachedJson(
+  request: Request,
+  cacheKeyParts: string[],
+  ttlSeconds: number,
+  compute: () => Promise<unknown>,
+): Promise<Response> {
+  const url = new URL(request.url);
+  // Build a deterministic cache key URL — Cache API requires a GET.
+  const keyUrl = `${url.origin}${url.pathname}?k=${encodeURIComponent(cacheKeyParts.join("|"))}`;
+  const cacheKey = new Request(keyUrl, { method: "GET" });
+  // @ts-expect-error — caches.default is available in the Workers runtime.
+  const cache: Cache = caches.default;
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  const body = await compute();
+  const resp = jsonResponse(body, 200, {
+    "Cache-Control": `public, max-age=${ttlSeconds}, s-maxage=${ttlSeconds}`,
+  });
+  // Clone before caching — the original is returned to the caller.
+  await cache.put(cacheKey, resp.clone());
+  return resp;
 }

@@ -25,6 +25,25 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        {/* Warm up DNS + TLS for every host we fetch directly from the browser.
+            Saves ~50-150ms per source on the first query. */}
+        {[
+          "https://api.github.com",
+          "https://avatars.githubusercontent.com",
+          "https://huggingface.co",
+          "https://gitlab.com",
+          "https://registry.npmjs.org",
+          "https://pypi.org",
+          "https://crates.io",
+          "https://codeberg.org",
+          "https://repo.packagist.org",
+          "https://rubygems.org",
+          "https://hn.algolia.com",
+        ].map((href) => (
+          <link key={href} rel="preconnect" href={href} crossOrigin="anonymous" />
+        ))}
+      </head>
       <body
         className={`${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen bg-black`}
       >

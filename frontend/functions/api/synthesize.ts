@@ -3,6 +3,7 @@
 // silently when no API key is configured — the frontend hides the box.
 
 import {
+  cachedJson,
   callGroq,
   corsPreflight,
   jsonResponse,
@@ -48,27 +49,37 @@ export const onRequestPost: PagesFunction<{
     return jsonResponse({ synthesis: null });
   }
 
+  // Cache by query + first 8 project names. Shared queries produce identical
+  // synth output for an hour — saves the slower 70b call.
+  const topNames = projects
+    .slice(0, 8)
+    .map((p) => `${p.source}:${p.name}`)
+    .join(",");
+  const cacheParts = [query.toLowerCase(), topNames];
   const prompt = buildSynthesisPrompt(query, projects);
-  try {
-    const synthesis = await callGroq({
-      apiKey,
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.5,
-      maxTokens: 300,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a real-time technical research advisor. Synthesize findings to provide actionable insights. Emphasize how recent the information is.",
-        },
-        { role: "user", content: prompt },
-      ],
-    });
-    return jsonResponse({ synthesis: synthesis || null });
-  } catch (e) {
-    console.warn("Groq synthesis failed:", (e as Error).message);
-    return jsonResponse({ synthesis: null });
-  }
+
+  return cachedJson(request, cacheParts, 60 * 60, async () => {
+    try {
+      const synthesis = await callGroq({
+        apiKey,
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.5,
+        maxTokens: 300,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a real-time technical research advisor. Synthesize findings to provide actionable insights. Emphasize how recent the information is.",
+          },
+          { role: "user", content: prompt },
+        ],
+      });
+      return { synthesis: synthesis || null };
+    } catch (e) {
+      console.warn("Groq synthesis failed:", (e as Error).message);
+      return { synthesis: null };
+    }
+  });
 };
 
 function buildSynthesisPrompt(query: string, projects: ProjectLite[]): string {
