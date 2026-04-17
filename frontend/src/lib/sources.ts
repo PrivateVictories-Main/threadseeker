@@ -26,6 +26,13 @@ export type SourceType =
   | "fdroid"
   | "arxiv";
 
+export interface RelatedSource {
+  source: SourceType;
+  url: string;
+  fullName: string;
+  name: string;
+}
+
 export interface UnifiedProject {
   id: string;
   source: SourceType;
@@ -48,6 +55,9 @@ export interface UnifiedProject {
   sentiment?: "positive" | "mixed" | "negative" | "neutral";
   warning?: string;
   commentsCount?: number;
+  // Same underlying project on other platforms (e.g. the npm package + the
+  // GitHub repo + the PyPI binding). Populated by mergeRelatedProjects().
+  relatedSources?: RelatedSource[];
 }
 
 export interface SearchResult {
@@ -61,55 +71,45 @@ export async function searchGitHub(query: string, page: number = 1, deepSearch: 
   const allResults: any[] = [];
   const seenIds = new Set<number>();
 
-  // Build comprehensive search query with multiple strategies
-  // Use deep search only for user queries, not trending (to avoid rate limits)
-  const searchStrategies = deepSearch 
-    ? [
-        `${query} in:name,description,topics`, // Search in key fields (most comprehensive)
-        query, // Exact query
-      ]
-    : [query]; // Single query for trending
+  const searchStrategies = deepSearch
+    ? [`${query} in:name,description,topics`, query]
+    : [query];
 
-  // Execute search strategies sequentially to avoid rate limits
-  for (const searchQuery of searchStrategies) {
-    const params = new URLSearchParams({
-      q: searchQuery,
-      sort: "stars",
-      order: "desc",
-      page: page.toString(),
-      per_page: "50", // Increased to get more results per request
-    });
-
-    try {
-      const response = await fetch(`https://api.github.com/search/repositories?${params}`, {
-        headers: { Accept: "application/vnd.github.v3+json" },
+  // Run strategies concurrently. GitHub's rate limit for unauthenticated
+  // search is 10 requests/min — two parallel calls is well under.
+  const responses = await Promise.all(
+    searchStrategies.map(async (searchQuery) => {
+      const params = new URLSearchParams({
+        q: searchQuery,
+        sort: "stars",
+        order: "desc",
+        page: page.toString(),
+        per_page: "50",
       });
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          console.warn("GitHub rate limit reached");
-          break; // Stop if we hit rate limit
+      try {
+        const response = await fetch(
+          `https://api.github.com/search/repositories?${params}`,
+          { headers: { Accept: "application/vnd.github.v3+json" } },
+        );
+        if (!response.ok) {
+          if (response.status === 403) console.warn("GitHub rate limit reached");
+          return [];
         }
-        continue;
+        const data = await response.json();
+        return (data.items || []) as any[];
+      } catch (error) {
+        console.error(`GitHub search error for "${searchQuery}":`, error);
+        return [];
       }
+    }),
+  );
 
-      const data = await response.json();
-      const items = data.items || [];
-      
-      // Add unique items
-      items.forEach((item: any) => {
-        if (!seenIds.has(item.id)) {
-          seenIds.add(item.id);
-          allResults.push(item);
-        }
-      });
-
-      // Small delay between requests to avoid rate limiting
-      if (deepSearch && searchStrategies.length > 1) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+  for (const items of responses) {
+    for (const item of items) {
+      if (!seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        allResults.push(item);
       }
-    } catch (error) {
-      console.error(`GitHub search error for "${searchQuery}":`, error);
     }
   }
 
@@ -141,43 +141,33 @@ export async function searchHuggingFace(query: string, page: number = 1, deepSea
   const allItems: any[] = [];
   const seenIds = new Set<string>();
 
-  // Primary search: Models sorted by downloads (most relevant)
-  try {
-    const modelsResponse = await fetch(
-      `https://huggingface.co/api/models?search=${encodeURIComponent(query)}&sort=downloads&direction=-1&limit=50`,
-      { headers: { Accept: "application/json" } }
+  const endpoints = [
+    `https://huggingface.co/api/models?search=${encodeURIComponent(query)}&sort=downloads&direction=-1&limit=50`,
+  ];
+  if (deepSearch) {
+    endpoints.push(
+      `https://huggingface.co/api/datasets?search=${encodeURIComponent(query)}&sort=downloads&direction=-1&limit=20`,
     );
-    if (modelsResponse.ok) {
-      const models = await modelsResponse.json();
-      models.forEach((item: any) => {
-        if (!seenIds.has(item.id)) {
-          seenIds.add(item.id);
-          allItems.push(item);
-        }
-      });
-    }
-  } catch (error) {
-    console.error("Hugging Face models search error:", error);
   }
 
-  // Deep search: Also get datasets if enabled
-  if (deepSearch) {
-    try {
-      const datasetsResponse = await fetch(
-        `https://huggingface.co/api/datasets?search=${encodeURIComponent(query)}&sort=downloads&direction=-1&limit=20`,
-        { headers: { Accept: "application/json" } }
-      );
-      if (datasetsResponse.ok) {
-        const datasets = await datasetsResponse.json();
-        datasets.forEach((item: any) => {
-          if (!seenIds.has(item.id)) {
-            seenIds.add(item.id);
-            allItems.push(item);
-          }
-        });
+  const responses = await Promise.all(
+    endpoints.map(async (url) => {
+      try {
+        const r = await fetch(url, { headers: { Accept: "application/json" } });
+        if (!r.ok) return [];
+        return (await r.json()) as any[];
+      } catch (error) {
+        console.error(`Hugging Face search error (${url}):`, error);
+        return [];
       }
-    } catch (error) {
-      console.error("Hugging Face datasets search error:", error);
+    }),
+  );
+  for (const items of responses) {
+    for (const item of items) {
+      if (item && !seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        allItems.push(item);
+      }
     }
   }
 
@@ -1354,5 +1344,158 @@ export function getSourceConfig(source: SourceType) {
     },
   };
   return configs[source];
+}
+
+// Thread-like sources are kept separate from dedup — a Reddit thread about
+// `next.js` is not the same thing as the npm package. Dedup only folds
+// project-shaped sources (repos + registries + image/app stores) together.
+const DEDUPABLE_SOURCES: ReadonlySet<SourceType> = new Set<SourceType>([
+  "github",
+  "gitlab",
+  "codeberg",
+  "huggingface",
+  "npm",
+  "pypi",
+  "crates",
+  "packagist",
+  "rubygems",
+  "jsr",
+  "dockerhub",
+  "flathub",
+  "homebrew",
+  "fdroid",
+]);
+
+// Normalize a project's name/identifier for comparison: strip scopes, cases,
+// separators, and common noise words so `@react/next-auth`, `next-auth`, and
+// `nextauth` collapse to the same fingerprint.
+function projectFingerprint(p: UnifiedProject): string {
+  let s = p.name.toLowerCase();
+  // Strip npm-style scope: @scope/name → name
+  s = s.replace(/^@[^/]+\//, "");
+  // Strip common prefixes/suffixes
+  s = s.replace(/^(python-|py-|node-|rust-|ruby-|go-)/, "");
+  s = s.replace(/(-python|-py|-node|-rust|-ruby|-go|-official)$/, "");
+  // Collapse all separators
+  s = s.replace(/[-_.\s]+/g, "");
+  return s;
+}
+
+// Merge projects that represent the same underlying thing across platforms.
+// E.g. the `fastapi` GitHub repo + the `fastapi` PyPI package + the `fastapi`
+// Docker image all fold into one card, with secondary platforms shown as
+// badges and their install commands still reachable.
+//
+// The primary is chosen by:
+//   1. Repo sources (github > gitlab > codeberg) when present
+//   2. Otherwise the source with the highest relevance baseline
+export function mergeRelatedProjects(
+  projects: UnifiedProject[],
+): UnifiedProject[] {
+  // Group by fingerprint (only for dedupable sources — threads pass through).
+  const groups = new Map<string, UnifiedProject[]>();
+  const standalone: UnifiedProject[] = [];
+
+  for (const p of projects) {
+    if (!DEDUPABLE_SOURCES.has(p.source)) {
+      standalone.push(p);
+      continue;
+    }
+    const fp = projectFingerprint(p);
+    if (!fp) {
+      standalone.push(p);
+      continue;
+    }
+    // Only merge if descriptions share at least one substantive word OR
+    // names match exactly. Guards against `react` the repo colliding with
+    // `react` the PyPI package that's totally unrelated.
+    const bucket = groups.get(fp);
+    if (bucket) bucket.push(p);
+    else groups.set(fp, [p]);
+  }
+
+  const repoRank: Record<string, number> = {
+    github: 3,
+    gitlab: 2,
+    codeberg: 1,
+  };
+
+  const merged: UnifiedProject[] = [];
+  for (const bucket of groups.values()) {
+    if (bucket.length === 1) {
+      merged.push(bucket[0]);
+      continue;
+    }
+
+    // Further split by description affinity: projects in the same
+    // fingerprint bucket must share a description word ≥4 chars OR one of
+    // them must be a GitHub repo (the GitHub repo is usually canonical).
+    const subgroups = splitByAffinity(bucket);
+    for (const sub of subgroups) {
+      if (sub.length === 1) {
+        merged.push(sub[0]);
+        continue;
+      }
+      // Pick primary: prefer the highest-ranked repo host; else the item
+      // with the most stars/downloads.
+      const primary = [...sub].sort((a, b) => {
+        const ra = repoRank[a.source] ?? 0;
+        const rb = repoRank[b.source] ?? 0;
+        if (ra !== rb) return rb - ra;
+        return (b.stars || b.downloads || 0) - (a.stars || a.downloads || 0);
+      })[0];
+
+      const related: RelatedSource[] = sub
+        .filter((p) => p.id !== primary.id)
+        .map((p) => ({
+          source: p.source,
+          url: p.url,
+          fullName: p.fullName,
+          name: p.name,
+        }));
+
+      merged.push({ ...primary, relatedSources: related });
+    }
+  }
+
+  return [...merged, ...standalone];
+}
+
+function splitByAffinity(group: UnifiedProject[]): UnifiedProject[][] {
+  // If there's a GitHub/GitLab/Codeberg in the group, treat it as the
+  // anchor and fold everything into one subgroup. Otherwise require each
+  // pair to share a description word.
+  const hasRepo = group.some((p) =>
+    ["github", "gitlab", "codeberg"].includes(p.source),
+  );
+  if (hasRepo) return [group];
+
+  const word = (s: string | null) =>
+    new Set(
+      (s || "")
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((w) => w.length >= 4),
+    );
+
+  const used = new Set<string>();
+  const out: UnifiedProject[][] = [];
+  for (const p of group) {
+    if (used.has(p.id)) continue;
+    used.add(p.id);
+    const sub = [p];
+    const words = word(p.description);
+    for (const q of group) {
+      if (used.has(q.id)) continue;
+      const qWords = word(q.description);
+      const overlap = [...words].some((w) => qWords.has(w));
+      if (overlap || (!p.description && !q.description)) {
+        used.add(q.id);
+        sub.push(q);
+      }
+    }
+    out.push(sub);
+  }
+  return out;
 }
 

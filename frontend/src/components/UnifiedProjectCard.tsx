@@ -7,7 +7,7 @@ import {
   getPrimaryAction,
   ProjectAction,
 } from "@/lib/actions";
-import { formatNumber, timeAgo } from "@/lib/utils";
+import { formatNumber, highlightQuery, timeAgo } from "@/lib/utils";
 import {
   Star,
   Download,
@@ -25,6 +25,28 @@ import { toast } from "sonner";
 
 interface UnifiedProjectCardProps {
   project: UnifiedProject;
+  query?: string;
+}
+
+function Highlighted({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>;
+  const runs = highlightQuery(text, query);
+  return (
+    <>
+      {runs.map((run, i) =>
+        run.match ? (
+          <mark
+            key={i}
+            className="bg-amber-500/20 text-amber-200 rounded-sm px-0.5"
+          >
+            {run.text}
+          </mark>
+        ) : (
+          <span key={i}>{run.text}</span>
+        ),
+      )}
+    </>
+  );
 }
 
 function SentimentBadge({
@@ -47,7 +69,7 @@ function SentimentBadge({
   );
 }
 
-export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
+export function UnifiedProjectCard({ project, query = "" }: UnifiedProjectCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   const sourceConfig = getSourceConfig(project.source);
@@ -96,7 +118,7 @@ export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-medium text-slate-200 truncate">
-                {project.name}
+                <Highlighted text={project.name} query={query} />
               </h3>
               <span className="text-[10px] text-slate-600 flex-shrink-0">
                 {sourceConfig.icon} {sourceConfig.name}
@@ -112,7 +134,11 @@ export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
       {/* Description */}
       <div className="px-4 pt-2 pb-3">
         <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-          {project.description || "No description"}
+          {project.description ? (
+            <Highlighted text={project.description} query={query} />
+          ) : (
+            "No description"
+          )}
         </p>
       </div>
 
@@ -185,6 +211,33 @@ export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
               +{project.topics.length - 4}
             </span>
           )}
+        </div>
+      )}
+
+      {/* Related sources — same project on other platforms */}
+      {project.relatedSources && project.relatedSources.length > 0 && (
+        <div className="px-4 pb-3">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] text-slate-600 uppercase tracking-wide">
+              Also on
+            </span>
+            {project.relatedSources.map((rel) => {
+              const cfg = getSourceConfig(rel.source);
+              return (
+                <a
+                  key={`${rel.source}-${rel.url}`}
+                  href={rel.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`${rel.fullName} on ${cfg.name}`}
+                  className="inline-flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-200 bg-slate-900/60 hover:bg-slate-800/60 border border-slate-800/40 hover:border-slate-700/50 rounded-full px-1.5 py-0.5 transition-colors"
+                >
+                  <span>{cfg.icon}</span>
+                  <span>{cfg.name}</span>
+                </a>
+              );
+            })}
+          </div>
         </div>
       )}
 

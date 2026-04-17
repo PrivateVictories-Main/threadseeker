@@ -6,7 +6,12 @@ import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
 import { SourceFilter } from "@/components/SourceFilter";
 import { SynthesisBox } from "@/components/SynthesisBox";
 import { ResultsToolbar, SortMode, applyResultsView } from "@/components/ResultsToolbar";
-import { searchAllSources, UnifiedProject, SourceType } from "@/lib/sources";
+import {
+  searchAllSources,
+  UnifiedProject,
+  SourceType,
+  mergeRelatedProjects,
+} from "@/lib/sources";
 import { optimizeQueries, isBackendConfigured } from "@/lib/api-client";
 import { toast } from "sonner";
 import { Search, Globe, ArrowRight } from "lucide-react";
@@ -125,8 +130,8 @@ export default function Home() {
         );
 
         if (searchRunIdRef.current !== runId) return;
-        // Final authoritative sort once everything is in.
-        setProjects(results);
+        // Final authoritative sort + cross-source dedup once everything is in.
+        setProjects(mergeRelatedProjects(results));
 
         if (results.length === 0) {
           toast.info("No results found. Try different keywords or enable more sources.");
@@ -294,7 +299,11 @@ export default function Home() {
                 </p>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {view.map((project) => (
-                    <UnifiedProjectCard key={project.id} project={project} />
+                    <UnifiedProjectCard
+                      key={project.id}
+                      project={project}
+                      query={query}
+                    />
                   ))}
                 </div>
               </div>

@@ -11,6 +11,44 @@ export function formatNumber(num: number): string {
   return num.toString();
 }
 
+// Split a string into runs of matched vs non-matched text against the
+// user's query terms. Case-insensitive, Unicode-safe, avoids regex injection
+// by escaping each term. The result is a flat array suitable for rendering
+// as <span>s. Empty `query` returns the input as a single non-match run.
+export interface HighlightRun {
+  text: string;
+  match: boolean;
+}
+
+export function highlightQuery(
+  text: string,
+  query: string,
+): HighlightRun[] {
+  if (!text) return [{ text: "", match: false }];
+  const terms = query
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2);
+  if (terms.length === 0) return [{ text, match: false }];
+
+  const pattern = new RegExp(
+    `(${terms.map(escapeRegex).join("|")})`,
+    "gi",
+  );
+  const parts = text.split(pattern);
+  const runs: HighlightRun[] = [];
+  for (const part of parts) {
+    if (!part) continue;
+    runs.push({ text: part, match: terms.includes(part.toLowerCase()) });
+  }
+  return runs;
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export function timeAgo(dateString: string): string {
   const seconds = Math.floor(
     (Date.now() - new Date(dateString).getTime()) / 1000,
