@@ -12,6 +12,7 @@ import {
   SourceType,
   mergeRelatedProjects,
   getSourceConfig,
+  getSourceSearchUrl,
 } from "@/lib/sources";
 import { optimizeQueries, isBackendConfigured } from "@/lib/api-client";
 import { toast } from "sonner";
@@ -430,6 +431,25 @@ export default function Home() {
                     />
                   ))}
                 </div>
+
+                {/* Escape hatch when the user wants more than ThreadSeeker's
+                    top-ranked slice from a single source. */}
+                {activeSourceFilter && query && getSourceSearchUrl(activeSourceFilter, query) && (
+                  <div className="flex justify-center pt-4">
+                    <a
+                      href={getSourceSearchUrl(activeSourceFilter, query) || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-200 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-colors"
+                    >
+                      <span>{getSourceConfig(activeSourceFilter).icon}</span>
+                      <span>
+                        See all results on {getSourceConfig(activeSourceFilter).name}
+                      </span>
+                      <ArrowRight className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
               </div>
             );
           })()

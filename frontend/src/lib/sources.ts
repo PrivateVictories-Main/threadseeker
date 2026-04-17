@@ -1366,6 +1366,65 @@ function calculateRelevanceScore(project: UnifiedProject, query: string): number
   return Math.max(0, s);
 }
 
+// Return the source's native search URL for a query, so the UI can offer
+// a "see all on X" escape hatch when the user wants more than what
+// ThreadSeeker returned. Returns null if the source has no public search UI.
+export function getSourceSearchUrl(source: SourceType, query: string): string | null {
+  const q = encodeURIComponent(query);
+  switch (source) {
+    case "github":
+      return `https://github.com/search?q=${q}&type=repositories`;
+    case "gitlab":
+      return `https://gitlab.com/search?search=${q}`;
+    case "codeberg":
+      return `https://codeberg.org/explore/repos?q=${q}`;
+    case "npm":
+      return `https://www.npmjs.com/search?q=${q}`;
+    case "pypi":
+      return `https://pypi.org/search/?q=${q}`;
+    case "crates":
+      return `https://crates.io/search?q=${q}`;
+    case "packagist":
+      return `https://packagist.org/?query=${q}`;
+    case "rubygems":
+      return `https://rubygems.org/search?query=${q}`;
+    case "jsr":
+      return `https://jsr.io/packages?search=${q}`;
+    case "huggingface":
+      return `https://huggingface.co/search/full-text?q=${q}`;
+    case "hackernews":
+      return `https://hn.algolia.com/?q=${q}`;
+    case "reddit":
+      return `https://www.reddit.com/search/?q=${q}`;
+    case "lobsters":
+      return `https://lobste.rs/search?q=${q}&what=stories&order=relevance`;
+    case "stackoverflow":
+      return `https://stackoverflow.com/search?q=${q}`;
+    case "devto":
+      return `https://dev.to/search?q=${q}`;
+    case "dockerhub":
+      return `https://hub.docker.com/search?q=${q}`;
+    case "flathub":
+      return `https://flathub.org/apps/search?q=${q}`;
+    case "homebrew":
+      return `https://formulae.brew.sh/formula-search/?q=${q}`;
+    case "fdroid":
+      return `https://search.f-droid.org/?q=${q}`;
+    case "aur":
+      return `https://aur.archlinux.org/packages?K=${q}`;
+    case "openvsx":
+      return `https://open-vsx.org/?query=${q}`;
+    case "conda":
+      return `https://anaconda.org/search?q=${q}`;
+    case "paperswithcode":
+      return `https://paperswithcode.com/search?q=${q}`;
+    case "arxiv":
+      return `https://arxiv.org/search/?query=${q}&searchtype=all`;
+    default:
+      return null;
+  }
+}
+
 export function getSourceConfig(source: SourceType) {
   const configs: Record<
     SourceType,
