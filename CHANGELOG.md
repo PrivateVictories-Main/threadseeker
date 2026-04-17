@@ -5,6 +5,23 @@ All notable changes to ThreadSeeker will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-04-17
+
+### Added — 3 more sources + UX polish
+
+- **AUR** (Arch User Repository), **Open VSX** (VS Code / VSCodium
+  extensions, Eclipse Foundation), and **conda-forge** (anaconda.org).
+  Brings the total to **24 sources**.
+- **Per-source 12 s timeout**: one flaky upstream can no longer stall
+  the "still searching" counter.
+- **URL state**: sort mode and active source-chip filter now persist
+  in the URL so shared links restore the exact view.
+- **"/" keyboard shortcut** focuses the search input (classic
+  Google / GitHub UX).
+- **Pending source icons**: the status line now renders each still-in-
+  flight source's emoji, giving visible streaming progress instead of
+  just a bare count.
+
 ## [2.1.0] - 2026-04-17
 
 ### Added — 10 new sources + dedup + highlighting

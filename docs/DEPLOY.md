@@ -3,7 +3,7 @@
 One deployment. One URL. No servers.
 
 ThreadSeeker is a fully static Next.js site plus a handful of Cloudflare
-Pages Functions that ship alongside it. The whole app — frontend, 21
+Pages Functions that ship alongside it. The whole app — frontend, 24
 source adapters, AI query optimization, cross-source synthesis — runs on
 Cloudflare's free tier.
 
@@ -54,11 +54,11 @@ Cloudflare builds on every push. That's it.
 | Feature                                        | Where          | Needs secret?  |
 |------------------------------------------------|----------------|----------------|
 | GitHub / GitLab / Codeberg search              | Browser        | No             |
-| npm / PyPI / crates / Packagist / RubyGems / JSR | Browser      | No             |
+| npm / PyPI / crates / Packagist / RubyGems / JSR / Open VSX | Browser | No      |
 | Hugging Face search                            | Browser        | No             |
 | Hacker News / Dev.to search                    | Browser        | No             |
 | Reddit search + sentiment                      | Pages Function | No             |
-| Docker Hub / Flathub / Lobsters / SO / Papers with Code | Pages Function (CORS proxy) | No |
+| Docker Hub / Flathub / Lobsters / SO / Papers with Code / AUR / conda-forge | Pages Function (CORS proxy) | No |
 | Homebrew search                                | Pages Function | No             |
 | F-Droid search                                 | Pages Function | No             |
 | arXiv search                                   | Pages Function | No             |

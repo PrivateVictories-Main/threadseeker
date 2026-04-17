@@ -1,13 +1,13 @@
 # ThreadSeeker
 
-**A unified search engine for the open-source world.** One query, 21 sources,
+**A unified search engine for the open-source world.** One query, 24 sources,
 zero paid APIs.
 
 ThreadSeeker searches GitHub, Hugging Face, GitLab, Codeberg, npm, PyPI,
-crates.io, Packagist, RubyGems, JSR, Docker Hub, Flathub, Homebrew, F-Droid,
-Papers with Code, arXiv, Hacker News, Reddit, Lobsters, Stack Overflow, and
-Dev.to in parallel, then lets you copy the install/clone command — right from
-the result card.
+crates.io, Packagist, RubyGems, JSR, conda-forge, Docker Hub, Flathub,
+Homebrew, F-Droid, AUR, Open VSX, Papers with Code, arXiv, Hacker News,
+Reddit, Lobsters, Stack Overflow, and Dev.to in parallel, then lets you
+copy the install/clone command — right from the result card.
 
 It's built to be **free to run**: the whole app — frontend plus a handful of
 serverless functions for the things the browser can't do — ships as a single
@@ -54,7 +54,7 @@ optimization, 1 h for synthesis) so repeat queries are instant.
 
 ## Features
 
-- **21 sources**, single unified card UI.
+- **24 sources**, single unified card UI.
 - **Streaming results** — the skeleton disappears the moment the first
   source returns; remaining sources stream in behind it.
 - **Cross-source dedup** — the same project surfaced on GitHub + PyPI +
