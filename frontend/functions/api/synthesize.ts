@@ -87,17 +87,17 @@ function buildSynthesisPrompt(query: string, projects: ProjectLite[]): string {
     .filter((p) => ["github", "gitlab", "codeberg"].includes(p.source))
     .slice(0, 5);
   const models = projects
-    .filter((p) => ["huggingface", "paperswithcode"].includes(p.source))
+    .filter((p) => ["huggingface", "paperswithcode", "arxiv"].includes(p.source))
     .slice(0, 5);
   const packages = projects
     .filter((p) =>
-      ["npm", "pypi", "crates", "packagist", "rubygems", "jsr"].includes(
+      ["npm", "pypi", "crates", "packagist", "rubygems", "jsr", "homebrew"].includes(
         p.source,
       ),
     )
     .slice(0, 5);
   const containers = projects
-    .filter((p) => ["dockerhub", "flathub"].includes(p.source))
+    .filter((p) => ["dockerhub", "flathub", "fdroid"].includes(p.source))
     .slice(0, 3);
   const community = projects
     .filter((p) =>

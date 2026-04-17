@@ -213,11 +213,40 @@ export function getProjectActions(project: UnifiedProject): ProjectAction[] {
       break;
     }
     case "devto":
-    case "paperswithcode": {
+    case "paperswithcode":
+    case "arxiv": {
       actions.push({
         kind: "visit",
-        label: "Open article",
+        label: "Open",
         command: project.url,
+      });
+      break;
+    }
+    case "homebrew": {
+      const kind = project.topics.includes("cask") ? "--cask" : "";
+      actions.push({
+        kind: "install",
+        label: "brew install",
+        command: `brew install ${kind ? kind + " " : ""}${project.fullName}`.trim(),
+      });
+      actions.push({
+        kind: "install",
+        label: "upgrade",
+        command: `brew upgrade ${project.fullName}`,
+      });
+      break;
+    }
+    case "fdroid": {
+      actions.push({
+        kind: "visit",
+        label: "Open on F-Droid",
+        command: project.url,
+      });
+      actions.push({
+        kind: "snippet",
+        label: "package id",
+        command: project.fullName,
+        description: "Use with F-Droid client or aurora store",
       });
       break;
     }

@@ -61,6 +61,7 @@ export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
     "stackoverflow",
     "devto",
     "paperswithcode",
+    "arxiv",
   ]);
   const isThread = THREAD_SOURCES.has(project.source);
 

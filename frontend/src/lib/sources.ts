@@ -21,7 +21,10 @@ export type SourceType =
   | "devto"
   | "lobsters"
   | "stackoverflow"
-  | "paperswithcode";
+  | "paperswithcode"
+  | "homebrew"
+  | "fdroid"
+  | "arxiv";
 
 export interface UnifiedProject {
   id: string;
@@ -833,6 +836,108 @@ function decodeHtml(s: string): string {
     .replace(/&#39;/g, "'");
 }
 
+// Pages Function call helper for sources that need server-side indexing.
+async function callBackend<T>(
+  path: string,
+  body: unknown,
+): Promise<T | null> {
+  const base = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "";
+  if (base === "disabled") return null;
+  try {
+    const res = await fetch(`${base}/api${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+// Homebrew — macOS package manager. Index lives in a Pages Function because
+// brew.sh has no search API; we fetch the full formula/cask list and filter.
+export async function searchHomebrew(query: string): Promise<SearchResult> {
+  const data = await callBackend<{ results: any[] }>("/search-homebrew", { query });
+  if (!data) return { projects: [], totalCount: 0, source: "homebrew" };
+  const results = data.results || [];
+  return {
+    projects: results.map((p: any) => ({
+      id: `homebrew-${p.kind}-${p.full_token}`,
+      source: "homebrew" as const,
+      name: p.name || p.full_token,
+      fullName: p.full_token,
+      description: p.desc
+        ? `${p.kind === "cask" ? "Cask" : "Formula"} • ${p.desc}`
+        : null,
+      url: p.homepage,
+      stars: 0,
+      language: null,
+      topics: [p.kind, p.tap].filter(Boolean),
+      author: { name: p.tap || "homebrew", avatar: "" },
+      updatedAt: p.updated || new Date().toISOString(),
+    })),
+    totalCount: results.length,
+    source: "homebrew",
+  };
+}
+
+// F-Droid — Android FOSS app store. Index fetched server-side.
+export async function searchFDroid(query: string): Promise<SearchResult> {
+  const data = await callBackend<{ results: any[] }>("/search-fdroid", { query });
+  if (!data) return { projects: [], totalCount: 0, source: "fdroid" };
+  const results = data.results || [];
+  return {
+    projects: results.map((a: any) => ({
+      id: `fdroid-${a.id}`,
+      source: "fdroid" as const,
+      name: a.name || a.id,
+      fullName: a.id,
+      description: a.summary || a.description?.slice(0, 200) || null,
+      url: `https://f-droid.org/en/packages/${a.id}/`,
+      stars: 0,
+      language: null,
+      topics: a.categories || [],
+      author: {
+        name: a.author || "F-Droid",
+        avatar: a.icon || "",
+      },
+      updatedAt: a.updated || new Date().toISOString(),
+      license: a.license ?? undefined,
+    })),
+    totalCount: results.length,
+    source: "fdroid",
+  };
+}
+
+// arXiv — scientific papers. Atom XML parsed server-side.
+export async function searchArxiv(query: string): Promise<SearchResult> {
+  const data = await callBackend<{ results: any[] }>("/search-arxiv", { query });
+  if (!data) return { projects: [], totalCount: 0, source: "arxiv" };
+  const results = data.results || [];
+  return {
+    projects: results.map((p: any) => ({
+      id: `arxiv-${p.id}`,
+      source: "arxiv" as const,
+      name: p.title,
+      fullName: p.id.replace(/^https?:\/\/arxiv\.org\/abs\//, "arXiv:"),
+      description: p.summary || null,
+      url: p.url,
+      stars: 0,
+      language: null,
+      topics: p.categories || [],
+      author: {
+        name: Array.isArray(p.authors) && p.authors.length ? p.authors[0] : "unknown",
+        avatar: "",
+      },
+      updatedAt: p.published || p.updated || new Date().toISOString(),
+    })),
+    totalCount: results.length,
+    source: "arxiv",
+  };
+}
+
 // Reddit — CORS blocked client-side, proxied through our Pages Function
 export async function searchReddit(query: string): Promise<SearchResult> {
   try {
@@ -882,6 +987,9 @@ export async function searchAllSources(
     "lobsters",
     "stackoverflow",
     "paperswithcode",
+    "homebrew",
+    "fdroid",
+    "arxiv",
   ],
   deepSearch: boolean = true,
   queryOverrides: Partial<Record<SourceType, string>> = {},
@@ -947,6 +1055,15 @@ export async function searchAllSources(
           break;
         case "paperswithcode":
           result = await searchPapersWithCode(q("paperswithcode"));
+          break;
+        case "homebrew":
+          result = await searchHomebrew(q("homebrew"));
+          break;
+        case "fdroid":
+          result = await searchFDroid(q("fdroid"));
+          break;
+        case "arxiv":
+          result = await searchArxiv(q("arxiv"));
           break;
         default:
           result = { projects: [], totalCount: 0, source };
@@ -1064,6 +1181,7 @@ function calculateRelevanceScore(project: UnifiedProject, query: string): number
     github: 150, huggingface: 140, npm: 120, pypi: 120, crates: 120,
     packagist: 110, rubygems: 110, gitlab: 100, codeberg: 100,
     dockerhub: 120, jsr: 110, flathub: 105,
+    homebrew: 110, fdroid: 100, arxiv: 110,
     paperswithcode: 115, stackoverflow: 95,
     hackernews: 90, reddit: 90, lobsters: 90, devto: 85,
   };
@@ -1212,6 +1330,27 @@ export function getSourceConfig(source: SourceType) {
       color: "from-violet-500 to-fuchsia-500",
       borderColor: "border-violet-500/30",
       bgColor: "bg-violet-500/10",
+    },
+    homebrew: {
+      name: "Homebrew",
+      icon: "🍺",
+      color: "from-amber-500 to-yellow-600",
+      borderColor: "border-amber-500/30",
+      bgColor: "bg-amber-500/10",
+    },
+    fdroid: {
+      name: "F-Droid",
+      icon: "🤖",
+      color: "from-lime-500 to-green-600",
+      borderColor: "border-lime-500/30",
+      bgColor: "bg-lime-500/10",
+    },
+    arxiv: {
+      name: "arXiv",
+      icon: "📜",
+      color: "from-red-500 to-rose-600",
+      borderColor: "border-red-500/30",
+      bgColor: "bg-red-500/10",
     },
   };
   return configs[source];
