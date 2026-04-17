@@ -8,10 +8,10 @@ crates.io, Packagist, RubyGems, Hacker News, and Reddit in parallel, then
 lets you copy the install/clone command for whatever you find — right from
 the result card.
 
-It's built to be **free to run**: the frontend is a static Next.js site
-(Cloudflare Pages free tier), the backend is a single FastAPI container
-(your own VPS), and every data source is a public API or a free scraping
-route. The only optional expense is a domain.
+It's built to be **free to run**: the whole app — frontend plus a few
+serverless functions for the things the browser can't do — ships as a
+single Cloudflare Pages deployment. No servers, no containers, no ongoing
+cost beyond an (optional) custom domain.
 
 ---
 
@@ -26,20 +26,20 @@ route. The only optional expense is a domain.
 │  Multi-AI provider │         │  RubyGems, Hacker News   │
 └────────┬───────────┘         └──────────────────────────┘
          │
-         │ (only for things the browser can't do)
+         │  /api/*  (same-origin, same deployment)
          ▼
-┌────────────────────┐
-│   FastAPI backend  │
-│                    │
-│  - Reddit search   │  (CORS-blocked, needs server proxy)
-│  - AI optimization │  (Groq / Gemini keys stay server-side)
-│  - AI synthesis    │  (multi-source summary)
-│  - Content extract │  (Trafilatura, Python-only)
-└────────────────────┘
+┌────────────────────────────┐
+│  Cloudflare Pages Functions│
+│                            │
+│  - /api/search-reddit      │  Reddit (CORS-blocked, + sentiment)
+│  - /api/optimize-queries   │  AI query → per-platform queries
+│  - /api/synthesize         │  Cross-source AI verdict
+└────────────────────────────┘
 ```
 
-The frontend works on its own — the backend adds Reddit, server-side AI,
-and content extraction but isn't required.
+The frontend works on its own against 10 public APIs — the Pages Functions
+add Reddit and server-side AI. Only a `GROQ_API_KEY` secret is needed for
+the AI features.
 
 ---
 
@@ -53,7 +53,6 @@ and content extraction but isn't required.
   etc.) rendered inline on every result.
 - **Query optimization** — natural-language query → three per-platform
   optimized queries, with intent classification.
-- **Query refinement** — ambiguous queries prompt clarifying questions.
 - **Cross-source synthesis** — single AI-written summary of the unified
   result set.
 - **In-browser AI** — WebLLM runs Llama/Qwen on the user's GPU; no API
@@ -69,28 +68,28 @@ See [`docs/DEPLOY.md`](docs/DEPLOY.md) for the full playbook. The short
 version:
 
 ```bash
-# Backend
-cd backend
-cp .env.example .env  # fill in GROQ_API_KEY (optional)
-docker compose up -d --build  # from repo root
-
-# Frontend
 cd frontend
-cp .env.example .env.local    # set NEXT_PUBLIC_BACKEND_URL
 npm install
-npm run dev                   # dev
-NEXT_OUTPUT=export npm run build  # static build → out/
+npm run dev                         # http://localhost:3000 (no backend features)
+
+# ...or with Pages Functions locally:
+NEXT_OUTPUT=export npm run build
+GROQ_API_KEY=gsk_... wrangler pages dev out   # http://localhost:8788
 ```
+
+Deploy: push to GitHub, connect the repo to Cloudflare Pages, set
+`GROQ_API_KEY` as a secret. Done.
 
 ---
 
 ## Repo layout
 
 ```
-backend/        FastAPI service (Dockerfile, requirements.txt)
-frontend/       Next.js 14 SPA (static-export ready for Cloudflare Pages)
-docs/           DEPLOY.md and historical design docs
-docker-compose.yml   Traefik-ready compose for the backend
+frontend/
+  src/              Next.js 14 SPA
+  functions/api/    Cloudflare Pages Functions (Reddit, AI)
+  public/_headers   COOP/COEP for WebLLM
+docs/               DEPLOY.md and historical design notes
 ```
 
 ---

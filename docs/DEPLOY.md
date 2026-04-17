@@ -1,26 +1,22 @@
 # Deploying ThreadSeeker
 
-Two independent pieces:
+One deployment. One URL. No servers.
 
-- **Frontend** — static Next.js site → Cloudflare Pages (free)
-- **Backend** — FastAPI service → runs locally during development; deployment
-  target is **not yet decided** (see "Backend hosting" below)
-
-The frontend works without the backend. Features that require the backend:
-Reddit search, AI query optimization, cross-source AI synthesis, Trafilatura
-content extraction. Everything else (GitHub, HF, GitLab, npm, PyPI, crates.io,
-HN, Codeberg, Packagist, RubyGems) hits public APIs directly from the browser
-and needs no server.
+ThreadSeeker is a fully static Next.js site plus a handful of Cloudflare
+Pages Functions that ship alongside it. The whole app — frontend, Reddit
+search, AI query optimization, cross-source synthesis — runs on Cloudflare's
+free tier.
 
 ---
 
-## Frontend — Cloudflare Pages
-
-### 1. Push the repo to GitHub
+## 1. Push the repo to GitHub
 
 Cloudflare Pages pulls from git.
 
-### 2. Create a new Pages project
+## 2. Create a new Pages project
+
+In the Cloudflare dashboard, create a Pages project and connect it to the
+GitHub repo. Use these settings:
 
 - **Framework preset:** Next.js (Static HTML Export)
 - **Build command:** `NEXT_OUTPUT=export npm run build`
@@ -28,78 +24,83 @@ Cloudflare Pages pulls from git.
 - **Root directory:** `frontend`
 - **Node version:** 20
 
-### 3. Environment variables
+The `functions/` directory under `frontend/` is picked up automatically and
+deployed as Pages Functions — each file under `functions/api/` becomes a
+route at `/api/*` on the same domain as the site.
+
+## 3. Environment variables & secrets
 
 Set on the Pages project (Production + Preview):
 
-```
-NEXT_PUBLIC_BACKEND_URL=<https url of your backend, or leave blank>
-```
+| Variable        | Type   | Purpose                                          |
+|-----------------|--------|--------------------------------------------------|
+| `GROQ_API_KEY`  | Secret | Powers AI query optimization + synthesis         |
 
-Leave blank to deploy a backend-free build — everything still works except
-Reddit search and the AI features, which degrade gracefully (the UI hides
-them silently).
+No other variables are needed. The frontend talks to `/api/*` same-origin,
+so there's no `NEXT_PUBLIC_BACKEND_URL` to configure.
 
-### 4. COOP/COEP headers
+If `GROQ_API_KEY` isn't set, the AI features degrade gracefully — query
+optimization falls back to rule-based queries and the synthesis box hides
+itself. Everything else (Reddit search, 10 public-API sources) still works.
 
-Already provisioned via `frontend/public/_headers`. These are required so
-WebLLM (in-browser LLM inference) can use `SharedArrayBuffer` / WebGPU.
+## 4. Deploy
+
+Cloudflare builds on every push. That's it.
 
 ---
 
-## Backend — hosting (TBD)
+## What runs where
 
-The backend is packaged as a Docker image (`backend/Dockerfile`) and has a
-`docker-compose.yml` at the repo root, but **nothing is currently deployed
-anywhere**. Pick a host when you're ready:
+| Feature                                       | Where         | Needs secret? |
+|-----------------------------------------------|---------------|---------------|
+| GitHub / GitLab / Codeberg search             | Browser       | No            |
+| npm / PyPI / crates.io / Packagist / RubyGems | Browser       | No            |
+| Hugging Face search                           | Browser       | No            |
+| Hacker News search                            | Browser       | No            |
+| WebLLM (in-browser LLM)                       | Browser       | No            |
+| Reddit search + sentiment                     | Pages Function| No            |
+| AI query optimization                         | Pages Function| `GROQ_API_KEY`|
+| Cross-source synthesis                        | Pages Function| `GROQ_API_KEY`|
 
-- **Fly.io** — free tier, `fly launch` from the repo root, works out of the box
-- **Render / Railway** — free web-service tiers; point at `backend/Dockerfile`
-- **Your own VPS** — set `DOMAIN` env var, run `docker compose up -d --build`
-- **Cloudflare Workers** — not viable; the backend depends on Trafilatura + Groq
-  SDK which need Python, not JS.
+---
 
-Whichever you pick, the backend needs:
-- Outbound internet (DuckDuckGo for Reddit, Groq/Gemini, target URLs for Trafilatura)
-- `GROQ_API_KEY` env var (Gemini is an optional fallback)
-- Optional: `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` for shared cache
+## COOP/COEP headers
 
-Then point the Cloudflare Pages `NEXT_PUBLIC_BACKEND_URL` at its public URL.
+Required so WebLLM (in-browser LLM inference) can use `SharedArrayBuffer`
+and WebGPU. Already provisioned via `frontend/public/_headers` — Cloudflare
+Pages reads that file automatically.
 
 ---
 
 ## Local development
 
 ```bash
-# Terminal 1 — backend
-cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # fill in keys
-uvicorn main:app --reload --port 8000
-
-# Terminal 2 — frontend
+# Install deps
 cd frontend
-cp .env.example .env.local  # set NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 npm install
+
+# Option A — frontend only (no backend features)
+# Works with all 10 public-API sources + WebLLM. Reddit + AI are disabled.
+echo "NEXT_PUBLIC_BACKEND_URL=disabled" > .env.local
 npm run dev
+# -> http://localhost:3000
+
+# Option B — frontend + Pages Functions (full feature set)
+# Requires the Cloudflare Wrangler CLI:
+npm install -g wrangler
+export GROQ_API_KEY=gsk_...          # your Groq key
+NEXT_OUTPUT=export npm run build
+wrangler pages dev out
+# -> http://localhost:8788
 ```
 
-Or run just the frontend — it'll work with all 10 public-API sources and the
-in-browser WebLLM chat; only Reddit/synthesis features are disabled.
+For Option B, hit the Wrangler URL directly — it serves both the static
+site and `/api/*` functions together, matching production exactly.
 
 ---
 
-## What goes where
+## Custom domain
 
-| Feature                          | Runs on    | Needs backend? |
-|----------------------------------|------------|----------------|
-| GitHub / GitLab / Codeberg search| Browser    | No             |
-| npm / PyPI / crates.io / Packagist / RubyGems | Browser | No |
-| Hugging Face search              | Browser    | No             |
-| Hacker News search               | Browser    | No             |
-| Reddit search                    | Backend    | Yes (CORS)     |
-| AI query optimization            | Backend    | Yes (hidden keys) |
-| Cross-source synthesis           | Backend    | Yes            |
-| WebLLM (in-browser inference)    | Browser    | No             |
-| Content extraction (Trafilatura) | Backend    | Yes            |
+In the Pages project: **Custom domains → Set up a custom domain**, then
+add a CNAME at your registrar. Cloudflare provisions the cert
+automatically. No other changes needed.

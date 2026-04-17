@@ -1,17 +1,27 @@
-// Backend API client for ThreadSeeker
-// Calls the Python FastAPI backend for things the browser can't do directly:
-//   - Reddit search (CORS blocked)
-//   - AI query optimization (Groq key must stay server-side)
-//   - AI synthesis across multi-source results
-//   - Content extraction (Trafilatura is Python-only)
-
+// Backend API client for ThreadSeeker.
+//
+// The backend is now a handful of Cloudflare Pages Functions that ship with
+// the frontend at `/api/*`. In production the routes are same-origin; in
+// local dev we override via NEXT_PUBLIC_BACKEND_URL to point at
+// `wrangler pages dev` (typically http://localhost:8788).
+//
+// Endpoints (all POST, JSON):
+//   /api/search-reddit     — Reddit CORS-blocked search with sentiment
+//   /api/optimize-queries  — AI-optimized per-platform queries
+//   /api/synthesize        — Cross-source AI verdict
+//
+// Everything else (GitHub, npm, PyPI, HF, HN, GitLab, Codeberg, crates.io,
+// Packagist, RubyGems) is called directly from the browser.
 import type { UnifiedProject } from "./sources";
 
-const BACKEND_URL =
+const BACKEND_OVERRIDE =
   process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "";
 
-function backendAvailable(): boolean {
-  return BACKEND_URL.length > 0;
+// Resolve the base for API calls. Empty string means same-origin `/api/...`.
+const API_BASE = BACKEND_OVERRIDE || "";
+
+function apiUrl(path: string): string {
+  return `${API_BASE}/api${path}`;
 }
 
 export interface OptimizedQueries {
@@ -23,46 +33,11 @@ export interface OptimizedQueries {
   reasoning?: string;
 }
 
-export interface RefinementQuestion {
-  id: string;
-  question: string;
-  options: Array<{
-    value: string;
-    label: string;
-    icon: string;
-    description: string;
-  }>;
-}
-
-export interface QueryAnalysis {
-  needs_refinement: boolean;
-  original_query: string;
-  questions: RefinementQuestion[];
-  message?: string;
-}
-
-export async function analyzeQuery(query: string): Promise<QueryAnalysis | null> {
-  if (!backendAvailable()) return null;
-  try {
-    const response = await fetch(`${BACKEND_URL}/analyze-query`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
-    });
-    if (!response.ok) return null;
-    return (await response.json()) as QueryAnalysis;
-  } catch (error) {
-    console.error("Backend analyzeQuery failed:", error);
-    return null;
-  }
-}
-
 export async function optimizeQueries(
-  query: string
+  query: string,
 ): Promise<OptimizedQueries | null> {
-  if (!backendAvailable()) return null;
   try {
-    const response = await fetch(`${BACKEND_URL}/optimize-queries`, {
+    const response = await fetch(apiUrl("/optimize-queries"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),
@@ -70,20 +45,16 @@ export async function optimizeQueries(
     if (!response.ok) return null;
     return (await response.json()) as OptimizedQueries;
   } catch (error) {
-    console.error("Backend optimizeQueries failed:", error);
+    console.error("optimizeQueries failed:", error);
     return null;
   }
 }
 
 export async function searchRedditViaBackend(
-  query: string
+  query: string,
 ): Promise<UnifiedProject[]> {
-  if (!backendAvailable()) {
-    // Frontend falls back to empty results when backend is unavailable
-    return [];
-  }
   try {
-    const response = await fetch(`${BACKEND_URL}/search-reddit`, {
+    const response = await fetch(apiUrl("/search-reddit"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),
@@ -110,18 +81,18 @@ export async function searchRedditViaBackend(
       warning: t.has_warning ? t.warning_reason : undefined,
     }));
   } catch (error) {
-    console.error("Backend searchReddit failed:", error);
+    console.error("searchReddit failed:", error);
     return [];
   }
 }
 
 export async function synthesizeResults(
   query: string,
-  projects: UnifiedProject[]
+  projects: UnifiedProject[],
 ): Promise<string | null> {
-  if (!backendAvailable() || projects.length === 0) return null;
+  if (projects.length === 0) return null;
   try {
-    const response = await fetch(`${BACKEND_URL}/synthesize`, {
+    const response = await fetch(apiUrl("/synthesize"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -139,11 +110,15 @@ export async function synthesizeResults(
     const data = await response.json();
     return data.synthesis || null;
   } catch (error) {
-    console.error("Backend synthesize failed:", error);
+    console.error("synthesize failed:", error);
     return null;
   }
 }
 
+// API is always "configured" now — the functions ship with the site.
+// Callers use this to decide whether to attempt backend-gated features.
+// For local `next dev` without `wrangler pages dev`, set
+// NEXT_PUBLIC_BACKEND_URL=disabled to suppress calls that would 404.
 export function isBackendConfigured(): boolean {
-  return backendAvailable();
+  return BACKEND_OVERRIDE !== "disabled";
 }

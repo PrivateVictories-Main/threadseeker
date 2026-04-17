@@ -1,0 +1,114 @@
+// Cross-source synthesis. Bucket the unified project list by source,
+// build a prompt, ask Groq for a short verdict. Returns null synthesis
+// silently when no API key is configured — the frontend hides the box.
+
+import {
+  callGroq,
+  corsPreflight,
+  jsonResponse,
+  resolveGroqKey,
+  sanitizeQuery,
+} from "../_shared/groq";
+
+interface ProjectLite {
+  source: string;
+  name: string;
+  description: string | null;
+  url: string;
+  stars: number;
+}
+
+export const onRequestOptions: PagesFunction = async () => corsPreflight();
+
+export const onRequestPost: PagesFunction<{
+  GROQ_API_KEY?: string;
+}> = async ({ request, env }) => {
+  let body: { query?: unknown; projects?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ detail: "Invalid JSON body" }, 400);
+  }
+  const query = sanitizeQuery(body.query);
+  if (!query) {
+    return jsonResponse(
+      { detail: "Query must be 1-1000 characters" },
+      400,
+    );
+  }
+  const projects: ProjectLite[] = Array.isArray(body.projects)
+    ? (body.projects as ProjectLite[]).slice(0, 20)
+    : [];
+  if (projects.length === 0) {
+    return jsonResponse({ synthesis: null });
+  }
+
+  const apiKey = resolveGroqKey(request, env);
+  if (!apiKey) {
+    return jsonResponse({ synthesis: null });
+  }
+
+  const prompt = buildSynthesisPrompt(query, projects);
+  try {
+    const synthesis = await callGroq({
+      apiKey,
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.5,
+      maxTokens: 300,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a real-time technical research advisor. Synthesize findings to provide actionable insights. Emphasize how recent the information is.",
+        },
+        { role: "user", content: prompt },
+      ],
+    });
+    return jsonResponse({ synthesis: synthesis || null });
+  } catch (e) {
+    console.warn("Groq synthesis failed:", (e as Error).message);
+    return jsonResponse({ synthesis: null });
+  }
+};
+
+function buildSynthesisPrompt(query: string, projects: ProjectLite[]): string {
+  const github = projects
+    .filter((p) => ["github", "gitlab", "codeberg"].includes(p.source))
+    .slice(0, 5);
+  const hf = projects.filter((p) => p.source === "huggingface").slice(0, 5);
+  const reddit = projects.filter((p) => p.source === "reddit").slice(0, 5);
+  const other = projects
+    .filter(
+      (p) =>
+        !["github", "gitlab", "codeberg", "huggingface", "reddit"].includes(
+          p.source,
+        ),
+    )
+    .slice(0, 5);
+
+  const fmt = (p: ProjectLite) =>
+    `- ${p.name}${p.stars ? ` (${p.stars}★)` : ""}: ${p.description || "No description"}`;
+
+  return `You are a technical research advisor helping a developer find existing solutions.
+
+USER'S QUERY: "${query}"
+
+GITHUB / GITLAB / CODEBERG RESULTS:
+${github.length ? github.map(fmt).join("\n") : "None"}
+
+HUGGING FACE RESULTS:
+${hf.length ? hf.map(fmt).join("\n") : "None"}
+
+REDDIT DISCUSSIONS:
+${reddit.length ? reddit.map(fmt).join("\n") : "None"}
+
+PACKAGE REGISTRIES (npm/PyPI/crates/etc):
+${other.length ? other.map(fmt).join("\n") : "None"}
+
+Based on these findings, provide a concise verdict (3-4 sentences max):
+1. Is there a strong existing solution?
+2. What's the recommended starting point from the top results?
+3. Any important community warnings or trends?
+
+Be direct and actionable. Start with the bottom line.`;
+}

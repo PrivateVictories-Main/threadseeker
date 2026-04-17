@@ -5,6 +5,29 @@ All notable changes to ThreadSeeker will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-04-17
+
+### Changed — serverless architecture
+
+- **Backend is now Cloudflare Pages Functions**, not a separate FastAPI
+  service. The whole app (static site + Reddit / AI functions) ships as
+  one Cloudflare Pages deployment. No containers, no VPS, no separate host.
+- **Reddit search** ported to a Pages Function calling reddit.com's JSON
+  endpoints directly (the old DuckDuckGo indirection isn't needed from a
+  Worker egress IP).
+- **`/api/optimize-queries` and `/api/synthesize`** port the Groq calls to
+  TypeScript with the same prompts, intent classification, and fallbacks
+  as the Python version.
+- Frontend hits `/api/*` same-origin — no more `NEXT_PUBLIC_BACKEND_URL`
+  required in production.
+- Gemini fallback and Trafilatura content extraction dropped (the latter
+  was dead code in the frontend). Rule-based query fallback preserved.
+
+### Removed
+
+- `backend/` directory, Dockerfile, `docker-compose.yml`
+- `analyzeQuery` / query-refinement endpoints (frontend no longer calls them)
+
 ## [1.0.0] - 2025-01-29
 
 ### Added
