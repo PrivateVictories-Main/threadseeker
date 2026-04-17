@@ -8,7 +8,7 @@ import {
   getPrimaryAction,
   ProjectAction,
 } from "@/lib/actions";
-import { formatNumber, timeAgo } from "@/lib/github";
+import { formatNumber, timeAgo } from "@/lib/utils";
 import {
   Star,
   Download,
