@@ -14,8 +14,40 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://threadseeker.pages.dev"),
   title: "ThreadSeeker — Search open source everywhere",
-  description: "One search across GitHub, Hugging Face, GitLab, npm, PyPI, crates.io, and more. Find projects, models, and packages instantly.",
+  description:
+    "One query across 24 open-source platforms: GitHub, Hugging Face, npm, PyPI, crates.io, Docker Hub, conda-forge, AUR, Open VSX, arXiv, Reddit, HN, and more. Free, no account, no tracking.",
+  keywords: [
+    "open source search",
+    "github search",
+    "npm search",
+    "pypi search",
+    "huggingface search",
+    "docker hub search",
+    "conda-forge",
+    "package search",
+    "developer tools",
+  ],
+  authors: [{ name: "ThreadSeeker" }],
+  openGraph: {
+    title: "ThreadSeeker — Search open source everywhere",
+    description:
+      "One query across 24 open-source platforms. GitHub, npm, PyPI, Hugging Face, Docker Hub, conda-forge, AUR, Open VSX, arXiv, and more.",
+    url: "https://threadseeker.pages.dev",
+    siteName: "ThreadSeeker",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ThreadSeeker — Search open source everywhere",
+    description:
+      "One query across 24 open-source platforms. Find repos, packages, models, and community threads.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
@@ -40,6 +72,8 @@ export default function RootLayout({
           "https://repo.packagist.org",
           "https://rubygems.org",
           "https://hn.algolia.com",
+          "https://open-vsx.org",
+          "https://dev.to",
         ].map((href) => (
           <link key={href} rel="preconnect" href={href} crossOrigin="anonymous" />
         ))}
