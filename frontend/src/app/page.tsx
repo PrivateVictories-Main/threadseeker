@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { SearchBar } from "@/components/SearchBar";
 import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
 import { SourceFilter } from "@/components/SourceFilter";
 import { SynthesisBox } from "@/components/SynthesisBox";
 import { searchAllSources, UnifiedProject, SourceType } from "@/lib/sources";
+import { optimizeQueries, isBackendConfigured } from "@/lib/api-client";
 import { toast } from "sonner";
 import { Search, Globe, ArrowRight } from "lucide-react";
 
@@ -40,6 +41,7 @@ export default function Home() {
   const [hasSearched, setHasSearched] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedSources, setSelectedSources] = useState<SourceType[]>(ALL_SOURCES);
+  const initialLoadDone = useRef(false);
 
   const handleSearch = useCallback(
     async (searchQuery: string) => {
@@ -51,7 +53,27 @@ export default function Home() {
       setHasSearched(true);
 
       try {
-        const results = await searchAllSources(q, selectedSources, true);
+        // Fetch AI-optimized per-platform queries in parallel with a best-effort timeout.
+        // If the backend is down or slow, fall back to the raw query everywhere.
+        let overrides: Partial<Record<SourceType, string>> = {};
+        if (isBackendConfigured()) {
+          const timeoutP = new Promise<null>((resolve) =>
+            setTimeout(() => resolve(null), 3500),
+          );
+          const optimized = await Promise.race([optimizeQueries(q), timeoutP]);
+          if (optimized) {
+            overrides = {
+              github: optimized.github_query,
+              gitlab: optimized.github_query,
+              codeberg: optimized.github_query,
+              huggingface: optimized.huggingface_query,
+              reddit: optimized.reddit_query,
+              hackernews: optimized.reddit_query,
+            };
+          }
+        }
+
+        const results = await searchAllSources(q, selectedSources, true, overrides);
         setProjects(results);
 
         if (results.length === 0) {
@@ -66,6 +88,42 @@ export default function Home() {
     },
     [selectedSources]
   );
+
+  // Read ?q= and ?sources= from URL on first mount and auto-search.
+  useEffect(() => {
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+
+    const params = new URLSearchParams(window.location.search);
+    const urlQuery = params.get("q")?.trim();
+    const urlSources = params.get("sources");
+
+    if (urlSources) {
+      const parsed = urlSources
+        .split(",")
+        .filter((s): s is SourceType => (ALL_SOURCES as string[]).includes(s));
+      if (parsed.length > 0) setSelectedSources(parsed);
+    }
+
+    if (urlQuery) {
+      handleSearch(urlQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep the URL in sync with the active query + sources so results are shareable.
+  useEffect(() => {
+    if (!hasSearched) return;
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    // Only write sources if the user has changed from the default "all".
+    if (selectedSources.length !== ALL_SOURCES.length) {
+      params.set("sources", selectedSources.join(","));
+    }
+    const qs = params.toString();
+    const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    window.history.replaceState(null, "", newUrl);
+  }, [query, selectedSources, hasSearched]);
 
   const handleSourceToggle = (source: SourceType) => {
     setSelectedSources((prev) => {

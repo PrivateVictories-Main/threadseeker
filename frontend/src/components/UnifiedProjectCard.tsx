@@ -20,11 +20,35 @@ import {
   Sparkles,
   Loader2,
   X,
+  MessageSquare,
+  TrendingUp,
+  AlertTriangle,
+  ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
 interface UnifiedProjectCardProps {
   project: UnifiedProject;
+}
+
+function SentimentBadge({
+  sentiment,
+}: {
+  sentiment: NonNullable<UnifiedProject["sentiment"]>;
+}) {
+  const styles: Record<typeof sentiment, string> = {
+    positive: "text-emerald-400/80 bg-emerald-500/10 border-emerald-500/20",
+    negative: "text-rose-400/80 bg-rose-500/10 border-rose-500/20",
+    mixed: "text-amber-400/80 bg-amber-500/10 border-amber-500/20",
+    neutral: "text-slate-500 bg-slate-500/10 border-slate-500/20",
+  };
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-1.5 py-[1px] text-[9px] font-medium uppercase tracking-wide ${styles[sentiment]}`}
+    >
+      {sentiment}
+    </span>
+  );
 }
 
 export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
@@ -38,6 +62,7 @@ export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
   const allActions = getProjectActions(project);
   const primaryAction = getPrimaryAction(project);
   const installActions = allActions.filter((a) => a.kind !== "visit");
+  const isThread = project.source === "reddit" || project.source === "hackernews";
 
   const copyCommand = (action: ProjectAction) => {
     navigator.clipboard.writeText(action.command);
@@ -139,23 +164,56 @@ export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
 
       {/* Stats row */}
       <div className="px-4 pb-3 flex items-center gap-3 text-[11px] text-slate-600">
-        {project.stars > 0 && (
-          <span className="flex items-center gap-1">
-            <Star className="w-3 h-3" />
-            {formatNumber(project.stars)}
-          </span>
-        )}
-        {project.downloads !== undefined && project.downloads > 0 && (
-          <span className="flex items-center gap-1">
-            <Download className="w-3 h-3" />
-            {formatNumber(project.downloads)}
-          </span>
-        )}
-        {project.language && <span>{project.language}</span>}
-        {project.updatedAt && (
-          <span className="ml-auto">{timeAgo(project.updatedAt)}</span>
+        {isThread ? (
+          <>
+            {project.stars > 0 && (
+              <span className="flex items-center gap-1" title="Upvotes / points">
+                <TrendingUp className="w-3 h-3" />
+                {formatNumber(project.stars)}
+              </span>
+            )}
+            {project.commentsCount !== undefined && project.commentsCount > 0 && (
+              <span className="flex items-center gap-1">
+                <MessageSquare className="w-3 h-3" />
+                {formatNumber(project.commentsCount)}
+              </span>
+            )}
+            {project.sentiment && project.sentiment !== "neutral" && (
+              <SentimentBadge sentiment={project.sentiment} />
+            )}
+            {project.updatedAt && (
+              <span className="ml-auto">{timeAgo(project.updatedAt)}</span>
+            )}
+          </>
+        ) : (
+          <>
+            {project.stars > 0 && (
+              <span className="flex items-center gap-1">
+                <Star className="w-3 h-3" />
+                {formatNumber(project.stars)}
+              </span>
+            )}
+            {project.downloads !== undefined && project.downloads > 0 && (
+              <span className="flex items-center gap-1">
+                <Download className="w-3 h-3" />
+                {formatNumber(project.downloads)}
+              </span>
+            )}
+            {project.language && <span>{project.language}</span>}
+            {project.updatedAt && (
+              <span className="ml-auto">{timeAgo(project.updatedAt)}</span>
+            )}
+          </>
         )}
       </div>
+
+      {/* Thread warning banner */}
+      {isThread && project.warning && (
+        <div className="mx-4 mb-3 flex items-start gap-2 rounded-md border border-amber-900/30 bg-amber-950/20 px-2.5 py-1.5 text-[10.5px] text-amber-300/90">
+          <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+          <span className="leading-snug">{project.warning}</span>
+        </div>
+      )}
 
       {/* Topics */}
       {project.topics.length > 0 && (
@@ -179,49 +237,64 @@ export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
       {/* Actions */}
       <div className="border-t border-slate-800/40 p-3 space-y-2">
         {/* Primary action row */}
-        <div className="flex items-center gap-2">
-          {installActions.length > 0 ? (
-            <>
-              <button
-                onClick={() => copyCommand(primaryAction)}
-                className="flex-1 flex items-center gap-2 text-left text-xs text-slate-400 hover:text-slate-200 bg-slate-900/50 hover:bg-slate-800/50 border border-slate-800/40 rounded-lg px-3 py-2 transition-colors min-w-0"
-                title={primaryAction.command}
-              >
-                <Terminal className="w-3.5 h-3.5 flex-shrink-0 text-slate-600" />
-                <code className="truncate font-mono text-[11px]">
-                  {primaryAction.command}
-                </code>
-                <Copy className="w-3 h-3 flex-shrink-0 ml-auto text-slate-700" />
-              </button>
-              {installActions.length > 1 && (
-                <button
-                  onClick={() => setExpanded((v) => !v)}
-                  className="p-2 text-slate-600 hover:text-slate-400 border border-slate-800/40 rounded-lg hover:bg-slate-800/40 transition-colors"
-                  title="More install commands"
-                >
-                  {expanded ? (
-                    <ChevronUp className="w-3.5 h-3.5" />
-                  ) : (
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              )}
-            </>
-          ) : null}
-
+        {isThread ? (
           <a
             href={project.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 text-slate-600 hover:text-slate-400 border border-slate-800/40 rounded-lg hover:bg-slate-800/40 transition-colors"
-            title="Open in new tab"
+            className="flex items-center justify-between gap-2 text-xs text-slate-300 hover:text-slate-100 bg-slate-900/50 hover:bg-slate-800/60 border border-slate-800/40 rounded-lg px-3 py-2 transition-colors"
           >
-            <ExternalLink className="w-3.5 h-3.5" />
+            <span className="flex items-center gap-2 min-w-0">
+              <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" />
+              <span className="truncate">Open thread on {sourceConfig.name}</span>
+            </span>
+            <ArrowUpRight className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" />
           </a>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            {installActions.length > 0 ? (
+              <>
+                <button
+                  onClick={() => copyCommand(primaryAction)}
+                  className="flex-1 flex items-center gap-2 text-left text-xs text-slate-400 hover:text-slate-200 bg-slate-900/50 hover:bg-slate-800/50 border border-slate-800/40 rounded-lg px-3 py-2 transition-colors min-w-0"
+                  title={primaryAction.command}
+                >
+                  <Terminal className="w-3.5 h-3.5 flex-shrink-0 text-slate-600" />
+                  <code className="truncate font-mono text-[11px]">
+                    {primaryAction.command}
+                  </code>
+                  <Copy className="w-3 h-3 flex-shrink-0 ml-auto text-slate-700" />
+                </button>
+                {installActions.length > 1 && (
+                  <button
+                    onClick={() => setExpanded((v) => !v)}
+                    className="p-2 text-slate-600 hover:text-slate-400 border border-slate-800/40 rounded-lg hover:bg-slate-800/40 transition-colors"
+                    title="More install commands"
+                  >
+                    {expanded ? (
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                )}
+              </>
+            ) : null}
+
+            <a
+              href={project.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 text-slate-600 hover:text-slate-400 border border-slate-800/40 rounded-lg hover:bg-slate-800/40 transition-colors"
+              title="Open in new tab"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        )}
 
         {/* Expanded install list */}
-        {expanded && installActions.length > 1 && (
+        {!isThread && expanded && installActions.length > 1 && (
           <div className="rounded-lg bg-slate-900/40 border border-slate-800/30 divide-y divide-slate-800/30">
             {installActions.map((action, idx) => (
               <button

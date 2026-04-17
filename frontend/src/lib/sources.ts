@@ -547,7 +547,8 @@ export async function searchReddit(query: string): Promise<SearchResult> {
   }
 }
 
-// Unified multi-source search
+// Unified multi-source search. When `queryOverrides` is provided, each source
+// uses its per-platform AI-optimized query; otherwise every source uses `query`.
 export async function searchAllSources(
   query: string,
   sources: SourceType[] = [
@@ -563,33 +564,36 @@ export async function searchAllSources(
     "rubygems",
     "reddit",
   ],
-  deepSearch: boolean = true
+  deepSearch: boolean = true,
+  queryOverrides: Partial<Record<SourceType, string>> = {},
 ): Promise<UnifiedProject[]> {
+  const q = (source: SourceType) => queryOverrides[source] || query;
+
   const searchPromises = sources.map(async (source) => {
     try {
       switch (source) {
         case "github":
-          return await searchGitHub(query, 1, deepSearch);
+          return await searchGitHub(q("github"), 1, deepSearch);
         case "huggingface":
-          return await searchHuggingFace(query, 1, deepSearch);
+          return await searchHuggingFace(q("huggingface"), 1, deepSearch);
         case "gitlab":
-          return await searchGitLab(query, 1, deepSearch);
+          return await searchGitLab(q("gitlab"), 1, deepSearch);
         case "npm":
-          return await searchNpm(query, deepSearch);
+          return await searchNpm(q("npm"), deepSearch);
         case "pypi":
-          return await searchPyPI(query, deepSearch);
+          return await searchPyPI(q("pypi"), deepSearch);
         case "crates":
-          return await searchCrates(query);
+          return await searchCrates(q("crates"));
         case "hackernews":
-          return await searchHackerNews(query);
+          return await searchHackerNews(q("hackernews"));
         case "codeberg":
-          return await searchCodeberg(query);
+          return await searchCodeberg(q("codeberg"));
         case "packagist":
-          return await searchPackagist(query);
+          return await searchPackagist(q("packagist"));
         case "rubygems":
-          return await searchRubyGems(query);
+          return await searchRubyGems(q("rubygems"));
         case "reddit":
-          return await searchReddit(query);
+          return await searchReddit(q("reddit"));
         default:
           return { projects: [], totalCount: 0, source };
       }
@@ -602,7 +606,7 @@ export async function searchAllSources(
   const results = await Promise.all(searchPromises);
   const allProjects = results.flatMap((r) => r.projects);
 
-  // Smart ranking: prioritize by relevance score
+  // Rank against the original user query so all sources are compared on the same axis.
   return allProjects.sort((a, b) => {
     const scoreA = calculateRelevanceScore(a, query);
     const scoreB = calculateRelevanceScore(b, query);
