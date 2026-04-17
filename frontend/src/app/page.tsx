@@ -6,6 +6,7 @@ import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
 import { SourceFilter } from "@/components/SourceFilter";
 import { SynthesisBox } from "@/components/SynthesisBox";
 import { ResultsToolbar, SortMode, applyResultsView } from "@/components/ResultsToolbar";
+import { TrendingSection } from "@/components/TrendingSection";
 import {
   searchAllSources,
   UnifiedProject,
@@ -331,6 +332,11 @@ export default function Home() {
             </div>
           )}
 
+          {/* Trending — only on landing, behind the example queries */}
+          {!hasSearched && !isLoading && (
+            <TrendingSection onQueryClick={(q) => handleSearch(q)} />
+          )}
+
           {/* Example queries — only on landing */}
           {!hasSearched && !isLoading && (
             <div className="mt-6">
@@ -482,6 +488,44 @@ export default function Home() {
                     </a>
                   </div>
                 )}
+
+                {/* "Load more" equivalent for the unfiltered view — deep-links
+                    out to the native search on the top-hit sources, since
+                    in-app pagination isn't uniform across 24 APIs. */}
+                {!activeSourceFilter && query && parsedQuery.freeText && (() => {
+                  const counts = new Map<SourceType, number>();
+                  for (const p of view) {
+                    counts.set(p.source, (counts.get(p.source) ?? 0) + 1);
+                  }
+                  const top = [...counts.entries()]
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 4)
+                    .map(([s]) => s)
+                    .filter((s) => getSourceSearchUrl(s, parsedQuery.freeText));
+                  if (top.length === 0) return null;
+                  return (
+                    <div className="pt-4 border-t border-slate-900/60 mt-2">
+                      <div className="text-center text-[10px] uppercase tracking-wide text-slate-600 mb-2">
+                        More from
+                      </div>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {top.map((src) => (
+                          <a
+                            key={src}
+                            href={getSourceSearchUrl(src, parsedQuery.freeText) || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-200 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-colors"
+                          >
+                            <span>{getSourceConfig(src).icon}</span>
+                            <span>{getSourceConfig(src).name}</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })()
@@ -492,6 +536,56 @@ export default function Home() {
             <p className="text-xs text-slate-600 mt-1">
               Try different keywords or enable more sources
             </p>
+            {/* Actionable suggestions when no results. Priority:
+                1) If the query has operators, offer to drop them.
+                2) If source filters exclude some platforms, offer "all sources".
+                3) Always offer a direct GitHub search as a fallback. */}
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+              {describeOperators(parsedQuery) && (
+                <button
+                  onClick={() => handleSearch(parsedQuery.freeText || query)}
+                  className="text-xs text-slate-400 hover:text-slate-100 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-colors"
+                >
+                  Drop filters: <span className="font-mono text-slate-500">{describeOperators(parsedQuery)}</span>
+                </button>
+              )}
+              {selectedSources.length < ALL_SOURCES.length && (
+                <button
+                  onClick={() => {
+                    setSelectedSources(ALL_SOURCES);
+                    handleSearch(query);
+                  }}
+                  className="text-xs text-slate-400 hover:text-slate-100 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-colors"
+                >
+                  Search all {ALL_SOURCES.length} sources
+                </button>
+              )}
+              {parsedQuery.freeText && parsedQuery.freeText.split(/\s+/).length > 1 && (
+                <button
+                  onClick={() => {
+                    const tokens = parsedQuery.freeText.split(/\s+/).filter(Boolean);
+                    // Drop the shortest non-stopword token (usually the most
+                    // specific / most likely to be a typo).
+                    const stop = new Set(["the", "a", "an", "for", "to", "of", "in", "on"]);
+                    const candidates = tokens.filter((t) => !stop.has(t.toLowerCase()));
+                    const victim = candidates.sort((a, b) => a.length - b.length)[0] ?? tokens[0];
+                    const next = tokens.filter((t) => t !== victim).join(" ");
+                    if (next.trim()) handleSearch(next);
+                  }}
+                  className="text-xs text-slate-400 hover:text-slate-100 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-colors"
+                >
+                  Try broader: drop one term
+                </button>
+              )}
+              <a
+                href={`https://github.com/search?q=${encodeURIComponent(parsedQuery.freeText || query)}&type=repositories`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-slate-500 hover:text-slate-200 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-colors inline-flex items-center gap-1"
+              >
+                Search GitHub directly <ArrowRight className="w-3 h-3" />
+              </a>
+            </div>
           </div>
         ) : (
           <div className="text-center py-20">
