@@ -2,64 +2,23 @@
 
 Two independent pieces:
 
-- **Frontend** — static Next.js site → Cloudflare Pages (free tier)
-- **Backend** — FastAPI service → Docker on your own VPS (free, uses existing host)
+- **Frontend** — static Next.js site → Cloudflare Pages (free)
+- **Backend** — FastAPI service → runs locally during development; deployment
+  target is **not yet decided** (see "Backend hosting" below)
 
-The frontend works without the backend — Reddit search, AI query optimization,
-and cross-source synthesis are the only features that require it.
-
----
-
-## Backend (VPS, Docker + Traefik)
-
-Conventions match the existing `/opt/services/` layout: `traefik-net`, JSON
-log driver with rotation, pinned image tag, health check.
-
-### 1. Copy the repo to the VPS
-
-```bash
-ssh server 'mkdir -p /opt/services/websites/threadseeker'
-rsync -av --exclude node_modules --exclude .next --exclude __pycache__ \
-  ./ server:/opt/services/websites/threadseeker/
-```
-
-### 2. Create `backend/.env`
-
-```bash
-ssh server
-cd /opt/services/websites/threadseeker/backend
-cp .env.example .env
-# edit .env — set GROQ_API_KEY (required), GEMINI_API_KEY (fallback),
-# UPSTASH_REDIS_* (optional, cache works without)
-```
-
-### 3. Build and launch
-
-```bash
-cd /opt/services/websites/threadseeker
-docker compose up -d --build
-docker compose ps
-docker compose logs -f threadseeker-api
-```
-
-The container joins `traefik-net` and exposes `api.threadseeker.<domain>`
-via Traefik's existing Let's Encrypt resolver. Set a `DOMAIN` env var on
-the host (or edit `docker-compose.yml` directly) to override the default.
-
-### 4. Verify
-
-```bash
-curl -fsS https://api.threadseeker.<domain>/health
-curl -fsS https://api.threadseeker.<domain>/ai-status
-```
+The frontend works without the backend. Features that require the backend:
+Reddit search, AI query optimization, cross-source AI synthesis, Trafilatura
+content extraction. Everything else (GitHub, HF, GitLab, npm, PyPI, crates.io,
+HN, Codeberg, Packagist, RubyGems) hits public APIs directly from the browser
+and needs no server.
 
 ---
 
-## Frontend (Cloudflare Pages)
+## Frontend — Cloudflare Pages
 
 ### 1. Push the repo to GitHub
 
-Cloudflare Pages pulls from git. Any repo will do.
+Cloudflare Pages pulls from git.
 
 ### 2. Create a new Pages project
 
@@ -74,16 +33,38 @@ Cloudflare Pages pulls from git. Any repo will do.
 Set on the Pages project (Production + Preview):
 
 ```
-NEXT_PUBLIC_BACKEND_URL=https://api.threadseeker.<your-domain>
+NEXT_PUBLIC_BACKEND_URL=<https url of your backend, or leave blank>
 ```
 
 Leave blank to deploy a backend-free build — everything still works except
-Reddit and AI features, which degrade gracefully.
+Reddit search and the AI features, which degrade gracefully (the UI hides
+them silently).
 
 ### 4. COOP/COEP headers
 
 Already provisioned via `frontend/public/_headers`. These are required so
 WebLLM (in-browser LLM inference) can use `SharedArrayBuffer` / WebGPU.
+
+---
+
+## Backend — hosting (TBD)
+
+The backend is packaged as a Docker image (`backend/Dockerfile`) and has a
+`docker-compose.yml` at the repo root, but **nothing is currently deployed
+anywhere**. Pick a host when you're ready:
+
+- **Fly.io** — free tier, `fly launch` from the repo root, works out of the box
+- **Render / Railway** — free web-service tiers; point at `backend/Dockerfile`
+- **Your own VPS** — set `DOMAIN` env var, run `docker compose up -d --build`
+- **Cloudflare Workers** — not viable; the backend depends on Trafilatura + Groq
+  SDK which need Python, not JS.
+
+Whichever you pick, the backend needs:
+- Outbound internet (DuckDuckGo for Reddit, Groq/Gemini, target URLs for Trafilatura)
+- `GROQ_API_KEY` env var (Gemini is an optional fallback)
+- Optional: `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` for shared cache
+
+Then point the Cloudflare Pages `NEXT_PUBLIC_BACKEND_URL` at its public URL.
 
 ---
 
@@ -103,6 +84,9 @@ cp .env.example .env.local  # set NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 npm install
 npm run dev
 ```
+
+Or run just the frontend — it'll work with all 10 public-API sources and the
+in-browser WebLLM chat; only Reddit/synthesis features are disabled.
 
 ---
 
