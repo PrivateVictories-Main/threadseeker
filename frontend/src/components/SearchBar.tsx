@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect, useRef } from "react";
 import { Search, Loader2 } from "lucide-react";
 
 interface SearchBarProps {
@@ -10,11 +10,28 @@ interface SearchBarProps {
 
 export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
   const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (query.trim()) onSearch(query.trim());
   };
+
+  // "/" focuses the search input (classic Google / GitHub shortcut). Ignored
+  // while the user is already typing in a field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) return;
+      if (target?.isContentEditable) return;
+      e.preventDefault();
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <form onSubmit={handleSubmit} className="relative max-w-2xl mx-auto">
@@ -23,10 +40,11 @@ export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
           <Search className="w-4.5 h-4.5 text-slate-600" />
         </div>
         <input
+          ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="What are you looking for?"
+          placeholder="What are you looking for?  (press /)"
           className="flex-1 bg-transparent text-slate-200 placeholder:text-slate-600 text-sm h-12 px-3 focus:outline-none"
         />
         <button

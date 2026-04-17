@@ -988,76 +988,77 @@ export async function searchAllSources(
   const q = (source: SourceType) => queryOverrides[source] || query;
   let remaining = sources.length;
 
+  // Hard per-source timeout. If a source hasn't returned in 12 s it gets
+  // ignored for this run — the rest of the UI continues. This protects
+  // against one flaky upstream stalling the "remaining N sources" counter
+  // indefinitely.
+  const PER_SOURCE_TIMEOUT_MS = 12_000;
+  const withTimeout = async <T>(
+    label: SourceType,
+    work: () => Promise<T>,
+  ): Promise<T> => {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`${label} timed out`)),
+        PER_SOURCE_TIMEOUT_MS,
+      ),
+    );
+    return Promise.race([work(), timeout]);
+  };
+
+  const runSource = async (source: SourceType): Promise<SearchResult> => {
+    switch (source) {
+      case "github":
+        return searchGitHub(q("github"), 1, deepSearch);
+      case "huggingface":
+        return searchHuggingFace(q("huggingface"), 1, deepSearch);
+      case "gitlab":
+        return searchGitLab(q("gitlab"), 1, deepSearch);
+      case "npm":
+        return searchNpm(q("npm"), deepSearch);
+      case "pypi":
+        return searchPyPI(q("pypi"), deepSearch);
+      case "crates":
+        return searchCrates(q("crates"));
+      case "hackernews":
+        return searchHackerNews(q("hackernews"));
+      case "codeberg":
+        return searchCodeberg(q("codeberg"));
+      case "packagist":
+        return searchPackagist(q("packagist"));
+      case "rubygems":
+        return searchRubyGems(q("rubygems"));
+      case "reddit":
+        return searchReddit(q("reddit"));
+      case "dockerhub":
+        return searchDockerHub(q("dockerhub"));
+      case "jsr":
+        return searchJSR(q("jsr"));
+      case "flathub":
+        return searchFlathub(q("flathub"));
+      case "devto":
+        return searchDevTo(q("devto"));
+      case "lobsters":
+        return searchLobsters(q("lobsters"));
+      case "stackoverflow":
+        return searchStackOverflow(q("stackoverflow"));
+      case "paperswithcode":
+        return searchPapersWithCode(q("paperswithcode"));
+      case "homebrew":
+        return searchHomebrew(q("homebrew"));
+      case "fdroid":
+        return searchFDroid(q("fdroid"));
+      case "arxiv":
+        return searchArxiv(q("arxiv"));
+      default:
+        return { projects: [], totalCount: 0, source };
+    }
+  };
+
   const searchPromises = sources.map(async (source) => {
     let result: SearchResult;
     try {
-      switch (source) {
-        case "github":
-          result = await searchGitHub(q("github"), 1, deepSearch);
-          break;
-        case "huggingface":
-          result = await searchHuggingFace(q("huggingface"), 1, deepSearch);
-          break;
-        case "gitlab":
-          result = await searchGitLab(q("gitlab"), 1, deepSearch);
-          break;
-        case "npm":
-          result = await searchNpm(q("npm"), deepSearch);
-          break;
-        case "pypi":
-          result = await searchPyPI(q("pypi"), deepSearch);
-          break;
-        case "crates":
-          result = await searchCrates(q("crates"));
-          break;
-        case "hackernews":
-          result = await searchHackerNews(q("hackernews"));
-          break;
-        case "codeberg":
-          result = await searchCodeberg(q("codeberg"));
-          break;
-        case "packagist":
-          result = await searchPackagist(q("packagist"));
-          break;
-        case "rubygems":
-          result = await searchRubyGems(q("rubygems"));
-          break;
-        case "reddit":
-          result = await searchReddit(q("reddit"));
-          break;
-        case "dockerhub":
-          result = await searchDockerHub(q("dockerhub"));
-          break;
-        case "jsr":
-          result = await searchJSR(q("jsr"));
-          break;
-        case "flathub":
-          result = await searchFlathub(q("flathub"));
-          break;
-        case "devto":
-          result = await searchDevTo(q("devto"));
-          break;
-        case "lobsters":
-          result = await searchLobsters(q("lobsters"));
-          break;
-        case "stackoverflow":
-          result = await searchStackOverflow(q("stackoverflow"));
-          break;
-        case "paperswithcode":
-          result = await searchPapersWithCode(q("paperswithcode"));
-          break;
-        case "homebrew":
-          result = await searchHomebrew(q("homebrew"));
-          break;
-        case "fdroid":
-          result = await searchFDroid(q("fdroid"));
-          break;
-        case "arxiv":
-          result = await searchArxiv(q("arxiv"));
-          break;
-        default:
-          result = { projects: [], totalCount: 0, source };
-      }
+      result = await withTimeout(source, () => runSource(source));
     } catch (error) {
       console.error(`Error searching ${source}:`, error);
       result = { projects: [], totalCount: 0, source };

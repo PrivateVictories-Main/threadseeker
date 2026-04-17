@@ -64,7 +64,7 @@ export default function Home() {
   const searchRunIdRef = useRef(0);
 
   const handleSearch = useCallback(
-    async (searchQuery: string) => {
+    async (searchQuery: string, preserveView: boolean = false) => {
       const q = searchQuery.trim();
       if (!q) return;
 
@@ -77,8 +77,11 @@ export default function Home() {
       setIsLoading(true);
       setPendingSources(selectedSources.length);
       setHasSearched(true);
-      setActiveSourceFilter(null);
-      setSortMode("relevance");
+      // Preserve URL-restored view on initial auto-search; otherwise reset.
+      if (!preserveView) {
+        setActiveSourceFilter(null);
+        setSortMode("relevance");
+      }
 
       try {
         // Fetch AI-optimized per-platform queries in parallel with a best-effort timeout.
@@ -158,6 +161,8 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     const urlQuery = params.get("q")?.trim();
     const urlSources = params.get("sources");
+    const urlSort = params.get("sort");
+    const urlFilter = params.get("filter");
 
     if (urlSources) {
       const parsed = urlSources
@@ -166,25 +171,35 @@ export default function Home() {
       if (parsed.length > 0) setSelectedSources(parsed);
     }
 
+    if (urlSort && ["relevance", "stars", "recent"].includes(urlSort)) {
+      setSortMode(urlSort as SortMode);
+    }
+
+    if (urlFilter && (ALL_SOURCES as string[]).includes(urlFilter)) {
+      setActiveSourceFilter(urlFilter as SourceType);
+    }
+
     if (urlQuery) {
-      handleSearch(urlQuery);
+      handleSearch(urlQuery, true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep the URL in sync with the active query + sources so results are shareable.
+  // Keep the URL in sync with the active query + sources + view so results
+  // (including the user's sort and source-chip filter) are shareable.
   useEffect(() => {
     if (!hasSearched) return;
     const params = new URLSearchParams();
     if (query) params.set("q", query);
-    // Only write sources if the user has changed from the default "all".
     if (selectedSources.length !== ALL_SOURCES.length) {
       params.set("sources", selectedSources.join(","));
     }
+    if (sortMode !== "relevance") params.set("sort", sortMode);
+    if (activeSourceFilter) params.set("filter", activeSourceFilter);
     const qs = params.toString();
     const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
     window.history.replaceState(null, "", newUrl);
-  }, [query, selectedSources, hasSearched]);
+  }, [query, selectedSources, hasSearched, sortMode, activeSourceFilter]);
 
   const handleSourceToggle = (source: SourceType) => {
     setSelectedSources((prev) => {
