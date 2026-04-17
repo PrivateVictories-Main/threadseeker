@@ -5,6 +5,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
 import { SourceFilter } from "@/components/SourceFilter";
 import { SynthesisBox } from "@/components/SynthesisBox";
+import { ResultsToolbar, SortMode, applyResultsView } from "@/components/ResultsToolbar";
 import { searchAllSources, UnifiedProject, SourceType } from "@/lib/sources";
 import { optimizeQueries, isBackendConfigured } from "@/lib/api-client";
 import { toast } from "sonner";
@@ -41,6 +42,8 @@ export default function Home() {
   const [hasSearched, setHasSearched] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedSources, setSelectedSources] = useState<SourceType[]>(ALL_SOURCES);
+  const [sortMode, setSortMode] = useState<SortMode>("relevance");
+  const [activeSourceFilter, setActiveSourceFilter] = useState<SourceType | null>(null);
   const initialLoadDone = useRef(false);
 
   const handleSearch = useCallback(
@@ -51,6 +54,8 @@ export default function Home() {
       setQuery(q);
       setIsLoading(true);
       setHasSearched(true);
+      setActiveSourceFilter(null);
+      setSortMode("relevance");
 
       try {
         // Fetch AI-optimized per-platform queries in parallel with a best-effort timeout.
@@ -200,25 +205,41 @@ export default function Home() {
             </div>
           </div>
         ) : resultCount > 0 ? (
-          <div className="space-y-4">
-            <SynthesisBox query={query} projects={projects} />
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-500">
-                {resultCount} {resultCount === 1 ? "result" : "results"}
-                {query && (
-                  <span className="text-slate-600">
-                    {" "}
-                    for <span className="text-slate-400">{query}</span>
-                  </span>
-                )}
-              </p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project) => (
-                <UnifiedProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-          </div>
+          (() => {
+            const view = applyResultsView(projects, sortMode, activeSourceFilter);
+            return (
+              <div className="space-y-4">
+                <SynthesisBox query={query} projects={projects} />
+                <ResultsToolbar
+                  projects={projects}
+                  sortMode={sortMode}
+                  onSortChange={setSortMode}
+                  activeSource={activeSourceFilter}
+                  onSourceClick={setActiveSourceFilter}
+                />
+                <p className="text-sm text-slate-500">
+                  {view.length} {view.length === 1 ? "result" : "results"}
+                  {activeSourceFilter && (
+                    <span className="text-slate-600">
+                      {" "}
+                      from <span className="text-slate-400">{activeSourceFilter}</span>
+                    </span>
+                  )}
+                  {query && (
+                    <span className="text-slate-600">
+                      {" "}
+                      for <span className="text-slate-400">{query}</span>
+                    </span>
+                  )}
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {view.map((project) => (
+                    <UnifiedProjectCard key={project.id} project={project} />
+                  ))}
+                </div>
+              </div>
+            );
+          })()
         ) : hasSearched ? (
           <div className="text-center py-20">
             <Search className="w-8 h-8 text-slate-700 mx-auto mb-3" />
