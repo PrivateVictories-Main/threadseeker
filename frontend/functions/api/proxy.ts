@@ -22,6 +22,7 @@ const HOST_ALLOWLIST = new Set<string>([
   "export.arxiv.org",
   "aur.archlinux.org",
   "api.anaconda.org",
+  "api.wordpress.org",
 ]);
 
 export const onRequestOptions: PagesFunction = async () => corsPreflight();

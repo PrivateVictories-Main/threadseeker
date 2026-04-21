@@ -831,6 +831,123 @@ export async function searchCondaForge(query: string): Promise<SearchResult> {
   }
 }
 
+export async function searchNuGet(query: string): Promise<SearchResult> {
+  try {
+    const url = `https://azuresearch-usnc.nuget.org/query?q=${encodeURIComponent(query)}&take=30&prerelease=false`;
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!response.ok) return { projects: [], totalCount: 0, source: "nuget" };
+    const data = await response.json();
+    const results: any[] = data.data || [];
+    return {
+      projects: results.map((p: any) => ({
+        id: `nuget-${p.id}`,
+        source: "nuget" as const,
+        name: p.id,
+        fullName: p.id,
+        description: p.description || p.summary || null,
+        url: `https://www.nuget.org/packages/${p.id}`,
+        stars: 0,
+        downloads: p.totalDownloads || 0,
+        language: "C#",
+        topics: Array.isArray(p.tags) ? p.tags.slice(0, 6) : [],
+        author: {
+          name: Array.isArray(p.authors) ? p.authors[0] : p.authors || "unknown",
+          avatar: p.iconUrl || "",
+        },
+        updatedAt: p.lastUpdated || new Date().toISOString(),
+        license: p.licenseUrl,
+      })),
+      totalCount: results.length,
+      source: "nuget",
+    };
+  } catch (error) {
+    console.error("NuGet search error:", error);
+    return { projects: [], totalCount: 0, source: "nuget" };
+  }
+}
+
+export async function searchZenodo(query: string): Promise<SearchResult> {
+  try {
+    // Prefer "software" records — the ones most likely to interest an
+    // open-source searcher. Fall back to datasets if software returns
+    // nothing. Publications (papers) already covered by arXiv.
+    const url = `https://zenodo.org/api/records?q=${encodeURIComponent(query)}&size=25&sort=mostrecent&type=software,dataset`;
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!response.ok) return { projects: [], totalCount: 0, source: "zenodo" };
+    const data = await response.json();
+    const hits: any[] = data.hits?.hits || [];
+    return {
+      projects: hits.map((r: any) => {
+        const m = r.metadata || {};
+        const creators: any[] = m.creators || [];
+        return {
+          id: `zenodo-${r.id}`,
+          source: "zenodo" as const,
+          name: m.title || `Zenodo record ${r.id}`,
+          fullName: r.doi || `zenodo:${r.id}`,
+          description: m.description ? stripHtml(String(m.description)).slice(0, 300) : null,
+          url: r.links?.self_html || r.doi_url || `https://zenodo.org/records/${r.id}`,
+          stars: r.stats?.unique_views || 0,
+          downloads: r.stats?.unique_downloads || r.stats?.downloads || 0,
+          language: null,
+          topics: (m.keywords || []).slice(0, 6),
+          author: {
+            name: creators[0]?.name || "unknown",
+            avatar: "",
+          },
+          updatedAt: r.updated || r.created || m.publication_date || new Date().toISOString(),
+          license: m.license?.id,
+        };
+      }),
+      totalCount: hits.length,
+      source: "zenodo",
+    };
+  } catch (error) {
+    console.error("Zenodo search error:", error);
+    return { projects: [], totalCount: 0, source: "zenodo" };
+  }
+}
+
+export async function searchWordPress(query: string): Promise<SearchResult> {
+  try {
+    // api.wordpress.org ignores browser CORS, so proxy it. Edge-cache via
+    // the proxy keeps common queries cheap.
+    const target = `https://api.wordpress.org/plugins/info/1.2/?action=query_plugins&request%5Bsearch%5D=${encodeURIComponent(query)}&request%5Bper_page%5D=25`;
+    const response = await fetchViaProxy(target);
+    if (!response.ok) return { projects: [], totalCount: 0, source: "wordpress" };
+    const data = await response.json();
+    const plugins: any[] = data.plugins || [];
+    return {
+      projects: plugins.map((p: any) => ({
+        id: `wordpress-${p.slug}`,
+        source: "wordpress" as const,
+        name: decodeHtml(p.name || p.slug),
+        fullName: p.slug,
+        description: p.short_description
+          ? stripHtml(decodeHtml(String(p.short_description))).slice(0, 300)
+          : null,
+        url: `https://wordpress.org/plugins/${p.slug}/`,
+        stars: Math.round((p.rating || 0) / 20), // convert 0-100 → 0-5
+        downloads: p.active_installs || p.downloaded || 0,
+        language: "PHP",
+        topics: Object.keys(p.tags || {}).slice(0, 6),
+        author: {
+          name: stripHtml(decodeHtml(p.author || "")) || "unknown",
+          avatar: p.icons?.["1x"] || p.icons?.default || "",
+        },
+        updatedAt: p.last_updated
+          ? new Date(String(p.last_updated).replace(/\s+GMT$/, "Z").replace(" ", "T")).toISOString()
+          : new Date().toISOString(),
+      })),
+      totalCount: plugins.length,
+      source: "wordpress",
+    };
+  } catch (error) {
+    console.error("WordPress plugins search error:", error);
+    return { projects: [], totalCount: 0, source: "wordpress" };
+  }
+}
+
 // --- Community threads ---
 
 export async function searchHackerNews(query: string): Promise<SearchResult> {

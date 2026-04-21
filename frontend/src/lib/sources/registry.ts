@@ -181,6 +181,27 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-green-500/30",
     bgColor: "bg-green-500/10",
   },
+  zenodo: {
+    name: "Zenodo",
+    icon: "🧪",
+    color: "from-cyan-500 to-teal-600",
+    borderColor: "border-cyan-500/30",
+    bgColor: "bg-cyan-500/10",
+  },
+  nuget: {
+    name: "NuGet",
+    icon: "🔷",
+    color: "from-blue-600 to-indigo-700",
+    borderColor: "border-blue-500/30",
+    bgColor: "bg-blue-500/10",
+  },
+  wordpress: {
+    name: "WordPress",
+    icon: "📝",
+    color: "from-slate-500 to-slate-700",
+    borderColor: "border-slate-500/30",
+    bgColor: "bg-slate-500/10",
+  },
 };
 
 export function getSourceConfig(source: SourceType): SourceDisplayConfig {
@@ -240,6 +261,12 @@ export function getSourceSearchUrl(source: SourceType, query: string): string | 
       return `https://paperswithcode.com/search?q=${q}`;
     case "arxiv":
       return `https://arxiv.org/search/?query=${q}&searchtype=all`;
+    case "zenodo":
+      return `https://zenodo.org/search?q=${q}`;
+    case "nuget":
+      return `https://www.nuget.org/packages?q=${q}`;
+    case "wordpress":
+      return `https://wordpress.org/plugins/search/${q}/`;
     default:
       return null;
   }

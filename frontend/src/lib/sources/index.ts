@@ -37,6 +37,9 @@ import {
   searchAUR,
   searchOpenVsx,
   searchCondaForge,
+  searchNuGet,
+  searchZenodo,
+  searchWordPress,
 } from "./adapters";
 
 export * from "./types";
@@ -74,6 +77,9 @@ const DEFAULT_SOURCES: SourceType[] = [
   "aur",
   "openvsx",
   "conda",
+  "zenodo",
+  "nuget",
+  "wordpress",
 ];
 
 // If a source hasn't returned in this long we drop it for this run. One
@@ -153,6 +159,12 @@ export async function searchAllSources(
         return searchOpenVsx(q("openvsx"));
       case "conda":
         return searchCondaForge(q("conda"));
+      case "nuget":
+        return searchNuGet(q("nuget"));
+      case "zenodo":
+        return searchZenodo(q("zenodo"));
+      case "wordpress":
+        return searchWordPress(q("wordpress"));
       default:
         return { projects: [], totalCount: 0, source };
     }

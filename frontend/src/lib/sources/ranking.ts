@@ -88,6 +88,7 @@ export function calculateRelevanceScore(project: UnifiedProject, query: string):
     paperswithcode: 115, stackoverflow: 95,
     hackernews: 90, reddit: 90, lobsters: 90, devto: 85,
     aur: 100, openvsx: 110, conda: 115,
+    zenodo: 105, nuget: 120, wordpress: 105,
   };
   s += srcBonus[project.source] ?? 0;
 
@@ -130,7 +131,11 @@ export function calculateRelevanceScore(project: UnifiedProject, query: string):
     go: { lang: ["go"] },
     golang: { lang: ["go"] },
     ruby: { lang: ["ruby"], sources: ["rubygems"] },
-    php: { lang: ["php"], sources: ["packagist"] },
+    php: { lang: ["php"], sources: ["packagist", "wordpress"] },
+    wordpress: { lang: ["php"], sources: ["wordpress", "packagist"] },
+    dotnet: { lang: ["c#", "f#", "visual basic"], sources: ["nuget"] },
+    csharp: { lang: ["c#"], sources: ["nuget"] },
+    "c#": { lang: ["c#"], sources: ["nuget"] },
     react: { lang: ["javascript", "typescript"] },
     vue: { lang: ["javascript", "typescript"] },
     svelte: { lang: ["javascript", "typescript"] },

@@ -26,7 +26,10 @@ export type SourceType =
   | "arxiv"
   | "aur"
   | "openvsx"
-  | "conda";
+  | "conda"
+  | "zenodo"
+  | "nuget"
+  | "wordpress";
 
 export interface RelatedSource {
   source: SourceType;
