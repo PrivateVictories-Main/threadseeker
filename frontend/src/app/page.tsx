@@ -8,6 +8,9 @@ import { SynthesisBox } from "@/components/SynthesisBox";
 import { ResultsToolbar, SortMode, applyResultsView } from "@/components/ResultsToolbar";
 import { TrendingSection } from "@/components/TrendingSection";
 import { SavedSection } from "@/components/SavedSection";
+import { DirectJumps } from "@/components/DirectJumps";
+import { SearchProgressBar } from "@/components/SearchProgressBar";
+import { ShortcutHelpModal } from "@/components/ShortcutHelpModal";
 import {
   searchAllSources,
   UnifiedProject,
@@ -23,6 +26,48 @@ import { Search, Globe, ArrowRight, Clock, X } from "lucide-react";
 
 const HISTORY_KEY = "threadseeker:history:v1";
 const HISTORY_MAX = 8;
+
+// Per-tab cache of merged result sets so that retyping a recent query or
+// popping back via browser history returns instantly instead of re-running
+// every source. Cap + TTL keep sessionStorage bounded.
+const RESULTS_CACHE_PREFIX = "threadseeker:results:v1:";
+const RESULTS_CACHE_TTL_MS = 10 * 60 * 1000;
+
+function resultsCacheKey(query: string, sources: SourceType[]): string {
+  const key = `${query.toLowerCase()}|${[...sources].sort().join(",")}`;
+  return `${RESULTS_CACHE_PREFIX}${key}`;
+}
+
+function loadResultsCache(
+  query: string,
+  sources: SourceType[],
+): UnifiedProject[] | null {
+  try {
+    const raw = sessionStorage.getItem(resultsCacheKey(query, sources));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.at !== "number" || !Array.isArray(parsed.data)) return null;
+    if (Date.now() - parsed.at > RESULTS_CACHE_TTL_MS) return null;
+    return parsed.data as UnifiedProject[];
+  } catch {
+    return null;
+  }
+}
+
+function saveResultsCache(
+  query: string,
+  sources: SourceType[],
+  data: UnifiedProject[],
+) {
+  try {
+    sessionStorage.setItem(
+      resultsCacheKey(query, sources),
+      JSON.stringify({ at: Date.now(), data }),
+    );
+  } catch {
+    /* quota — ignore */
+  }
+}
 
 function loadHistory(): string[] {
   try {
@@ -336,6 +381,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
+      <SearchProgressBar
+        total={selectedSources.length}
+        remaining={pendingSources}
+        active={isLoading}
+      />
+      <ShortcutHelpModal />
       {/* Search hero */}
       <section className="border-b border-slate-800/40">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-20 pb-8">
@@ -469,6 +520,7 @@ export default function Home() {
                 {/* Synthesis only renders once everything has landed, so we
                     don't spam the API with partial snapshots. */}
                 {!isLoading && <SynthesisBox query={query} projects={projects} />}
+                <DirectJumps query={parsedQuery.freeText || query} />
                 <ResultsToolbar
                   projects={projects}
                   sortMode={sortMode}
@@ -559,7 +611,11 @@ export default function Home() {
                           : ""
                       }`}
                     >
-                      <UnifiedProjectCard project={project} query={query} />
+                      <UnifiedProjectCard
+                        project={project}
+                        query={query}
+                        onTopicClick={(t) => handleSearch(t)}
+                      />
                     </div>
                   ))}
                 </div>
@@ -709,10 +765,7 @@ export default function Home() {
             </a>
             <span className="text-slate-800">·</span>
             <span>
-              Press <kbd className="px-1 py-0.5 rounded border border-slate-800 text-slate-500">/</kbd> to search ·{" "}
-              <kbd className="px-1 py-0.5 rounded border border-slate-800 text-slate-500">j</kbd>/
-              <kbd className="px-1 py-0.5 rounded border border-slate-800 text-slate-500">k</kbd> to navigate ·{" "}
-              <kbd className="px-1 py-0.5 rounded border border-slate-800 text-slate-500">↵</kbd> to open
+              Press <kbd className="px-1 py-0.5 rounded border border-slate-800 text-slate-500">?</kbd> for shortcuts
             </span>
           </div>
         </div>

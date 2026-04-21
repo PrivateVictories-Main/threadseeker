@@ -936,7 +936,9 @@ export async function searchArxiv(query: string): Promise<SearchResult> {
 export async function searchAUR(query: string): Promise<SearchResult> {
   try {
     const url = `https://aur.archlinux.org/rpc/?v=5&type=search&by=name-desc&arg=${encodeURIComponent(query)}`;
-    const data = await fetchViaProxy<{ results: any[] }>(url);
+    const response = await fetchViaProxy(url);
+    if (!response.ok) return { projects: [], totalCount: 0, source: "aur" };
+    const data = (await response.json()) as { results?: any[] };
     const results = (data?.results || []).slice(0, 25);
     return {
       projects: results.map((p: any) => ({
@@ -1010,7 +1012,9 @@ export async function searchOpenVsx(query: string): Promise<SearchResult> {
 export async function searchCondaForge(query: string): Promise<SearchResult> {
   try {
     const url = `https://api.anaconda.org/search?name=${encodeURIComponent(query)}`;
-    const data = await fetchViaProxy<any[]>(url);
+    const response = await fetchViaProxy(url);
+    if (!response.ok) return { projects: [], totalCount: 0, source: "conda" };
+    const data = (await response.json()) as any[];
     if (!Array.isArray(data)) return { projects: [], totalCount: 0, source: "conda" };
     // Filter to conda-forge channel primarily, then the top 25.
     const filtered = data

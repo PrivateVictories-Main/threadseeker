@@ -37,6 +37,7 @@ import { toast } from "sonner";
 interface UnifiedProjectCardProps {
   project: UnifiedProject;
   query?: string;
+  onTopicClick?: (topic: string) => void;
 }
 
 function Highlighted({ text, query }: { text: string; query: string }) {
@@ -80,7 +81,7 @@ function SentimentBadge({
   );
 }
 
-export function UnifiedProjectCard({ project, query = "" }: UnifiedProjectCardProps) {
+export function UnifiedProjectCard({ project, query = "", onTopicClick }: UnifiedProjectCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [readmeOpen, setReadmeOpen] = useState(false);
@@ -263,14 +264,25 @@ export function UnifiedProjectCard({ project, query = "" }: UnifiedProjectCardPr
       {/* Topics */}
       {project.topics.length > 0 && (
         <div className="px-4 pb-3 flex flex-wrap gap-1">
-          {project.topics.slice(0, 4).map((topic) => (
-            <span
-              key={topic}
-              className="text-[10px] text-slate-500 bg-slate-900/60 border border-slate-800/40 rounded px-1.5 py-0.5"
-            >
-              {topic}
-            </span>
-          ))}
+          {project.topics.slice(0, 4).map((topic) =>
+            onTopicClick ? (
+              <button
+                key={topic}
+                onClick={() => onTopicClick(topic)}
+                className="text-[10px] text-slate-500 hover:text-slate-200 bg-slate-900/60 hover:bg-slate-800/60 border border-slate-800/40 hover:border-slate-700/60 rounded px-1.5 py-0.5 transition-colors"
+                title={`Search for ${topic}`}
+              >
+                {topic}
+              </button>
+            ) : (
+              <span
+                key={topic}
+                className="text-[10px] text-slate-500 bg-slate-900/60 border border-slate-800/40 rounded px-1.5 py-0.5"
+              >
+                {topic}
+              </span>
+            ),
+          )}
           {project.topics.length > 4 && (
             <span className="text-[10px] text-slate-600">
               +{project.topics.length - 4}
