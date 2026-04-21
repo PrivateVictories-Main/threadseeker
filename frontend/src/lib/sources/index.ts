@@ -1,0 +1,194 @@
+// Public entry point for the unified source layer. Everything downstream
+// (page.tsx, cards, toolbars, saved section) imports from `@/lib/sources`
+// and should never need to know about the file split behind this barrel.
+//
+// Split rationale:
+//   types.ts     — shapes every other layer depends on
+//   registry.ts  — per-source display config + native search URLs
+//   ranking.ts   — the single cross-source relevance score
+//   merge.ts     — cross-platform de-duplication
+//   adapters.ts  — one function per upstream API
+//   index.ts     — this file; re-exports + the orchestrator
+
+import { UnifiedProject, SearchResult, SearchProgressCallback, SourceType } from "./types";
+import { calculateRelevanceScore } from "./ranking";
+import {
+  searchGitHub,
+  searchHuggingFace,
+  searchGitLab,
+  searchNpm,
+  searchPyPI,
+  searchCrates,
+  searchHackerNews,
+  searchCodeberg,
+  searchPackagist,
+  searchRubyGems,
+  searchReddit,
+  searchDockerHub,
+  searchJSR,
+  searchFlathub,
+  searchDevTo,
+  searchLobsters,
+  searchStackOverflow,
+  searchPapersWithCode,
+  searchHomebrew,
+  searchFDroid,
+  searchArxiv,
+  searchAUR,
+  searchOpenVsx,
+  searchCondaForge,
+} from "./adapters";
+
+export * from "./types";
+export * from "./registry";
+export * from "./ranking";
+export * from "./merge";
+export * from "./adapters";
+
+// Default set. Explicitly ordered so that when callers don't pass a subset,
+// the first few sources to complete are the high-signal ones (repo hosts
+// and major package registries). Changing this order changes the "first
+// tiles you see while the slower sources are still loading" experience.
+const DEFAULT_SOURCES: SourceType[] = [
+  "github",
+  "huggingface",
+  "gitlab",
+  "npm",
+  "pypi",
+  "crates",
+  "hackernews",
+  "codeberg",
+  "packagist",
+  "rubygems",
+  "reddit",
+  "dockerhub",
+  "jsr",
+  "flathub",
+  "devto",
+  "lobsters",
+  "stackoverflow",
+  "paperswithcode",
+  "homebrew",
+  "fdroid",
+  "arxiv",
+  "aur",
+  "openvsx",
+  "conda",
+];
+
+// If a source hasn't returned in this long we drop it for this run. One
+// slow upstream should not stall the "N sources remaining" UI counter.
+const PER_SOURCE_TIMEOUT_MS = 12_000;
+
+export async function searchAllSources(
+  query: string,
+  sources: SourceType[] = DEFAULT_SOURCES,
+  deepSearch: boolean = true,
+  queryOverrides: Partial<Record<SourceType, string>> = {},
+  onProgress?: SearchProgressCallback,
+): Promise<UnifiedProject[]> {
+  const q = (source: SourceType) => queryOverrides[source] || query;
+  let remaining = sources.length;
+
+  const withTimeout = async <T>(
+    label: SourceType,
+    work: () => Promise<T>,
+  ): Promise<T> => {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`${label} timed out`)),
+        PER_SOURCE_TIMEOUT_MS,
+      ),
+    );
+    return Promise.race([work(), timeout]);
+  };
+
+  const runSource = async (source: SourceType): Promise<SearchResult> => {
+    switch (source) {
+      case "github":
+        return searchGitHub(q("github"), 1, deepSearch);
+      case "huggingface":
+        return searchHuggingFace(q("huggingface"), 1, deepSearch);
+      case "gitlab":
+        return searchGitLab(q("gitlab"), 1, deepSearch);
+      case "npm":
+        return searchNpm(q("npm"), deepSearch);
+      case "pypi":
+        return searchPyPI(q("pypi"), deepSearch);
+      case "crates":
+        return searchCrates(q("crates"));
+      case "hackernews":
+        return searchHackerNews(q("hackernews"));
+      case "codeberg":
+        return searchCodeberg(q("codeberg"));
+      case "packagist":
+        return searchPackagist(q("packagist"));
+      case "rubygems":
+        return searchRubyGems(q("rubygems"));
+      case "reddit":
+        return searchReddit(q("reddit"));
+      case "dockerhub":
+        return searchDockerHub(q("dockerhub"));
+      case "jsr":
+        return searchJSR(q("jsr"));
+      case "flathub":
+        return searchFlathub(q("flathub"));
+      case "devto":
+        return searchDevTo(q("devto"));
+      case "lobsters":
+        return searchLobsters(q("lobsters"));
+      case "stackoverflow":
+        return searchStackOverflow(q("stackoverflow"));
+      case "paperswithcode":
+        return searchPapersWithCode(q("paperswithcode"));
+      case "homebrew":
+        return searchHomebrew(q("homebrew"));
+      case "fdroid":
+        return searchFDroid(q("fdroid"));
+      case "arxiv":
+        return searchArxiv(q("arxiv"));
+      case "aur":
+        return searchAUR(q("aur"));
+      case "openvsx":
+        return searchOpenVsx(q("openvsx"));
+      case "conda":
+        return searchCondaForge(q("conda"));
+      default:
+        return { projects: [], totalCount: 0, source };
+    }
+  };
+
+  const searchPromises = sources.map(async (source) => {
+    let result: SearchResult;
+    try {
+      result = await withTimeout(source, () => runSource(source));
+    } catch (error) {
+      console.error(`Error searching ${source}:`, error);
+      result = { projects: [], totalCount: 0, source };
+    }
+
+    remaining -= 1;
+    if (onProgress) {
+      // Rank within a single source so streaming partials are already
+      // usefully ordered before slower sources catch up.
+      const ranked = [...result.projects].sort(
+        (a, b) =>
+          calculateRelevanceScore(b, query) - calculateRelevanceScore(a, query),
+      );
+      onProgress({
+        source,
+        projects: ranked,
+        done: remaining === 0,
+        remaining,
+      });
+    }
+    return result;
+  });
+
+  const results = await Promise.all(searchPromises);
+  const allProjects = results.flatMap((r) => r.projects);
+
+  return allProjects.sort(
+    (a, b) => calculateRelevanceScore(b, query) - calculateRelevanceScore(a, query),
+  );
+}
