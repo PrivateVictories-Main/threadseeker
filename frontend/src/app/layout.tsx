@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://threadseeker.pages.dev"),
   title: "ThreadSeeker — Search open source everywhere",
   description:
-    "One query across 24 open-source platforms: GitHub, Hugging Face, npm, PyPI, crates.io, Docker Hub, conda-forge, AUR, Open VSX, arXiv, Reddit, HN, and more. Free, no account, no tracking.",
+    "One query across 28 open-source platforms: GitHub, Hugging Face, npm, PyPI, crates.io, Maven Central, NuGet, Docker Hub, conda-forge, AUR, Open VSX, arXiv, Reddit, HN, and more. Free, no account, no tracking.",
   keywords: [
     "open source search",
     "github search",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "ThreadSeeker — Search open source everywhere",
     description:
-      "One query across 24 open-source platforms. GitHub, npm, PyPI, Hugging Face, Docker Hub, conda-forge, AUR, Open VSX, arXiv, and more.",
+      "One query across 28 open-source platforms. GitHub, npm, PyPI, Maven, NuGet, Hugging Face, Docker Hub, conda-forge, AUR, Open VSX, arXiv, and more.",
     url: "https://threadseeker.pages.dev",
     siteName: "ThreadSeeker",
     type: "website",
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "ThreadSeeker — Search open source everywhere",
     description:
-      "One query across 24 open-source platforms. Find repos, packages, models, and community threads.",
+      "One query across 28 open-source platforms. Find repos, packages, models, and community threads.",
   },
   robots: {
     index: true,
@@ -67,6 +67,30 @@ export default function RootLayout({
       <head>
         {/* Warm up DNS + TLS for every host we fetch directly from the browser.
             Saves ~50-150ms per source on the first query. */}
+        {/* Schema.org SiteSearch — lets Google render a sitelinks search box
+            and exposes the homepage as a WebSite entity with a SearchAction. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "ThreadSeeker",
+              alternateName: "ThreadSeeker — unified open-source search",
+              url: "https://threadseeker.pages.dev",
+              description:
+                "Unified search across 28 open-source platforms. GitHub, npm, PyPI, Maven, Hugging Face, Docker Hub, and more.",
+              potentialAction: {
+                "@type": "SearchAction",
+                target: {
+                  "@type": "EntryPoint",
+                  urlTemplate: "https://threadseeker.pages.dev/?q={search_term_string}",
+                },
+                "query-input": "required name=search_term_string",
+              },
+            }),
+          }}
+        />
         {[
           "https://api.github.com",
           "https://avatars.githubusercontent.com",

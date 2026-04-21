@@ -10,6 +10,7 @@ import { TrendingSection } from "@/components/TrendingSection";
 import { SavedSection } from "@/components/SavedSection";
 import { DirectJumps } from "@/components/DirectJumps";
 import { SearchProgressBar } from "@/components/SearchProgressBar";
+import { CardSkeleton } from "@/components/CardSkeleton";
 import { ShortcutHelpModal } from "@/components/ShortcutHelpModal";
 import {
   searchAllSources,
@@ -513,10 +514,7 @@ export default function Home() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 9 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-52 rounded-lg bg-slate-900/30 animate-pulse border border-slate-800/40"
-                />
+                <CardSkeleton key={i} />
               ))}
             </div>
           </div>
