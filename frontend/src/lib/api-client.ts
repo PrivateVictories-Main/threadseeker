@@ -102,6 +102,36 @@ export async function relatedQueries(query: string): Promise<string[]> {
   }
 }
 
+export async function generateIntegrationSnippet(
+  query: string,
+  project: UnifiedProject,
+): Promise<string | null> {
+  try {
+    const response = await fetch(apiUrl("/integrate"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        project: {
+          source: project.source,
+          name: project.name,
+          fullName: project.fullName,
+          description: project.description,
+          language: project.language,
+          url: project.url,
+          topics: project.topics,
+        },
+      }),
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { snippet?: string | null };
+    return data.snippet || null;
+  } catch (error) {
+    console.error("generateIntegrationSnippet failed:", error);
+    return null;
+  }
+}
+
 export async function synthesizeResults(
   query: string,
   projects: UnifiedProject[],

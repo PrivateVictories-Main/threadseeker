@@ -15,6 +15,7 @@ import {
   onBookmarksChanged,
 } from "@/lib/bookmarks";
 import { supportsReadme, fetchReadmeExcerpt } from "@/lib/readme";
+import { generateIntegrationSnippet } from "@/lib/api-client";
 import {
   Star,
   Download,
@@ -31,6 +32,7 @@ import {
   BookmarkCheck,
   FileText,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -87,6 +89,9 @@ export function UnifiedProjectCard({ project, query = "", onTopicClick }: Unifie
   const [readmeOpen, setReadmeOpen] = useState(false);
   const [readme, setReadme] = useState<string | null>(null);
   const [readmeLoading, setReadmeLoading] = useState(false);
+  const [snippetOpen, setSnippetOpen] = useState(false);
+  const [snippet, setSnippet] = useState<string | null>(null);
+  const [snippetLoading, setSnippetLoading] = useState(false);
   const canPreview = supportsReadme(project.source);
 
   const handleTogglePreview = async () => {
@@ -102,6 +107,23 @@ export function UnifiedProjectCard({ project, query = "", onTopicClick }: Unifie
         setReadme(text || "");
       } finally {
         setReadmeLoading(false);
+      }
+    }
+  };
+
+  const handleToggleSnippet = async () => {
+    if (snippetOpen) {
+      setSnippetOpen(false);
+      return;
+    }
+    setSnippetOpen(true);
+    if (snippet === null && !snippetLoading) {
+      setSnippetLoading(true);
+      try {
+        const text = await generateIntegrationSnippet(query || project.name, project);
+        setSnippet(text || "");
+      } finally {
+        setSnippetLoading(false);
       }
     }
   };
@@ -381,6 +403,22 @@ export function UnifiedProjectCard({ project, query = "", onTopicClick }: Unifie
               </button>
             )}
 
+            <button
+              onClick={handleToggleSnippet}
+              className={`p-2 border border-slate-800/40 rounded-lg hover:bg-slate-800/40 transition-colors ${
+                snippetOpen
+                  ? "text-violet-300 bg-violet-500/10 border-violet-500/30"
+                  : "text-slate-600 hover:text-violet-400"
+              }`}
+              title={snippetOpen ? "Hide integration snippet" : "Generate integration snippet"}
+            >
+              {snippetLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+            </button>
+
             <a
               href={project.url}
               target="_blank"
@@ -411,6 +449,43 @@ export function UnifiedProjectCard({ project, query = "", onTopicClick }: Unifie
               </pre>
             ) : (
               <p className="text-[11px] text-slate-600">No README available.</p>
+            )}
+          </div>
+        )}
+
+        {/* AI-generated integration snippet — tailored to (project, query).
+            Kept plain-text to sidestep XSS; Groq output is not rendered as markdown. */}
+        {snippetOpen && (
+          <div className="rounded-lg border border-violet-500/20 bg-violet-950/10 p-3 max-h-80 overflow-y-auto">
+            {snippetLoading ? (
+              <div className="flex items-center gap-2 text-[11px] text-violet-300/80">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Generating snippet…
+              </div>
+            ) : snippet ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] uppercase tracking-wide text-violet-400/70">
+                    AI-generated · verify before use
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(snippet);
+                      toast.success("Snippet copied");
+                    }}
+                    className="flex items-center gap-1 text-[10px] text-violet-300/80 hover:text-violet-200"
+                  >
+                    <Copy className="w-2.5 h-2.5" /> copy
+                  </button>
+                </div>
+                <pre className="text-[11px] text-slate-300 whitespace-pre-wrap font-mono leading-relaxed">
+                  {snippet}
+                </pre>
+              </div>
+            ) : (
+              <p className="text-[11px] text-slate-600">
+                Couldn&apos;t generate a snippet (LLM unavailable or rate-limited).
+              </p>
             )}
           </div>
         )}

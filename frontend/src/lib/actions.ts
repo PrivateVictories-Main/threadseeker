@@ -18,15 +18,6 @@ export interface ProjectAction {
   description?: string;
 }
 
-function owner(fullName: string): string {
-  return fullName.split("/")[0] || fullName;
-}
-
-function repo(fullName: string): string {
-  const parts = fullName.split("/");
-  return parts[1] || parts[0];
-}
-
 export function getProjectActions(project: UnifiedProject): ProjectAction[] {
   const actions: ProjectAction[] = [];
 
@@ -42,6 +33,26 @@ export function getProjectActions(project: UnifiedProject): ProjectAction[] {
         label: "gh repo clone",
         command: `gh repo clone ${project.fullName}`,
       });
+      if (looksLikeMCPServer(project)) {
+        // Plausible MCP server. Drop a ready-to-paste Claude Desktop
+        // config entry — the exact command is a best guess (many repos
+        // expose an `npx` or `uvx` entry), so we comment it clearly.
+        const key = project.name.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+        const snippet = [
+          `// Add to ~/Library/Application Support/Claude/claude_desktop_config.json`,
+          `// under "mcpServers". Verify the command against the repo's README.`,
+          `"${key}": {`,
+          `  "command": "npx",`,
+          `  "args": ["-y", "${project.fullName}"]`,
+          `}`,
+        ].join("\n");
+        actions.push({
+          kind: "snippet",
+          label: "MCP config",
+          command: snippet,
+          description: "Add to Claude Desktop's MCP servers",
+        });
+      }
       break;
     }
     case "gitlab": {
@@ -292,6 +303,53 @@ export function getProjectActions(project: UnifiedProject): ProjectAction[] {
         label: "mamba",
         command: `mamba install -c conda-forge ${project.name}`,
       });
+      break;
+    }
+    case "nuget": {
+      actions.push({
+        kind: "install",
+        label: "dotnet",
+        command: `dotnet add package ${project.name}`,
+      });
+      actions.push({
+        kind: "install",
+        label: "Package Manager",
+        command: `Install-Package ${project.name}`,
+      });
+      actions.push({
+        kind: "snippet",
+        label: "csproj",
+        command: `<PackageReference Include="${project.name}" Version="*" />`,
+        description: "Add inside <ItemGroup>",
+      });
+      break;
+    }
+    case "wordpress": {
+      actions.push({
+        kind: "install",
+        label: "wp-cli",
+        command: `wp plugin install ${project.name} --activate`,
+      });
+      actions.push({
+        kind: "install",
+        label: "composer",
+        command: `composer require wpackagist-plugin/${project.name}`,
+        description: "Requires wpackagist.org in repositories",
+      });
+      break;
+    }
+    case "zenodo": {
+      // Zenodo records are research artifacts, not packages. Best we can
+      // do is hand the user the DOI — it's the canonical, citable link
+      // and resolves anywhere.
+      if (project.fullName && project.fullName !== `zenodo:${project.id}`) {
+        actions.push({
+          kind: "snippet",
+          label: "DOI",
+          command: project.fullName,
+          description: "Cite this record by its DOI",
+        });
+      }
       break;
     }
   }
