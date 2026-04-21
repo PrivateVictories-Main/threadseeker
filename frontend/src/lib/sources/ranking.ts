@@ -12,17 +12,33 @@ export function calculateRelevanceScore(project: UnifiedProject, query: string):
   const nameTokens = name.split(/[-_\s.]+/).filter(Boolean);
   let s = 0;
 
-  // --- Name match (dominant signal) ---
-  if (name === q) s += 15_000;
-  else if (name.replace(/[-_\s.]/g, "") === q.replace(/[-_\s.]/g, "")) s += 12_000;
-  else if (name.startsWith(q)) s += 8_000;
-  else if (nameTokens.includes(q)) s += 5_000;
-  else if (name.includes(q)) s += 3_000;
+  // Exact-name is the strongest single signal, but a 5-star repo named
+  // exactly "orm" is almost certainly not what the user wants. Scale by
+  // popularity so unknown namesakes don't win conceptual queries.
+  const starsForScale = Math.max(project.stars, 1);
+  const popScale = Math.min(
+    1,
+    0.35 + Math.log10(starsForScale + 1) / 6, // 0 stars = .35, 1K = .85, 100K = 1.0
+  );
+  // Multi-word queries are usually describing a concept ("http client"),
+  // not a project name, so name-match bonuses should carry less weight.
+  const multiWordDamp = qWords.length >= 2 ? 0.55 : 1.0;
+  const nameScale = popScale * multiWordDamp;
 
+  // --- Name match (dominant signal) ---
+  if (name === q) s += 15_000 * nameScale;
+  else if (name.replace(/[-_\s.]/g, "") === q.replace(/[-_\s.]/g, "")) s += 12_000 * nameScale;
+  else if (name.startsWith(q)) s += 8_000 * nameScale;
+  else if (nameTokens.includes(q)) s += 5_000 * nameScale;
+  else if (name.includes(q)) s += 3_000 * nameScale;
+
+  // "All query words appear somewhere in the name" — cheap bonus, but
+  // keeping it high means repos called "<query>-benchmark" or
+  // "<query>-tutorial" crowd out canonical answers. Keep modest.
   if (qWords.length > 1) {
     const hits = qWords.filter((w) => nameTokens.some((n) => n.includes(w) || w.includes(n)));
-    if (hits.length === qWords.length) s += 4_000;
-    s += hits.length * 1_000;
+    if (hits.length === qWords.length) s += 1_500;
+    s += hits.length * 500;
   }
 
   for (const w of qWords) {
@@ -39,21 +55,26 @@ export function calculateRelevanceScore(project: UnifiedProject, query: string):
   for (const w of qWords) if (full.includes(w)) s += 250;
 
   // --- Description ---
+  // Raised from 800/600 — conceptual queries ("orm", "http client") must
+  // be able to ride description matches past obscure exact-name repos.
   if (project.description) {
     const d = project.description.toLowerCase();
-    if (d.includes(q)) s += 800;
-    if (qWords.length > 1 && qWords.every((w) => d.includes(w))) s += 600;
+    if (d.includes(q)) s += 1_500;
+    if (qWords.length > 1 && qWords.every((w) => d.includes(w))) s += 1_500;
     for (const w of qWords) {
       const hits = (d.match(new RegExp(w, "g")) || []).length;
-      s += Math.min(hits * 150, 600);
+      s += Math.min(hits * 200, 800);
     }
   }
 
   // --- Topics ---
+  // Topics are a curation signal (the maintainer tagged it), so we boost
+  // — but not so much that a 2k-star project tagged with the query beats
+  // a 200k-star canonical that didn't bother tagging.
   const topics = project.topics.map((t) => t.toLowerCase());
-  s += topics.filter((t) => t === q).length * 2_000;
-  s += topics.filter((t) => t.includes(q)).length * 800;
-  for (const w of qWords) s += topics.filter((t) => t.includes(w)).length * 500;
+  s += topics.filter((t) => t === q).length * 2_500;
+  s += topics.filter((t) => t.includes(q)).length * 1_000;
+  for (const w of qWords) s += topics.filter((t) => t.includes(w)).length * 600;
 
   // --- Language match ---
   if (project.language) {
@@ -61,14 +82,17 @@ export function calculateRelevanceScore(project: UnifiedProject, query: string):
     if (q.includes(lang) || lang.includes(q)) s += 600;
   }
 
-  // --- Popularity (log-scaled, capped) ---
+  // --- Popularity (log-scaled, plus tiered bonuses) ---
+  // Stellar projects need room to out-rank obscure exact-name matches on
+  // conceptual queries; tiers are additive so famous-and-on-topic wins.
   if (project.stars > 0) {
-    s += Math.min(Math.log10(project.stars + 1) * 200, 2_000);
-    if (project.stars > 10_000) s += 500;
-    if (project.stars > 50_000) s += 500;
+    s += Math.min(Math.log10(project.stars + 1) * 400, 3_500);
+    if (project.stars >= 10_000) s += 1_500;
+    if (project.stars >= 50_000) s += 2_000;
+    if (project.stars >= 100_000) s += 1_500;
   }
   if (project.downloads && project.downloads > 0) {
-    s += Math.min(Math.log10(project.downloads + 1) * 150, 1_500);
+    s += Math.min(Math.log10(project.downloads + 1) * 200, 2_000);
   }
 
   // --- Recency ---
@@ -151,9 +175,9 @@ export function calculateRelevanceScore(project: UnifiedProject, query: string):
     const intent = LANG_INTENT[w];
     if (!intent) continue;
     if (project.language && intent.lang?.some((l) => project.language!.toLowerCase() === l)) {
-      s += 600;
+      s += 1_200;
     }
-    if (intent.sources?.includes(project.source)) s += 300;
+    if (intent.sources?.includes(project.source)) s += 600;
   }
 
   return Math.max(0, s);
