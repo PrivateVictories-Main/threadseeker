@@ -166,7 +166,9 @@ export function UnifiedProjectCard({ project, query = "", onTopicClick }: Unifie
   };
 
   return (
-    <div className="group rounded-xl border border-slate-800/50 bg-slate-950/40 hover:border-slate-700/50 transition-colors overflow-hidden">
+    <div
+      className={`group relative rounded-xl border border-slate-800/50 bg-slate-950/40 hover:border-slate-700/70 hover:bg-slate-950/60 transition-[border-color,background-color,box-shadow] duration-200 overflow-hidden focus-within:ring-1 focus-within:ring-slate-700/60 hover:shadow-[0_0_0_1px_rgba(148,163,184,0.06)]`}
+    >
       {/* Header */}
       <div className="p-4 pb-0">
         <div className="flex items-start gap-3">
@@ -181,8 +183,11 @@ export function UnifiedProjectCard({ project, query = "", onTopicClick }: Unifie
               }}
             />
           ) : (
-            <div className="w-10 h-10 rounded-lg border border-slate-800/50 bg-slate-900 flex items-center justify-center flex-shrink-0">
-              <span className="text-slate-500 font-medium text-sm">
+            <div
+              className={`w-10 h-10 rounded-lg border ${sourceConfig.borderColor} bg-gradient-to-br ${sourceConfig.color} flex items-center justify-center flex-shrink-0`}
+              aria-hidden="true"
+            >
+              <span className="text-white/90 font-medium text-sm drop-shadow-sm">
                 {project.name.charAt(0).toUpperCase()}
               </span>
             </div>
@@ -223,13 +228,15 @@ export function UnifiedProjectCard({ project, query = "", onTopicClick }: Unifie
 
       {/* Description */}
       <div className="px-4 pt-2 pb-3">
-        <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
-          {project.description ? (
+        {project.description ? (
+          <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
             <Highlighted text={project.description} query={query} />
-          ) : (
-            "No description"
-          )}
-        </p>
+          </p>
+        ) : (
+          <p className="text-xs text-slate-700 italic leading-relaxed">
+            No description provided
+          </p>
+        )}
       </div>
 
       {/* Version / license / maintenance pills — helps users pick without
