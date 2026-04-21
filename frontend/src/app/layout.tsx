@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -50,6 +50,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -74,6 +81,8 @@ export default function RootLayout({
           "https://hn.algolia.com",
           "https://open-vsx.org",
           "https://dev.to",
+          "https://jsr.io",
+          "https://www.reddit.com",
         ].map((href) => (
           <link key={href} rel="preconnect" href={href} crossOrigin="anonymous" />
         ))}

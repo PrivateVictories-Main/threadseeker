@@ -34,17 +34,25 @@ export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
   }, []);
 
   return (
-    <form onSubmit={handleSubmit} className="relative max-w-2xl mx-auto">
+    <form
+      onSubmit={handleSubmit}
+      role="search"
+      aria-label="Search open-source projects"
+      className="relative max-w-2xl mx-auto"
+    >
       <div className="flex items-center bg-slate-900/50 rounded-xl border border-slate-800/60 focus-within:border-slate-600/60 transition-colors">
         <div className="pl-4">
-          <Search className="w-4.5 h-4.5 text-slate-600" />
+          <Search className="w-4.5 h-4.5 text-slate-600" aria-hidden />
         </div>
         <input
           ref={inputRef}
-          type="text"
+          type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="What are you looking for?  (press /)"
+          aria-label="Search query"
+          autoComplete="off"
+          spellCheck={false}
           className="flex-1 bg-transparent text-slate-200 placeholder:text-slate-600 text-sm h-12 px-3 focus:outline-none"
         />
         <button

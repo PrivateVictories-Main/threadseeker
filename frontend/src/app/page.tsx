@@ -381,12 +381,19 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-md focus:bg-slate-100 focus:px-3 focus:py-1.5 focus:text-xs focus:text-slate-900 focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
       <SearchProgressBar
         total={selectedSources.length}
         remaining={pendingSources}
         active={isLoading}
       />
       <ShortcutHelpModal />
+      <main id="main-content">
       {/* Search hero */}
       <section className="border-b border-slate-800/40">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-20 pb-8">
@@ -747,6 +754,7 @@ export default function Home() {
           </div>
         )}
       </section>
+      </main>
 
       <footer className="mt-auto border-t border-slate-800/40 mt-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-600">
