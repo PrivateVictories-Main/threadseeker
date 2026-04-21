@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { UnifiedProject, getSourceConfig } from "@/lib/sources";
+import { CardMeta } from "@/components/CardMeta";
 import {
   getProjectActions,
   getPrimaryAction,
@@ -33,6 +34,7 @@ import {
   FileText,
   Loader2,
   Sparkles,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -221,7 +223,7 @@ export function UnifiedProjectCard({ project, query = "", onTopicClick }: Unifie
 
       {/* Description */}
       <div className="px-4 pt-2 pb-3">
-        <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+        <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
           {project.description ? (
             <Highlighted text={project.description} query={query} />
           ) : (
@@ -229,6 +231,10 @@ export function UnifiedProjectCard({ project, query = "", onTopicClick }: Unifie
           )}
         </p>
       </div>
+
+      {/* Version / license / maintenance pills — helps users pick without
+          clicking out. Hides itself if the project has none of them. */}
+      <CardMeta project={project} />
 
       {/* Stats row */}
       <div className="px-4 pb-3 flex items-center gap-3 text-[11px] text-slate-600">
@@ -419,12 +425,24 @@ export function UnifiedProjectCard({ project, query = "", onTopicClick }: Unifie
               )}
             </button>
 
+            {project.homepage && project.homepage !== project.url && (
+              <a
+                href={project.homepage}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 text-slate-600 hover:text-sky-300 border border-slate-800/40 rounded-lg hover:bg-slate-800/40 transition-colors"
+                title={`Open project homepage (${new URL(project.homepage).host})`}
+              >
+                <Globe className="w-3.5 h-3.5" />
+              </a>
+            )}
+
             <a
               href={project.url}
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 text-slate-600 hover:text-slate-400 border border-slate-800/40 rounded-lg hover:bg-slate-800/40 transition-colors"
-              title="Open in new tab"
+              title={`Open on ${sourceConfig.name}`}
             >
               <ExternalLink className="w-3.5 h-3.5" />
             </a>

@@ -40,6 +40,7 @@ import {
   searchNuGet,
   searchZenodo,
   searchWordPress,
+  searchMaven,
 } from "./adapters";
 
 export * from "./types";
@@ -80,6 +81,7 @@ const DEFAULT_SOURCES: SourceType[] = [
   "zenodo",
   "nuget",
   "wordpress",
+  "maven",
 ];
 
 // If a source hasn't returned in this long we drop it for this run. One
@@ -165,6 +167,8 @@ export async function searchAllSources(
         return searchZenodo(q("zenodo"));
       case "wordpress":
         return searchWordPress(q("wordpress"));
+      case "maven":
+        return searchMaven(q("maven"));
       default:
         return { projects: [], totalCount: 0, source };
     }

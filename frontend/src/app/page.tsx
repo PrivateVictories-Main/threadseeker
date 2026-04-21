@@ -109,6 +109,7 @@ const ALL_SOURCES: SourceType[] = [
   "conda",
   "nuget",
   "wordpress",
+  "maven",
   "paperswithcode",
   "arxiv",
   "zenodo",

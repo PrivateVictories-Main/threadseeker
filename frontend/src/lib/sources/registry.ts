@@ -202,6 +202,13 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-slate-500/30",
     bgColor: "bg-slate-500/10",
   },
+  maven: {
+    name: "Maven Central",
+    icon: "☕",
+    color: "from-amber-600 to-orange-700",
+    borderColor: "border-amber-500/30",
+    bgColor: "bg-amber-500/10",
+  },
 };
 
 export function getSourceConfig(source: SourceType): SourceDisplayConfig {
@@ -267,6 +274,8 @@ export function getSourceSearchUrl(source: SourceType, query: string): string | 
       return `https://www.nuget.org/packages?q=${q}`;
     case "wordpress":
       return `https://wordpress.org/plugins/search/${q}/`;
+    case "maven":
+      return `https://central.sonatype.com/search?q=${q}`;
     default:
       return null;
   }

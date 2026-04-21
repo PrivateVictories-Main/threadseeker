@@ -123,7 +123,8 @@ export async function searchGitHub(
         avatar: item.owner.avatar_url || `https://github.com/${item.owner.login}.png?size=96`,
       },
       updatedAt: item.updated_at,
-      license: item.license?.name,
+      license: item.license?.name || item.license?.spdx_id,
+      homepage: item.homepage || undefined,
     })),
     totalCount: allResults.length,
     source: "github",
@@ -391,6 +392,8 @@ export async function searchNpm(
       },
       updatedAt: item.package.date,
       license: item.package.license,
+      version: item.package.version,
+      homepage: item.package.links?.homepage || item.package.links?.repository,
     })),
     totalCount: allResults.length,
     source: "npm",
@@ -452,6 +455,8 @@ export async function searchPyPI(
       },
       updatedAt: new Date().toISOString(),
       license: data.info.license,
+      version: data.info.version,
+      homepage: data.info.home_page || undefined,
     })),
     totalCount: allResults.length,
     source: "pypi",
@@ -482,6 +487,8 @@ export async function searchCrates(query: string): Promise<SearchResult> {
         author: { name: "crates.io", avatar: "" },
         updatedAt: c.updated_at || new Date().toISOString(),
         license: c.license,
+        version: c.max_stable_version || c.newest_version,
+        homepage: c.homepage || c.documentation || c.repository,
       })),
       totalCount: crates.length,
       source: "crates",
@@ -554,6 +561,8 @@ export async function searchRubyGems(query: string): Promise<SearchResult> {
         },
         updatedAt: g.version_created_at || new Date().toISOString(),
         license: Array.isArray(g.licenses) ? g.licenses.join(", ") : g.licenses,
+        version: g.version,
+        homepage: g.homepage_uri || g.source_code_uri,
       })),
       totalCount: Array.isArray(gems) ? gems.length : 0,
       source: "rubygems",
@@ -856,6 +865,8 @@ export async function searchNuGet(query: string): Promise<SearchResult> {
         },
         updatedAt: p.lastUpdated || new Date().toISOString(),
         license: p.licenseUrl,
+        version: p.version,
+        homepage: p.projectUrl,
       })),
       totalCount: results.length,
       source: "nuget",
@@ -905,6 +916,47 @@ export async function searchZenodo(query: string): Promise<SearchResult> {
   } catch (error) {
     console.error("Zenodo search error:", error);
     return { projects: [], totalCount: 0, source: "zenodo" };
+  }
+}
+
+export async function searchMaven(query: string): Promise<SearchResult> {
+  try {
+    // Maven Central's Solr endpoint. `rows=30` matches our other registry
+    // adapters; `wt=json` is required (the default is XML). Response shape:
+    //   response.docs[] with { id, g, a, latestVersion, p, timestamp, versionCount }
+    const url = `https://search.maven.org/solrsearch/select?q=${encodeURIComponent(query)}&rows=30&wt=json`;
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!response.ok) return { projects: [], totalCount: 0, source: "maven" };
+    const data = await response.json();
+    const docs: any[] = data.response?.docs || [];
+    return {
+      projects: docs.map((p: any) => {
+        const coord = `${p.g}:${p.a}`;
+        return {
+          id: `maven-${coord}`,
+          source: "maven" as const,
+          name: p.a,
+          fullName: coord,
+          description: `${p.p || "jar"} · ${p.versionCount || 0} versions`,
+          url: `https://central.sonatype.com/artifact/${encodeURIComponent(p.g)}/${encodeURIComponent(p.a)}`,
+          stars: 0,
+          downloads: p.versionCount || 0,
+          language: "Java",
+          topics: [],
+          author: {
+            name: p.g,
+            avatar: "",
+          },
+          updatedAt: p.timestamp ? new Date(p.timestamp).toISOString() : new Date().toISOString(),
+          version: p.latestVersion,
+        };
+      }),
+      totalCount: data.response?.numFound || docs.length,
+      source: "maven",
+    };
+  } catch (error) {
+    console.error("Maven Central search error:", error);
+    return { projects: [], totalCount: 0, source: "maven" };
   }
 }
 

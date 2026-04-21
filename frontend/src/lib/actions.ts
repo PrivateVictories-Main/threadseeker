@@ -338,6 +338,38 @@ export function getProjectActions(project: UnifiedProject): ProjectAction[] {
       });
       break;
     }
+    case "maven": {
+      // project.fullName is "group:artifact" (e.g. "com.fasterxml.jackson.core:jackson-core").
+      const [group, artifact] = project.fullName.split(":");
+      const version = project.version?.trim() || "LATEST";
+      if (group && artifact) {
+        actions.push({
+          kind: "snippet",
+          label: "Gradle (Kotlin)",
+          command: `implementation("${group}:${artifact}:${version}")`,
+          description: "Add to build.gradle.kts dependencies { }",
+        });
+        actions.push({
+          kind: "snippet",
+          label: "Gradle (Groovy)",
+          command: `implementation '${group}:${artifact}:${version}'`,
+          description: "Add to build.gradle dependencies { }",
+        });
+        actions.push({
+          kind: "snippet",
+          label: "Maven",
+          command: `<dependency>\n  <groupId>${group}</groupId>\n  <artifactId>${artifact}</artifactId>\n  <version>${version}</version>\n</dependency>`,
+          description: "Add inside <dependencies>",
+        });
+        actions.push({
+          kind: "snippet",
+          label: "sbt",
+          command: `libraryDependencies += "${group}" % "${artifact}" % "${version}"`,
+          description: "Add to build.sbt",
+        });
+      }
+      break;
+    }
     case "zenodo": {
       // Zenodo records are research artifacts, not packages. Best we can
       // do is hand the user the DOI — it's the canonical, citable link

@@ -27,6 +27,7 @@ const DEDUPABLE_SOURCES: ReadonlySet<SourceType> = new Set<SourceType>([
   "conda",
   "nuget",
   "wordpress",
+  "maven",
 ]);
 
 // Normalize a project's name for comparison: strip scopes, cases, separators,

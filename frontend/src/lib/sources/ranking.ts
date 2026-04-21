@@ -88,7 +88,7 @@ export function calculateRelevanceScore(project: UnifiedProject, query: string):
     paperswithcode: 115, stackoverflow: 95,
     hackernews: 90, reddit: 90, lobsters: 90, devto: 85,
     aur: 100, openvsx: 110, conda: 115,
-    zenodo: 105, nuget: 120, wordpress: 105,
+    zenodo: 105, nuget: 120, wordpress: 105, maven: 120,
   };
   s += srcBonus[project.source] ?? 0;
 
@@ -136,6 +136,13 @@ export function calculateRelevanceScore(project: UnifiedProject, query: string):
     dotnet: { lang: ["c#", "f#", "visual basic"], sources: ["nuget"] },
     csharp: { lang: ["c#"], sources: ["nuget"] },
     "c#": { lang: ["c#"], sources: ["nuget"] },
+    java: { lang: ["java"], sources: ["maven"] },
+    kotlin: { lang: ["kotlin", "java"], sources: ["maven"] },
+    scala: { lang: ["scala", "java"], sources: ["maven"] },
+    jvm: { lang: ["java", "kotlin", "scala"], sources: ["maven"] },
+    android: { lang: ["java", "kotlin"], sources: ["maven", "fdroid"] },
+    gradle: { lang: ["java", "kotlin"], sources: ["maven"] },
+    maven: { lang: ["java"], sources: ["maven"] },
     react: { lang: ["javascript", "typescript"] },
     vue: { lang: ["javascript", "typescript"] },
     svelte: { lang: ["javascript", "typescript"] },

@@ -29,7 +29,8 @@ export type SourceType =
   | "conda"
   | "zenodo"
   | "nuget"
-  | "wordpress";
+  | "wordpress"
+  | "maven";
 
 export interface RelatedSource {
   source: SourceType;
@@ -56,6 +57,12 @@ export interface UnifiedProject {
   updatedAt: string;
   readme?: string;
   license?: string;
+  // Latest published version, when the upstream exposes one. Displayed as
+  // a compact `v1.2.3` pill so users can decide freshness at a glance.
+  version?: string;
+  // Optional direct homepage for the project (a docs/marketing site),
+  // separate from `url` (which points at the source-platform listing).
+  homepage?: string;
   // Optional community/sentiment fields (Reddit, HN, Lobsters).
   sentiment?: "positive" | "mixed" | "negative" | "neutral";
   warning?: string;
