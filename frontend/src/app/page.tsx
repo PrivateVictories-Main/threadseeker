@@ -151,6 +151,10 @@ export default function Home() {
   const initialLoadDone = useRef(false);
   const searchRunIdRef = useRef(0);
   const resultsGridRef = useRef<HTMLDivElement | null>(null);
+  // Tracks the last query we fired a search for, so the debounced
+  // onChange handler and the Enter-submit handler don't double-fire
+  // the same query.
+  const lastSubmittedRef = useRef<string>("");
 
   // Parsed query operators (lang:, source:, stars:>, license:) derived from
   // the raw query each render. Applied as a post-filter on projects below.
@@ -210,6 +214,7 @@ export default function Home() {
     async (searchQuery: string, preserveView: boolean = false) => {
       const q = searchQuery.trim();
       if (!q) return;
+      lastSubmittedRef.current = q;
 
       // Strip operators so upstream APIs only see free-text; operator filters
       // are applied as a post-filter on the merged result set.
@@ -419,7 +424,19 @@ export default function Home() {
           </div>
 
           {/* Search bar */}
-          <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+          <SearchBar
+            onSearch={handleSearch}
+            isLoading={isLoading}
+            onDebouncedChange={(v) => {
+              const trimmed = v.trim();
+              // Skip empty strings — don't fire a full search for "".
+              if (!trimmed) return;
+              // Dedupe: don't re-fire if the user already submitted this
+              // exact query (e.g. typed + hit Enter just before the timer).
+              if (trimmed === lastSubmittedRef.current) return;
+              handleSearch(trimmed);
+            }}
+          />
 
           {/* Source filter */}
           <div className="mt-4 flex justify-center">
