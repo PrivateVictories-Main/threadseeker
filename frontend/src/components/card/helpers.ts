@@ -89,6 +89,53 @@ export function avatarFallbackHue(id: string): number {
   return FALLBACK_HUES[(h >>> 0) % FALLBACK_HUES.length];
 }
 
+// Source-aware primary-action label. Threads get "Open thread", scholarly
+// papers get "View paper", everything else stays at the generic default.
+// Tightening the verb to match the destination makes the unified card
+// feel less generic — you click "View paper" and you know you're about
+// to land on an arXiv abstract, not a GitHub repo.
+export function openLabelForSource(source: UnifiedProject["source"]): string {
+  switch (source) {
+    case "reddit":
+    case "hackernews":
+    case "lobsters":
+    case "stackoverflow":
+      return "Open thread";
+    case "arxiv":
+    case "paperswithcode":
+    case "zenodo":
+      return "View paper";
+    case "devto":
+      return "Read post";
+    default:
+      return "Open";
+  }
+}
+
+// Source-aware popularity glyph + count. Repos and packages keep the
+// star/download glyph; threads (HN/Reddit/Lobsters) swap to a triangle
+// upvote glyph (more semantically accurate than ★ for an upvote count)
+// and append a comments-count via the speech-bubble glyph when present.
+// Returns null when the project carries no popularity signal at all
+// (empty pills suppress entirely via CardPills.tsx).
+export function popularityForProject(p: UnifiedProject): string | null {
+  const isThread =
+    p.source === "reddit" ||
+    p.source === "hackernews" ||
+    p.source === "lobsters";
+  if (isThread) {
+    const parts: string[] = [];
+    if (p.stars > 0) parts.push(`▲ ${formatCount(p.stars)}`);
+    if (p.commentsCount && p.commentsCount > 0) {
+      parts.push(`💬 ${formatCount(p.commentsCount)}`);
+    }
+    return parts.length ? parts.join(" · ") : null;
+  }
+  if (p.stars > 0) return `★ ${formatCount(p.stars)}`;
+  if (p.downloads) return `↓ ${formatCount(p.downloads)}`;
+  return null;
+}
+
 export function copyItemsForSource(p: UnifiedProject): CopyItem[] {
   switch (p.source) {
     case "github":

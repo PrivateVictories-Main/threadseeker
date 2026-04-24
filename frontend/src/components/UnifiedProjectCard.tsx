@@ -9,12 +9,13 @@ import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { bookmarkVariants } from "@/lib/motion";
 import { useBookmark } from "@/lib/bookmarks";
 import {
-  formatCount,
   formatRelativeTime,
   licenseBucket,
   maintenanceState,
   copyItemsForSource,
   avatarFallbackHue,
+  openLabelForSource,
+  popularityForProject,
 } from "./card/helpers";
 
 interface Props {
@@ -42,14 +43,13 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index }: Pr
   const pulseControls = useAnimationControls();
   const reducedMotion = useReducedMotion();
 
-  const popularity =
-    project.stars > 0
-      ? `★ ${formatCount(project.stars)}`
-      : project.downloads
-        ? `↓ ${formatCount(project.downloads)}`
-        : null;
+  // Source-aware popularity: threads (HN/Reddit/Lobsters) get an upvote
+  // triangle + a comments glyph; everything else keeps the star or
+  // download arrow. Pure-data swap — pills/layout unchanged.
+  const popularity = popularityForProject(project);
 
   const copyItems: CopyItem[] = copyItemsForSource(project);
+  const openLabel = openLabelForSource(project.source);
 
   const isRepo =
     project.source === "github" ||
@@ -244,6 +244,7 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index }: Pr
         <CardActions
           url={project.url}
           copyItems={copyItems}
+          openLabel={openLabel}
           onCopy={(text) => {
             onToast?.(`Copied: ${text.slice(0, 40)}`);
           }}
