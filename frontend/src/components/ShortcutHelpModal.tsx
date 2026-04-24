@@ -74,9 +74,9 @@ export function ShortcutHelpModal() {
               <button
                 onClick={() => setOpen(false)}
                 className="p-1.5 -mr-1 -mt-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-white/60 transition-colors"
-                aria-label="Close"
+                aria-label="Close keyboard shortcuts"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden />
               </button>
             </div>
             <div className="h-px w-full bg-indigo-100/80 mb-4" aria-hidden />
@@ -142,7 +142,7 @@ export function ShortcutHelpButton({ visible = true }: { visible?: boolean } = {
           exit={{ opacity: 0, y: 8, scale: 0.92 }}
           transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
         >
-          <HelpCircle className="w-4 h-4" />
+          <HelpCircle className="w-4 h-4" aria-hidden />
         </motion.button>
       )}
     </AnimatePresence>

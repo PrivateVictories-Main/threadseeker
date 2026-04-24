@@ -186,7 +186,7 @@ export function ResultsToolbar({
                 : `Filter by source. Currently showing all ${activeSourceCount} sources.`
             }
           >
-            <Filter className="w-3.5 h-3.5 flex-shrink-0" />
+            <Filter className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
             <span className="truncate">
               Sources
               {activeSource ? (
@@ -197,6 +197,7 @@ export function ResultsToolbar({
             </span>
             <ChevronDown
               className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${filterOpen ? "rotate-180" : ""}`}
+              aria-hidden
             />
           </button>
           <div className="relative" ref={sortRef}>
@@ -208,10 +209,11 @@ export function ResultsToolbar({
               title={`Sort: ${currentSortLabel}`}
               aria-label={`Sort order. Currently sorted by ${currentSortLabel}.`}
             >
-              <ArrowDownWideNarrow className="w-3.5 h-3.5 flex-shrink-0" />
+              <ArrowDownWideNarrow className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
               <span className="truncate">{currentSortLabel}</span>
               <ChevronDown
                 className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${sortOpen ? "rotate-180" : ""}`}
+                aria-hidden
               />
             </button>
             <AnimatePresence>
@@ -241,7 +243,7 @@ export function ResultsToolbar({
                           }`}
                         >
                           <span>{o.label}</span>
-                          {active && <Check className="w-3.5 h-3.5" />}
+                          {active && <Check className="w-3.5 h-3.5" aria-hidden />}
                         </button>
                       </li>
                     );
@@ -257,6 +259,7 @@ export function ResultsToolbar({
             onClick={() => handleExport("md")}
             className="btn btn-ghost text-[12.5px] h-8 px-3"
             title="Copy results as Markdown"
+            aria-label="Copy results as Markdown to clipboard"
             animate={{
               backgroundColor:
                 exportedAs === "md" ? "rgba(236, 253, 245, 1)" : "rgba(255, 255, 255, 0)",
@@ -266,9 +269,9 @@ export function ResultsToolbar({
             transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
           >
             {exportedAs === "md" ? (
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <Check className="w-3.5 h-3.5 text-emerald-600" aria-hidden />
             ) : (
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5" aria-hidden />
             )}
             <span>MD</span>
           </motion.button>
@@ -276,6 +279,7 @@ export function ResultsToolbar({
             onClick={() => handleExport("json")}
             className="btn btn-ghost text-[12.5px] h-8 px-3"
             title="Copy results as JSON"
+            aria-label="Copy results as JSON to clipboard"
             animate={{
               backgroundColor:
                 exportedAs === "json" ? "rgba(236, 253, 245, 1)" : "rgba(255, 255, 255, 0)",
@@ -285,9 +289,9 @@ export function ResultsToolbar({
             transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
           >
             {exportedAs === "json" ? (
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <Check className="w-3.5 h-3.5 text-emerald-600" aria-hidden />
             ) : (
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5" aria-hidden />
             )}
             <span>JSON</span>
           </motion.button>
@@ -295,6 +299,7 @@ export function ResultsToolbar({
             onClick={handleShare}
             className="btn btn-ghost text-[12.5px] h-8 px-3"
             title="Copy link to these results"
+            aria-label="Share — copy link to these results"
             animate={{
               backgroundColor:
                 copied ? "rgba(236, 253, 245, 1)" : "rgba(255, 255, 255, 0)",
@@ -305,12 +310,12 @@ export function ResultsToolbar({
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <Check className="w-3.5 h-3.5 text-emerald-600" aria-hidden />
                 <span>Copied</span>
               </>
             ) : (
               <>
-                <Link2 className="w-3.5 h-3.5" />
+                <Link2 className="w-3.5 h-3.5" aria-hidden />
                 <span>Share</span>
               </>
             )}

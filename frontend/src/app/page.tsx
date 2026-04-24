@@ -671,6 +671,7 @@ export default function Home() {
                         }}
                         className="ml-1 text-slate-300 hover:text-slate-600 transition-colors"
                         title="Clear history"
+                        aria-label="Clear search history"
                       >
                         <X className="w-3 h-3" />
                       </button>

@@ -125,7 +125,7 @@ export function SearchBar({
             className={`relative flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors ${isCompact ? "w-7 h-7" : "w-8 h-8"} rounded-full`}
             aria-label="Clear search"
           >
-            <X className={isCompact ? "w-3.5 h-3.5" : "w-4 h-4"} />
+            <X className={isCompact ? "w-3.5 h-3.5" : "w-4 h-4"} aria-hidden />
           </button>
         )}
         <button
@@ -135,7 +135,10 @@ export function SearchBar({
         >
           {isLoading ? (
             <>
-              <Loader2 className={`${isCompact ? "w-3.5 h-3.5" : "w-4 h-4"} animate-spin`} />
+              <Loader2
+                className={`${isCompact ? "w-3.5 h-3.5" : "w-4 h-4"} animate-spin`}
+                aria-hidden
+              />
               <span>Searching</span>
             </>
           ) : (
