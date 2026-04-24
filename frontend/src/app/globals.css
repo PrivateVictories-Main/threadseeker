@@ -234,11 +234,19 @@ body {
   object-fit: cover; flex: 0 0 auto;
   box-shadow: var(--ts-shadow-sm);
 }
-/* Initial-letter fallback when project.author.avatar is absent. Uses the
-   accent gradient as the bg so it reads as "brand-coloured" rather than
-   "broken image", with white text for contrast. */
+/* Initial-letter fallback when project.author.avatar is absent. Uses a
+   hashed hue (210..280, indigo/violet/sky family) as the gradient base
+   so a row of avatarless cards shows subtle variation rather than
+   identical accent circles. The card sets --ts-fallback-hue per
+   instance; this rule defaults to 240 (mid-indigo) if absent. */
 .ts-avatar-fallback {
-  background: var(--ts-accent-gradient);
+  --ts-fallback-hue: 240;
+  background:
+    linear-gradient(
+      135deg,
+      hsl(var(--ts-fallback-hue), 78%, 60%) 0%,
+      hsl(calc(var(--ts-fallback-hue) + 20), 72%, 55%) 100%
+    );
   color: white;
   display: inline-flex;
   align-items: center;

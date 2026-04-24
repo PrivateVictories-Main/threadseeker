@@ -14,6 +14,7 @@ import {
   licenseBucket,
   maintenanceState,
   copyItemsForSource,
+  avatarFallbackHue,
 } from "./card/helpers";
 
 interface Props {
@@ -111,8 +112,15 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick }: Props) {
             // Plain colored circle fallback was identity-less. Rendering
             // the first letter of the project name gives the fallback
             // something to read as — matches GitHub/Gravatar default
-            // avatars without requiring a network call.
-            <div className="ts-avatar ts-avatar-fallback" aria-hidden>
+            // avatars without requiring a network call. Hue is hashed
+            // from project.id so a row of avatarless cards shows
+            // subtle indigo→violet→sky variation instead of identical
+            // gradient circles, without leaving the accent palette.
+            <div
+              className="ts-avatar ts-avatar-fallback"
+              aria-hidden
+              style={{ ["--ts-fallback-hue" as string]: avatarFallbackHue(project.id) }}
+            >
               {project.name.charAt(0).toUpperCase()}
             </div>
           )}

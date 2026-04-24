@@ -66,6 +66,26 @@ export function formatRelativeTime(iso: string): string {
   return `${n} ${n === 1 ? "year" : "years"} ago`;
 }
 
+// Stable hue for avatar fallback gradients. Hashes the project id to one
+// of 8 indigo/violet/sky-adjacent hues so a row of avatarless cards has
+// subtle visual variation instead of nine identical accent circles —
+// without leaving the indigo-only design north star.
+//
+// The hue palette intentionally stays inside {210..280} so every choice
+// reads as "still indigo/violet family", just slightly cooler or warmer.
+const FALLBACK_HUES = [210, 220, 230, 240, 250, 260, 270, 280] as const;
+
+export function avatarFallbackHue(id: string): number {
+  // Tiny FNV-1a-ish hash — deterministic, no deps. Same id → same hue.
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  // Map the hash into the palette index. >>> 0 to get an unsigned int.
+  return FALLBACK_HUES[(h >>> 0) % FALLBACK_HUES.length];
+}
+
 export function copyItemsForSource(p: UnifiedProject): CopyItem[] {
   switch (p.source) {
     case "github":
