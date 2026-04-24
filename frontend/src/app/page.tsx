@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { SearchBar } from "@/components/SearchBar";
 import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
 import { SourceFilter } from "@/components/SourceFilter";
@@ -8,11 +9,12 @@ import { ResultsToolbar, SortMode, applyResultsView } from "@/components/Results
 import { TrendingSection } from "@/components/TrendingSection";
 import { SavedSection } from "@/components/SavedSection";
 import { DirectJumps } from "@/components/DirectJumps";
-import { SearchProgressBar } from "@/components/SearchProgressBar";
 import { CardSkeleton } from "@/components/CardSkeleton";
 import { ShortcutHelpModal } from "@/components/ShortcutHelpModal";
 import { AnimatedGrid } from "@/components/motion/AnimatedGrid";
 import { Toast } from "@/components/motion/Toast";
+import { CountUp } from "@/components/motion/CountUp";
+import { modeVariants, springSoft } from "@/lib/motion";
 import {
   searchAllSources,
   UnifiedProject,
@@ -26,7 +28,7 @@ import {
 } from "@/lib/sources";
 import { parseQuery, applyOperators, describeOperators } from "@/lib/query-parser";
 import { toast } from "sonner";
-import { Search, Globe, ArrowRight, Clock, X } from "lucide-react";
+import { Search, ArrowRight, Clock, X, SearchX } from "lucide-react";
 
 const HISTORY_KEY = "threadseeker:history:v1";
 const HISTORY_MAX = 8;
@@ -124,14 +126,12 @@ const ALL_SOURCES: SourceType[] = [
 ];
 
 const EXAMPLE_QUERIES = [
-  "react state management library",
+  "react state management",
   "python web scraping",
   "rust CLI framework",
   "LLM fine-tuning",
   "self-hosted analytics",
   "Go HTTP router",
-  "image generation models",
-  "PHP authentication package",
 ];
 
 export default function Home() {
@@ -148,6 +148,7 @@ export default function Home() {
   const [searchDurationMs, setSearchDurationMs] = useState<number | null>(null);
   const [focusedIdx, setFocusedIdx] = useState<number>(-1);
   const [toast, setToast] = useState<string | null>(null);
+  const [sourceFilterOpen, setSourceFilterOpen] = useState(false);
   const initialLoadDone = useRef(false);
   const searchRunIdRef = useRef(0);
   const resultsGridRef = useRef<HTMLDivElement | null>(null);
@@ -159,6 +160,11 @@ export default function Home() {
   // Parsed query operators (lang:, source:, stars:>, license:) derived from
   // the raw query each render. Applied as a post-filter on projects below.
   const parsedQuery = useMemo(() => parseQuery(query), [query]);
+
+  // Mode = hero (landing) vs results. Once the user has searched, we never go
+  // back to hero until they explicitly clear — that keeps the transition from
+  // toggling on every keystroke.
+  const mode: "hero" | "results" = hasSearched || isLoading || projects.length > 0 ? "results" : "hero";
 
   // Keyboard navigation across result cards. j/ArrowDown → next, k/ArrowUp →
   // prev, Enter → open focused card's URL (cmd/ctrl-Enter opens in new tab
@@ -391,373 +397,436 @@ export default function Home() {
     });
   };
 
+  const handleClear = useCallback(() => {
+    searchRunIdRef.current += 1;
+    setQuery("");
+    setProjects([]);
+    setIsLoading(false);
+    setPendingSources(0);
+    setPendingSourceList([]);
+    setHasSearched(false);
+    setActiveSourceFilter(null);
+    setSortMode("relevance");
+    lastSubmittedRef.current = "";
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+
   const activeSources = selectedSources.length;
   const resultCount = projects.length;
 
+  // Sort-friendly view (applied before operator post-filter).
+  const sortedView = mode === "results" ? applyResultsView(projects, sortMode, activeSourceFilter) : projects;
+  const view = applyOperators(sortedView, parsedQuery);
+  const opSummary = describeOperators(parsedQuery);
+
+  // Progress bar % for the sticky header.
+  const progressPct = isLoading
+    ? Math.min(100, Math.max(4, ((selectedSources.length - pendingSources) / Math.max(1, selectedSources.length)) * 100))
+    : 0;
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-md focus:bg-white focus:px-3 focus:py-1.5 focus:text-xs focus:text-slate-900 focus:shadow-lg focus:border focus:border-indigo-300"
       >
         Skip to main content
       </a>
-      <SearchProgressBar
-        total={selectedSources.length}
-        remaining={pendingSources}
-        active={isLoading}
-      />
       <ShortcutHelpModal />
-      <main id="main-content">
-      {/* Search hero */}
-      <section className="border-b border-indigo-100/70">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-20 pb-8">
-          {/* Heading */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 mb-3">
-              Search open source <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">everywhere</span>
-            </h1>
-            <p className="text-base text-slate-600 max-w-lg mx-auto">
-              One query across {activeSources} platforms — repos, packages,
-              models, and community threads.
-            </p>
-          </div>
-
-          {/* Search bar */}
-          <SearchBar
-            onSearch={handleSearch}
-            isLoading={isLoading}
-            onDebouncedChange={(v) => {
-              const trimmed = v.trim();
-              // Skip empty strings — don't fire a full search for "".
-              if (!trimmed) return;
-              // Dedupe: don't re-fire if the user already submitted this
-              // exact query (e.g. typed + hit Enter just before the timer).
-              if (trimmed === lastSubmittedRef.current) return;
-              handleSearch(trimmed);
-            }}
-          />
-
-          {/* Source filter */}
-          <div className="mt-4 flex justify-center">
-            <SourceFilter
-              allSources={ALL_SOURCES}
-              selectedSources={selectedSources}
-              onToggle={handleSourceToggle}
-            />
-          </div>
-
-          {/* Recent searches — from local storage */}
-          {!hasSearched && !isLoading && history.length > 0 && (
-            <div className="mt-6">
-              <div className="flex items-center justify-center gap-2 mb-2 text-[11px] uppercase tracking-wide text-slate-500 font-semibold">
-                <Clock className="w-3 h-3" />
-                Recent
-                <button
-                  onClick={() => {
-                    setHistory([]);
-                    saveHistory([]);
-                  }}
-                  className="ml-1 text-slate-400 hover:text-slate-700 transition-colors"
-                  title="Clear history"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-              <div className="flex flex-wrap justify-center gap-2">
-                {history.map((h) => (
-                  <button
-                    key={h}
-                    onClick={() => handleSearch(h)}
-                    className="group flex items-center gap-1.5 text-[13px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-all"
-                  >
-                    <span>{h}</span>
-                    <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Saved projects — only on landing, only when non-empty */}
-          {!hasSearched && !isLoading && <SavedSection />}
-
-          {/* Trending — only on landing, behind the example queries */}
-          {!hasSearched && !isLoading && (
-            <TrendingSection onQueryClick={(q) => handleSearch(q)} />
-          )}
-
-          {/* Example queries — only on landing */}
-          {!hasSearched && !isLoading && (
-            <div className="mt-6">
-              {history.length > 0 && (
-                <div className="flex items-center justify-center mb-2 text-[11px] uppercase tracking-wide text-slate-500 font-semibold">
-                  Try
+      <main id="main-content" className="flex-1">
+        <AnimatePresence mode="wait" initial={false}>
+          {mode === "hero" ? (
+            <motion.section
+              key="hero"
+              initial="heroEnter"
+              animate="heroShow"
+              exit="heroExit"
+              variants={modeVariants}
+              className="px-4 sm:px-6"
+            >
+              <div className="max-w-4xl mx-auto pt-20 sm:pt-28 pb-10">
+                <div className="text-center mb-10">
+                  <h1 className="text-balance text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-slate-900 mb-5 leading-[1.05]">
+                    Search open source{" "}
+                    <span className="ts-hero-accent">everywhere</span>
+                  </h1>
+                  <p className="text-[17px] text-slate-500 max-w-xl mx-auto leading-relaxed">
+                    One query, {activeSources} platforms — repositories,
+                    packages, models, and community threads.
+                  </p>
                 </div>
-              )}
-              <div className="flex flex-wrap justify-center gap-2">
-                {EXAMPLE_QUERIES.map((eq) => (
-                  <button
-                    key={eq}
-                    onClick={() => handleSearch(eq)}
-                    className="group flex items-center gap-1.5 text-[13px] text-slate-600 hover:text-indigo-700 bg-white/70 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-all"
-                  >
-                    <span>{eq}</span>
-                    <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
 
-      {/* Results */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {isLoading && resultCount === 0 ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <span>Searching {activeSources} sources</span>
-              <span className="inline-flex items-center gap-1 text-slate-500">
-                {pendingSourceList.slice(0, 10).map((src) => (
-                  <span
-                    key={src}
-                    title={getSourceConfig(src).name}
-                    className="inline-block animate-pulse"
-                  >
-                    {getSourceConfig(src).icon}
-                  </span>
-                ))}
-                {pendingSourceList.length > 10 && (
-                  <span className="text-slate-400">
-                    +{pendingSourceList.length - 10}
-                  </span>
-                )}
-              </span>
-            </div>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
-              {Array.from({ length: 9 }).map((_, i) => (
-                <CardSkeleton key={i} />
-              ))}
-            </div>
-          </div>
-        ) : resultCount > 0 ? (
-          (() => {
-            const sortedView = applyResultsView(projects, sortMode, activeSourceFilter);
-            const view = applyOperators(sortedView, parsedQuery);
-            const opSummary = describeOperators(parsedQuery);
-            return (
-              <div className="space-y-4">
-                <DirectJumps query={parsedQuery.freeText || query} />
-                <ResultsToolbar
-                  projects={projects}
-                  sortMode={sortMode}
-                  onSortChange={setSortMode}
-                  activeSource={activeSourceFilter}
-                  onSourceClick={setActiveSourceFilter}
+                <SearchBar
+                  onSearch={handleSearch}
+                  isLoading={isLoading}
+                  size="hero"
+                  onDebouncedChange={(v) => {
+                    const trimmed = v.trim();
+                    if (!trimmed) return;
+                    if (trimmed === lastSubmittedRef.current) return;
+                    handleSearch(trimmed);
+                  }}
                 />
-                <p className="text-sm text-slate-600">
-                  <span className="font-semibold text-slate-800">{view.length}</span> {view.length === 1 ? "result" : "results"}
-                  {activeSourceFilter && (
-                    <span className="text-slate-500">
-                      {" "}
-                      from <span className="text-indigo-700 font-medium">{activeSourceFilter}</span>
-                    </span>
+
+                {/* Try row */}
+                <div className="mt-5 flex flex-wrap justify-center gap-2">
+                  <span className="text-[12px] text-slate-400 uppercase tracking-[0.14em] font-semibold mr-1 self-center">
+                    Try
+                  </span>
+                  {EXAMPLE_QUERIES.map((eq) => (
+                    <button
+                      key={eq}
+                      onClick={() => handleSearch(eq)}
+                      className="group inline-flex items-center gap-1.5 text-[12.5px] text-slate-600 hover:text-indigo-700 bg-white/70 hover:bg-white border border-indigo-200/80 hover:border-indigo-300 rounded-full px-3 py-1 transition-all"
+                    >
+                      <span>{eq}</span>
+                      <ArrowRight className="w-3 h-3 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Source filter — restrained, under a small disclosure row */}
+                <div className="mt-6 flex flex-col items-center gap-2">
+                  <button
+                    onClick={() => setSourceFilterOpen((v) => !v)}
+                    className="text-[11px] uppercase tracking-[0.14em] text-slate-400 hover:text-indigo-600 font-semibold transition-colors"
+                    aria-expanded={sourceFilterOpen}
+                  >
+                    {sourceFilterOpen
+                      ? `Hide sources`
+                      : `Sources · ${activeSources}/${ALL_SOURCES.length}`}
+                  </button>
+                  {sourceFilterOpen && (
+                    <SourceFilter
+                      allSources={ALL_SOURCES}
+                      selectedSources={selectedSources}
+                      onToggle={handleSourceToggle}
+                    />
                   )}
-                  {parsedQuery.freeText && (
-                    <span className="text-slate-500">
-                      {" "}
-                      for <span className="text-indigo-700 font-medium">{parsedQuery.freeText}</span>
+                </div>
+
+                {/* Recent */}
+                {history.length > 0 && (
+                  <div className="mt-10">
+                    <div className="flex items-center justify-center gap-1.5 mb-3 text-[11px] uppercase tracking-[0.14em] text-slate-400 font-semibold">
+                      <Clock className="w-3 h-3" />
+                      Recent
+                      <button
+                        onClick={() => {
+                          setHistory([]);
+                          saveHistory([]);
+                        }}
+                        className="ml-1 text-slate-300 hover:text-slate-600 transition-colors"
+                        title="Clear history"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {history.slice(0, 6).map((h) => (
+                        <button
+                          key={h}
+                          onClick={() => handleSearch(h)}
+                          className="group inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3 py-1.5 transition-all"
+                        >
+                          <span>{h}</span>
+                          <ArrowRight className="w-3 h-3 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <SavedSection />
+                <TrendingSection onQueryClick={(q) => handleSearch(q)} />
+              </div>
+            </motion.section>
+          ) : (
+            <motion.section
+              key="results"
+              initial="resultsEnter"
+              animate="resultsShow"
+              exit="resultsExit"
+              variants={modeVariants}
+              className="flex flex-col"
+            >
+              {/* Sticky glass header with compact SearchBar + live readout */}
+              <div className="sticky top-0 z-20 glass-sticky">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-4">
+                  <div className="flex-1 max-w-xl">
+                    <SearchBar
+                      onSearch={handleSearch}
+                      isLoading={isLoading}
+                      size="compact"
+                      initialValue={query}
+                      onDebouncedChange={(v) => {
+                        const trimmed = v.trim();
+                        if (!trimmed) return;
+                        if (trimmed === lastSubmittedRef.current) return;
+                        handleSearch(trimmed);
+                      }}
+                    />
+                  </div>
+                  <div className="hidden sm:flex items-center gap-3 text-[12.5px] text-slate-600 tabular-nums">
+                    <span>
+                      <CountUp value={view.length} />
+                      <span className="text-slate-400"> results</span>
                     </span>
-                  )}
-                  {opSummary && (
-                    <span className="text-slate-500">
-                      {" · "}
-                      <span className="text-slate-700 font-mono text-xs">{opSummary}</span>
-                    </span>
-                  )}
-                  {!isLoading && searchDurationMs !== null && (
-                    <span className="text-slate-400">
-                      {" · "}
-                      {(searchDurationMs / 1000).toFixed(2)}s
-                    </span>
-                  )}
-                  {isLoading && pendingSources > 0 && (
-                    <span className="ml-2 inline-flex items-center gap-1.5 text-xs text-slate-500">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      still searching
-                      <span className="inline-flex items-center gap-1 text-slate-500">
-                        {pendingSourceList.slice(0, 6).map((src) => (
+                    {isLoading && pendingSources > 0 && (
+                      <span className="inline-flex items-center gap-1.5 text-slate-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                        {pendingSources} loading
+                      </span>
+                    )}
+                    {!isLoading && searchDurationMs !== null && (
+                      <span className="text-slate-400">
+                        {(searchDurationMs / 1000).toFixed(2)}s
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleClear}
+                    className="text-[12.5px] text-slate-500 hover:text-indigo-700 font-medium transition-colors"
+                    title="Clear search and return home"
+                  >
+                    Clear
+                  </button>
+                </div>
+                {/* Thin progress bar along the bottom edge of the header */}
+                {isLoading && (
+                  <div className="ts-sticky-progress" aria-hidden>
+                    <span style={{ width: `${progressPct}%` }} />
+                  </div>
+                )}
+              </div>
+
+              <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 w-full">
+                {isLoading && resultCount === 0 ? (
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-2 text-[13px] text-slate-500">
+                      <span>Searching {activeSources} sources</span>
+                      <span className="inline-flex items-center gap-1 text-slate-400">
+                        {pendingSourceList.slice(0, 10).map((src) => (
                           <span
                             key={src}
                             title={getSourceConfig(src).name}
-                            className="inline-block"
+                            className="inline-block animate-pulse"
                           >
                             {getSourceConfig(src).icon}
                           </span>
                         ))}
-                        {pendingSourceList.length > 6 && (
+                        {pendingSourceList.length > 10 && (
                           <span className="text-slate-400">
-                            +{pendingSourceList.length - 6}
+                            +{pendingSourceList.length - 10}
                           </span>
                         )}
                       </span>
-                    </span>
-                  )}
-                </p>
-
-                <AnimatedGrid
-                  ref={resultsGridRef}
-                  keyed={query || parsedQuery.freeText}
-                  className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
-                >
-                  {view.map((project, idx) => (
-                    <div
-                      key={project.id}
-                      data-result-card
-                      data-result-url={project.url}
-                      className={`h-full transition-shadow rounded-[18px] ${
-                        focusedIdx === idx
-                          ? "ring-2 ring-indigo-500/60 ring-offset-2 ring-offset-white"
-                          : ""
-                      }`}
-                    >
-                      <UnifiedProjectCard project={project} onToast={showToast} />
                     </div>
-                  ))}
-                </AnimatedGrid>
-
-                {/* Escape hatch when the user wants more than ThreadSeeker's
-                    top-ranked slice from a single source. */}
-                {activeSourceFilter && query && getSourceSearchUrl(activeSourceFilter, query) && (
-                  <div className="flex justify-center pt-4">
-                    <a
-                      href={getSourceSearchUrl(activeSourceFilter, query) || "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
-                    >
-                      <span>{getSourceConfig(activeSourceFilter).icon}</span>
-                      <span>
-                        See all results on {getSourceConfig(activeSourceFilter).name}
-                      </span>
-                      <ArrowRight className="w-3 h-3" />
-                    </a>
+                    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
+                      {Array.from({ length: 9 }).map((_, i) => (
+                        <CardSkeleton key={i} />
+                      ))}
+                    </div>
                   </div>
-                )}
+                ) : resultCount > 0 ? (
+                  <div className="space-y-4">
+                    <DirectJumps query={parsedQuery.freeText || query} />
 
-                {/* "Load more" equivalent for the unfiltered view — deep-links
-                    out to the native search on the top-hit sources, since
-                    in-app pagination isn't uniform across 24 APIs. */}
-                {!activeSourceFilter && query && parsedQuery.freeText && (() => {
-                  const counts = new Map<SourceType, number>();
-                  for (const p of view) {
-                    counts.set(p.source, (counts.get(p.source) ?? 0) + 1);
-                  }
-                  const top = [...counts.entries()]
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 4)
-                    .map(([s]) => s)
-                    .filter((s) => getSourceSearchUrl(s, parsedQuery.freeText));
-                  if (top.length === 0) return null;
-                  return (
-                    <div className="pt-4 border-t border-indigo-100 mt-2">
-                      <div className="text-center text-[11px] uppercase tracking-wide text-slate-500 font-semibold mb-2">
-                        More from
+                    <ResultsToolbar
+                      projects={projects}
+                      sortMode={sortMode}
+                      onSortChange={setSortMode}
+                      activeSource={activeSourceFilter}
+                      onSourceClick={setActiveSourceFilter}
+                    />
+
+                    <p className="text-[13px] text-slate-500 px-1">
+                      <span className="text-slate-800 font-semibold">{view.length}</span>{" "}
+                      {view.length === 1 ? "result" : "results"}
+                      {activeSourceFilter && (
+                        <span>
+                          {" "}
+                          from{" "}
+                          <span className="text-indigo-700 font-medium">
+                            {getSourceConfig(activeSourceFilter).name}
+                          </span>
+                        </span>
+                      )}
+                      {parsedQuery.freeText && (
+                        <span>
+                          {" "}
+                          for{" "}
+                          <span className="text-indigo-700 font-medium">
+                            {parsedQuery.freeText}
+                          </span>
+                        </span>
+                      )}
+                      {opSummary && (
+                        <span>
+                          {" · "}
+                          <span className="text-slate-600 font-mono text-[11.5px]">
+                            {opSummary}
+                          </span>
+                        </span>
+                      )}
+                    </p>
+
+                    <AnimatedGrid
+                      ref={resultsGridRef}
+                      keyed={query || parsedQuery.freeText}
+                      className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
+                    >
+                      {view.map((project, idx) => (
+                        <div
+                          key={project.id}
+                          data-result-card
+                          data-result-url={project.url}
+                          className={`h-full transition-shadow rounded-[18px] ${
+                            focusedIdx === idx
+                              ? "ring-2 ring-indigo-500/60 ring-offset-2 ring-offset-transparent"
+                              : ""
+                          }`}
+                        >
+                          <UnifiedProjectCard project={project} onToast={showToast} />
+                        </div>
+                      ))}
+                    </AnimatedGrid>
+
+                    {/* Escape hatch when the user wants more than ThreadSeeker's
+                        top-ranked slice from a single source. */}
+                    {activeSourceFilter && query && getSourceSearchUrl(activeSourceFilter, query) && (
+                      <div className="flex justify-center pt-6">
+                        <a
+                          href={getSourceSearchUrl(activeSourceFilter, query) || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
+                        >
+                          <span>{getSourceConfig(activeSourceFilter).icon}</span>
+                          <span>
+                            See all on {getSourceConfig(activeSourceFilter).name}
+                          </span>
+                          <ArrowRight className="w-3 h-3" />
+                        </a>
                       </div>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {top.map((src) => (
-                          <a
-                            key={src}
-                            href={getSourceSearchUrl(src, parsedQuery.freeText) || "#"}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
-                          >
-                            <span>{getSourceConfig(src).icon}</span>
-                            <span>{getSourceConfig(src).name}</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </a>
-                        ))}
-                      </div>
+                    )}
+
+                    {/* "Load more" equivalent for the unfiltered view — deep-links
+                        out to the native search on the top-hit sources. */}
+                    {!activeSourceFilter && query && parsedQuery.freeText && (() => {
+                      const counts = new Map<SourceType, number>();
+                      for (const p of view) {
+                        counts.set(p.source, (counts.get(p.source) ?? 0) + 1);
+                      }
+                      const top = [...counts.entries()]
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 4)
+                        .map(([s]) => s)
+                        .filter((s) => getSourceSearchUrl(s, parsedQuery.freeText));
+                      if (top.length === 0) return null;
+                      return (
+                        <div className="pt-6 mt-2">
+                          <div className="text-center text-[11px] uppercase tracking-[0.14em] text-slate-400 font-semibold mb-2.5">
+                            More from
+                          </div>
+                          <div className="flex flex-wrap justify-center gap-2">
+                            {top.map((src) => (
+                              <a
+                                key={src}
+                                href={getSourceSearchUrl(src, parsedQuery.freeText) || "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
+                              >
+                                <span>{getSourceConfig(src).icon}</span>
+                                <span>{getSourceConfig(src).name}</span>
+                                <ArrowRight className="w-3 h-3" />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : hasSearched ? (
+                  // Empty state — centered, friendly.
+                  <div className="flex flex-col items-center text-center py-24">
+                    <div
+                      className="w-16 h-16 rounded-full glass-strong flex items-center justify-center mb-5"
+                      aria-hidden
+                    >
+                      <SearchX className="w-7 h-7 text-indigo-400" />
                     </div>
-                  );
-                })()}
+                    <p className="text-lg font-semibold text-slate-800">
+                      No results found
+                    </p>
+                    <p className="text-[13.5px] text-slate-500 mt-1.5 max-w-sm">
+                      Try broadening your query, removing filters, or enabling
+                      more sources.
+                    </p>
+                    <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+                      {describeOperators(parsedQuery) && (
+                        <button
+                          onClick={() => handleSearch(parsedQuery.freeText || query)}
+                          className="text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
+                        >
+                          Drop filters:{" "}
+                          <span className="font-mono text-slate-500">
+                            {describeOperators(parsedQuery)}
+                          </span>
+                        </button>
+                      )}
+                      {selectedSources.length < ALL_SOURCES.length && (
+                        <button
+                          onClick={() => {
+                            setSelectedSources(ALL_SOURCES);
+                            handleSearch(query);
+                          }}
+                          className="text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
+                        >
+                          Search all {ALL_SOURCES.length} sources
+                        </button>
+                      )}
+                      {parsedQuery.freeText && parsedQuery.freeText.split(/\s+/).length > 1 && (
+                        <button
+                          onClick={() => {
+                            const tokens = parsedQuery.freeText.split(/\s+/).filter(Boolean);
+                            const stop = new Set(["the", "a", "an", "for", "to", "of", "in", "on"]);
+                            const candidates = tokens.filter((t) => !stop.has(t.toLowerCase()));
+                            const victim = candidates.sort((a, b) => a.length - b.length)[0] ?? tokens[0];
+                            const next = tokens.filter((t) => t !== victim).join(" ");
+                            if (next.trim()) handleSearch(next);
+                          }}
+                          className="text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
+                        >
+                          Drop one term
+                        </button>
+                      )}
+                      <a
+                        href={`https://github.com/search?q=${encodeURIComponent(parsedQuery.freeText || query)}&type=repositories`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors inline-flex items-center gap-1"
+                      >
+                        Search GitHub directly <ArrowRight className="w-3 h-3" />
+                      </a>
+                      <button
+                        onClick={handleClear}
+                        className="text-[12.5px] font-medium text-slate-500 hover:text-indigo-700 transition-colors px-3.5 py-1.5"
+                      >
+                        Back to home
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            );
-          })()
-        ) : hasSearched ? (
-          <div className="text-center py-20">
-            <Search className="w-8 h-8 text-indigo-400 mx-auto mb-3" />
-            <p className="text-sm font-medium text-slate-700">No results found</p>
-            <p className="text-xs text-slate-500 mt-1">
-              Try different keywords or enable more sources
-            </p>
-            {/* Actionable suggestions when no results. Priority:
-                1) If the query has operators, offer to drop them.
-                2) If source filters exclude some platforms, offer "all sources".
-                3) Always offer a direct GitHub search as a fallback. */}
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-              {describeOperators(parsedQuery) && (
-                <button
-                  onClick={() => handleSearch(parsedQuery.freeText || query)}
-                  className="text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
-                >
-                  Drop filters: <span className="font-mono text-slate-500">{describeOperators(parsedQuery)}</span>
-                </button>
-              )}
-              {selectedSources.length < ALL_SOURCES.length && (
-                <button
-                  onClick={() => {
-                    setSelectedSources(ALL_SOURCES);
-                    handleSearch(query);
-                  }}
-                  className="text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
-                >
-                  Search all {ALL_SOURCES.length} sources
-                </button>
-              )}
-              {parsedQuery.freeText && parsedQuery.freeText.split(/\s+/).length > 1 && (
-                <button
-                  onClick={() => {
-                    const tokens = parsedQuery.freeText.split(/\s+/).filter(Boolean);
-                    // Drop the shortest non-stopword token (usually the most
-                    // specific / most likely to be a typo).
-                    const stop = new Set(["the", "a", "an", "for", "to", "of", "in", "on"]);
-                    const candidates = tokens.filter((t) => !stop.has(t.toLowerCase()));
-                    const victim = candidates.sort((a, b) => a.length - b.length)[0] ?? tokens[0];
-                    const next = tokens.filter((t) => t !== victim).join(" ");
-                    if (next.trim()) handleSearch(next);
-                  }}
-                  className="text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
-                >
-                  Try broader: drop one term
-                </button>
-              )}
-              <a
-                href={`https://github.com/search?q=${encodeURIComponent(parsedQuery.freeText || query)}&type=repositories`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors inline-flex items-center gap-1"
-              >
-                Search GitHub directly <ArrowRight className="w-3 h-3" />
-              </a>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-20">
-            <Globe className="w-8 h-8 text-indigo-400 mx-auto mb-3" />
-            <p className="text-sm text-slate-600">
-              Search across GitHub, npm, PyPI, Hugging Face, Docker Hub,
-              conda-forge, AUR, and {ALL_SOURCES.length - 7} more
-            </p>
-          </div>
-        )}
-      </section>
+            </motion.section>
+          )}
+        </AnimatePresence>
       </main>
 
-      <footer className="mt-auto border-t border-indigo-100 mt-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-[12px] text-slate-500">
+      <footer className="mt-auto border-t border-indigo-100/70">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-[12px] text-slate-500">
           <div>
             ThreadSeeker — unified search across {ALL_SOURCES.length} open-source
             platforms · no paid APIs · no tracking
@@ -773,7 +842,11 @@ export default function Home() {
             </a>
             <span className="text-slate-300">·</span>
             <span>
-              Press <kbd className="px-1.5 py-0.5 rounded border border-indigo-200 bg-white text-slate-700 font-mono text-[11px]">?</kbd> for shortcuts
+              Press{" "}
+              <kbd className="px-1.5 py-0.5 rounded border border-indigo-200 bg-white text-slate-700 font-mono text-[11px]">
+                ?
+              </kbd>{" "}
+              for shortcuts
             </span>
           </div>
         </div>
