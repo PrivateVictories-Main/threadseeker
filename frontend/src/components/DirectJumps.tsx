@@ -6,10 +6,11 @@
 
 import {
   ArrowUpRight,
-  Box,
+  Boxes,
   Container,
   Gem,
   Package,
+  Package2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -36,13 +37,16 @@ const REGISTRIES: Array<{
   },
   {
     name: "PyPI",
-    icon: Box,
+    // Package2 (layered package) differentiates the Python wheel from
+    // npm's plain Package — same registry-icon vocabulary as registry.ts.
+    icon: Package2,
     slug: /^[a-z0-9][a-z0-9._-]*$/i,
     url: (q) => `https://pypi.org/project/${encodeURIComponent(q)}/`,
   },
   {
     name: "crates.io",
-    icon: Box,
+    // Boxes (stacked boxes) reads as Cargo's crate-aggregate model.
+    icon: Boxes,
     slug: /^[a-z0-9][a-z0-9_-]*$/i,
     url: (q) => `https://crates.io/crates/${encodeURIComponent(q)}`,
   },

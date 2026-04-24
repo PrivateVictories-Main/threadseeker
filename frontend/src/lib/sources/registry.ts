@@ -6,7 +6,9 @@ import {
   Github,
   Gitlab,
   Package,
+  Package2,
   Box,
+  Boxes,
   Container,
   MessageCircle,
   BookOpen,
@@ -117,7 +119,9 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   pypi: {
     name: "PyPI",
     icon: "🐍",
-    lucideIcon: Box,
+    // Package2 reads as a Python wheel/distribution shape (layered package)
+    // — distinct from npm's plain Package and from crates' Boxes.
+    lucideIcon: Package2,
     color: "from-blue-500 to-cyan-500",
     borderColor: "border-blue-500/30",
     bgColor: "bg-blue-500/10",
@@ -127,7 +131,9 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   crates: {
     name: "crates.io",
     icon: "🦀",
-    lucideIcon: Box,
+    // Boxes (multiple stacked boxes) reads as a Rust crate aggregate
+    // — Cargo's mental model of dependencies as a stack of artifacts.
+    lucideIcon: Boxes,
     color: "from-orange-600 to-amber-700",
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
