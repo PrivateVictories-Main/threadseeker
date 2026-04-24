@@ -747,16 +747,16 @@ export default function Home() {
                   <div className="hidden sm:flex items-center gap-3 text-[12.5px] text-slate-600 tabular-nums">
                     <span>
                       <CountUp value={view.length} />
-                      <span className="text-slate-400"> results</span>
+                      <span className="text-slate-500"> results</span>
                     </span>
                     {isLoading && pendingSources > 0 && (
-                      <span className="inline-flex items-center gap-1.5 text-slate-400">
+                      <span className="inline-flex items-center gap-1.5 text-slate-500">
                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
                         {pendingSources} loading
                       </span>
                     )}
                     {!isLoading && searchDurationMs !== null && (
-                      <span className="text-slate-400">
+                      <span className="text-slate-500">
                         {(searchDurationMs / 1000).toFixed(2)}s
                       </span>
                     )}

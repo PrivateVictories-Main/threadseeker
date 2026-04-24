@@ -192,7 +192,7 @@ export function ResultsToolbar({
               {activeSource ? (
                 <span className="ml-1 text-indigo-700">· {getSourceConfig(activeSource).name}</span>
               ) : (
-                <span className="ml-1 text-slate-400">· All {activeSourceCount}</span>
+                <span className="ml-1 text-slate-500">· All {activeSourceCount}</span>
               )}
             </span>
             <ChevronDown
@@ -384,8 +384,12 @@ export function ResultsToolbar({
                   pills above. */}
               {emptySources && emptySources.length > 0 && (
                 emptySources.length > EMPTY_COLLAPSE_THRESHOLD ? (
+                  // Slate-500 instead of pill default — at 12px we need
+                  // ≥4.5:1 contrast against the toolbar glass surface.
+                  // Skip the opacity dim so the summary stays legible
+                  // even though it's a non-interactive read-only pill.
                   <span
-                    className="filter-pill pill text-[12px] flex items-center gap-1.5 opacity-60 cursor-default tabular-nums"
+                    className="filter-pill pill text-[12px] flex items-center gap-1.5 cursor-default tabular-nums text-slate-600"
                     title={`No matches from: ${emptySources
                       .map((s) => getSourceConfig(s).name)
                       .join(", ")}`}
@@ -399,12 +403,17 @@ export function ResultsToolbar({
                     return (
                       <span
                         key={source}
-                        className="filter-pill pill text-[12px] flex items-center gap-1.5 opacity-50 cursor-default"
+                        // Was opacity-50 — failed AA contrast on the
+                        // glass surface. Bumped to opacity-70 + slate-600
+                        // text so the source still reads as "this had
+                        // nothing" (visually de-emphasized) without
+                        // dropping below the 4.5:1 contrast floor.
+                        className="filter-pill pill text-[12px] flex items-center gap-1.5 opacity-70 cursor-default text-slate-600"
                         title={`${cfg.name} — no matches`}
                       >
                         <Icon className="w-3.5 h-3.5" aria-hidden />
                         <span>{cfg.name}</span>
-                        <span className="opacity-70 tabular-nums">0</span>
+                        <span className="tabular-nums text-slate-500">0</span>
                       </span>
                     );
                   })
