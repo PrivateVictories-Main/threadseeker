@@ -131,21 +131,40 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
         Trending this week
       </h2>
 
-      {/* Language tabs */}
-      <div className="flex flex-wrap justify-center gap-1.5 mb-4">
-        {LANGUAGES.map((l) => (
-          <button
-            key={l.value}
-            onClick={() => setLang(l.value)}
-            className={`text-[11.5px] font-medium rounded-full px-3 py-1 transition-colors border ${
-              lang === l.value
-                ? "border-transparent bg-indigo-500 text-white shadow-sm"
-                : "border-indigo-200 bg-white/70 text-slate-600 hover:text-slate-900 hover:border-indigo-300 hover:bg-white"
-            }`}
-          >
-            {l.label}
-          </button>
-        ))}
+      {/* Language tabs — underline-bar active state for a tabbed-interface
+          feel. Inactive pills are ghost (no chip background) so the row
+          reads as segmented nav rather than a cluster of buttons. */}
+      <div
+        role="tablist"
+        aria-label="Filter trending repos by language"
+        className="ts-trending-tabs flex flex-wrap justify-center items-center gap-0.5 mb-5"
+      >
+        {LANGUAGES.map((l) => {
+          const active = lang === l.value;
+          return (
+            <button
+              key={l.value}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setLang(l.value)}
+              className={`relative text-[11.5px] font-medium px-3 py-1.5 transition-colors ${
+                active
+                  ? "text-indigo-700"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              {l.label}
+              <span
+                aria-hidden
+                className={`pointer-events-none absolute left-2 right-2 -bottom-0.5 h-[2px] rounded-full transition-all ${
+                  active
+                    ? "bg-indigo-500 opacity-100 scale-x-100"
+                    : "bg-indigo-400 opacity-0 scale-x-50"
+                }`}
+              />
+            </button>
+          );
+        })}
       </div>
 
       {errored ? (
@@ -153,52 +172,64 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
           Couldn&apos;t fetch trending (rate limit — try again in a minute).
         </p>
       ) : !repos ? (
-        <div className="grid gap-2 sm:grid-cols-2 max-w-2xl mx-auto">
+        <div className="grid gap-1.5 sm:grid-cols-2 max-w-2xl mx-auto">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="h-[58px] rounded-xl bg-white/50 border border-indigo-100 animate-pulse"
+              className="h-[42px] rounded-xl bg-white/50 border border-indigo-100 animate-pulse"
             />
           ))}
         </div>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2 max-w-2xl mx-auto">
-          {repos.slice(0, 6).map((r) => (
-            <a
-              key={r.fullName}
-              href={r.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => {
-                // Option/alt-click: search for this repo name across all sources
-                // instead of opening GitHub directly.
-                if (e.altKey && onQueryClick) {
-                  e.preventDefault();
-                  onQueryClick(r.name);
-                }
-              }}
-              className="group flex items-center justify-between gap-2 rounded-xl bg-white/70 hover:bg-white border border-indigo-100 hover:border-indigo-300 px-3 py-2.5 transition-colors"
-              title={r.description ?? r.fullName}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="text-[13px] font-medium text-slate-800 group-hover:text-indigo-700 truncate">
-                  {r.fullName}
+        <div className="grid gap-1.5 sm:grid-cols-2 max-w-2xl mx-auto">
+          {repos.slice(0, 6).map((r) => {
+            // GitHub avatar URL can be derived from the owner segment of the
+            // full name — avoids a second API call.
+            const owner = r.fullName.split("/")[0];
+            const avatar = `https://avatars.githubusercontent.com/${owner}?s=40`;
+            return (
+              <a
+                key={r.fullName}
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  // Option/alt-click: search for this repo name across all sources
+                  // instead of opening GitHub directly.
+                  if (e.altKey && onQueryClick) {
+                    e.preventDefault();
+                    onQueryClick(r.name);
+                  }
+                }}
+                className="group flex items-center gap-2.5 rounded-xl bg-white/60 hover:bg-white border border-transparent hover:border-indigo-200 px-2.5 py-2 transition-colors"
+                title={r.description ?? r.fullName}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={avatar}
+                  alt=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  className="w-5 h-5 rounded-full flex-shrink-0 border border-indigo-100 bg-white"
+                />
+                <div className="min-w-0 flex-1 flex items-baseline gap-1.5">
+                  <span className="text-[13px] font-medium text-slate-800 group-hover:text-indigo-700 truncate flex-shrink-0 max-w-[55%]">
+                    {r.name}
+                  </span>
+                  {r.description && (
+                    <span className="text-[11.5px] text-slate-500 truncate">
+                      {r.description}
+                    </span>
+                  )}
                 </div>
-                {r.description && (
-                  <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                    {r.description}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="flex items-center gap-1 text-[11px] text-slate-500 tabular-nums">
-                  <Star className="w-3 h-3" />
+                <div className="flex items-center gap-1 text-[11px] text-slate-500 tabular-nums flex-shrink-0">
+                  <Star className="w-3 h-3 text-amber-500" />
                   {r.stars.toLocaleString()}
                 </div>
-                <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 transition-colors" />
-              </div>
-            </a>
-          ))}
+                <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-600 transition-colors flex-shrink-0" />
+              </a>
+            );
+          })}
         </div>
       )}
     </div>
