@@ -7,6 +7,19 @@ import { cardVariants } from "@/lib/motion";
 // (`reducedMotion="user"` in MotionProvider). Framer auto-skips the
 // transition portions of these variants when the OS pref is set, so the
 // previous per-component `useReducedMotion` branch was redundant.
+
+// Soft cap on FLIP layout animation. `layout="position"` runs FLIP per
+// card on every layout-affecting state change — measure-then-animate.
+// At 9-12 cards it's smooth; at 60+ the simultaneous animate gets
+// expensive, especially on lower-powered phones. Cards beyond this
+// index skip layout entirely (still animate entry/exit, still pair
+// across hero→results via layoutId, but sort reorder snaps instead of
+// sliding). 60 was chosen as the threshold because two screen-fulls of
+// cards (≈3 cols × 4 rows × 2 viewports + buffer) is the upper bound
+// where the slide still reads as informative; past that the wave
+// becomes visual noise.
+const LAYOUT_CAP = 60;
+
 export function AnimatedCard({
   children,
   layoutId,
@@ -18,8 +31,11 @@ export function AnimatedCard({
    * Position in the result grid. Drives a tiny per-card variation in the
    * entry offset (odd cards lift slightly higher / nudge left; even
    * cards stay at the baseline) so the staggered fade-in reads as alive
-   * rather than mechanical. Reduced-motion users get a no-op via the
-   * global MotionConfig, so the variation never reaches them.
+   * rather than mechanical. Also gates FLIP layout animation: only the
+   * first LAYOUT_CAP cards animate sort reorders to keep the per-frame
+   * measure-and-animate cost bounded on huge result sets. Reduced-motion
+   * users get a no-op via the global MotionConfig, so the variation
+   * never reaches them.
    */
   index?: number;
 }) {
@@ -31,6 +47,12 @@ export function AnimatedCard({
     ? { opacity: 0, y: 12, x: -2 }
     : { opacity: 0, y: 8, x: 2 };
 
+  // Cards past the cap opt out of `layout="position"` to skip the FLIP
+  // measure-and-animate cycle. They still get layoutId for the
+  // hero→results shared-element transition (cheap; only fires on mount
+  // pairing) and entry/exit animations.
+  const enableLayout = (index ?? 0) < LAYOUT_CAP;
+
   return (
     <motion.div
       // layout="position" enables FLIP for sort-change re-ordering but
@@ -38,7 +60,7 @@ export function AnimatedCard({
       // smoothly without animating their box dimensions (which would
       // squash content with different heights). layoutId still pairs
       // identical projects across hero→results transitions.
-      layout="position"
+      layout={enableLayout ? "position" : false}
       layoutId={layoutId}
       variants={cardVariants}
       initial={enterFrom}
