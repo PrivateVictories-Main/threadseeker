@@ -29,7 +29,7 @@ import {
 } from "@/lib/sources";
 import { parseQuery, applyOperators, describeOperators } from "@/lib/query-parser";
 import { toast } from "sonner";
-import { Search, ArrowRight, Clock, X, SearchX } from "lucide-react";
+import { Search, ArrowRight, Clock, X, SearchX, Github } from "lucide-react";
 
 const HISTORY_KEY = "threadseeker:history:v1";
 const HISTORY_MAX = 8;
@@ -1012,16 +1012,23 @@ export default function Home() {
       <footer className="mt-auto border-t border-indigo-100/70">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6 text-[12px] text-slate-500">
           <div className="leading-relaxed">
-            ThreadSeeker — unified search across {ALL_SOURCES.length} open-source
-            platforms · no paid APIs · no tracking
+            <span className="font-semibold text-slate-700">ThreadSeeker</span>{" "}
+            <span className="text-slate-400">·</span> unified search across{" "}
+            <span className="tabular-nums font-medium text-slate-600">
+              {ALL_SOURCES.length}
+            </span>{" "}
+            open-source platforms{" "}
+            <span className="text-slate-300">·</span> no paid APIs{" "}
+            <span className="text-slate-300">·</span> no tracking
           </div>
           <div className="flex items-center gap-4 md:flex-shrink-0">
             <a
               href="https://github.com/PrivateVictories-Main/threadseeker"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-indigo-700 transition-colors font-medium"
+              className="inline-flex items-center gap-1.5 hover:text-indigo-700 transition-colors font-medium"
             >
+              <Github className="w-3.5 h-3.5" aria-hidden />
               GitHub
             </a>
             <span className="text-slate-300">·</span>
