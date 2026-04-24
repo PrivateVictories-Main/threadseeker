@@ -111,17 +111,26 @@ export function SourceFilter({
                     </div>
                     <div className="flex items-baseline gap-2">
                       {onSetSelected && (
+                        // Tap-target pattern: outer <button> stays at the
+                        // 10px caption-scale font but uses negative margin
+                        // + generous padding to claw out a 44×44 hit area
+                        // (Apple HIG / WCAG 2.5.5 minimum) without
+                        // changing the visible text size or row layout.
+                        // The inner <span> carries the visual styling so
+                        // hover/active state still reads at caption scale.
                         <button
                           type="button"
                           onClick={handleCategoryToggle}
-                          className="text-[10px] font-medium text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-[0.08em]"
+                          className="group -my-2 -mx-1.5 px-1.5 py-2 inline-flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:m-0 sm:p-0"
                           aria-label={
                             allActive
                               ? `Deselect all ${group.title} sources`
                               : `Select all ${group.title} sources`
                           }
                         >
-                          {allActive ? "None" : "All"}
+                          <span className="text-[10px] font-medium text-slate-400 group-hover:text-indigo-600 transition-colors uppercase tracking-[0.08em]">
+                            {allActive ? "None" : "All"}
+                          </span>
                         </button>
                       )}
                       <div className="text-[10px] tabular-nums font-medium text-slate-400">
