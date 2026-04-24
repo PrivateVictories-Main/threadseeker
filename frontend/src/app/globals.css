@@ -443,10 +443,17 @@ body {
 
 body { transition: --ts-intent-hue 800ms ease; }
 
-.search-bar-shell.pulse { animation: pulseRing 0.6s cubic-bezier(.4,0,.2,1) 1; }
-@keyframes pulseRing {
-  0% { box-shadow: 0 0 0 0 var(--ts-accent-soft); }
-  100% { box-shadow: 0 0 0 14px rgba(99,102,241,0); }
+/* Motion-driven focus pulse. SearchBar mounts a <motion.span> on focus;
+   this just sets the radial-glow aesthetic, framer-motion owns the animation
+   (opacity + scale) and honors prefers-reduced-motion via its provider. */
+.search-bar-pulse {
+  background: radial-gradient(
+    circle at center,
+    rgba(99,102,241,0.28) 0%,
+    rgba(99,102,241,0.10) 45%,
+    rgba(99,102,241,0) 72%
+  );
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.22);
 }
 
 /* Honor reduced-motion — kill decorative CSS animations + long transitions.
@@ -454,7 +461,6 @@ body { transition: --ts-intent-hue 800ms ease; }
    covers the hand-rolled keyframes and hover transitions here. */
 @media (prefers-reduced-motion: reduce) {
   .skeleton .shimmer,
-  .search-bar-shell.pulse,
   .ts-hero-accent {
     animation: none !important;
   }

@@ -2,6 +2,8 @@
 
 import { useState, FormEvent, useEffect, useRef } from "react";
 import { Search, Loader2, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { springSoft } from "@/lib/motion";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -24,8 +26,8 @@ export function SearchBar({
   initialValue = "",
 }: SearchBarProps) {
   const [query, setQuery] = useState(initialValue);
+  const [pulseKey, setPulseKey] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const shellRef = useRef<HTMLDivElement>(null);
 
   // Sync external value changes (mode switch, browser history, clear) back
   // into the local input without forcing controlled re-renders on every key.
@@ -79,10 +81,23 @@ export function SearchBar({
       className={isCompact ? "relative w-full" : "relative max-w-2xl mx-auto w-full"}
     >
       <div
-        ref={shellRef}
-        className={`glass-strong search-bar-shell flex items-center ${isCompact ? "compact" : ""}`}
+        className={`glass-strong search-bar-shell relative flex items-center ${isCompact ? "compact" : ""}`}
       >
-        <div className="pl-0.5">
+        {/* Focus pulse — framer-motion-driven radial glow; honors
+            reduced-motion via the framer provider. One-shot per focus. */}
+        <AnimatePresence>
+          {!isCompact && (
+            <motion.span
+              key={pulseKey}
+              aria-hidden
+              className="search-bar-pulse pointer-events-none absolute inset-0 rounded-full"
+              initial={{ opacity: 0.55, scale: 0.98 }}
+              animate={{ opacity: 0, scale: 1.04, transition: { duration: 0.7, ease: [0.22, 0.61, 0.36, 1] } }}
+              exit={{ opacity: 0, transition: { duration: 0.1 } }}
+            />
+          )}
+        </AnimatePresence>
+        <div className="relative pl-0.5">
           <Search className={`${iconSize} text-indigo-500/75`} aria-hidden />
         </div>
         <input
@@ -91,15 +106,14 @@ export function SearchBar({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => {
-            if (!shellRef.current || isCompact) return;
-            shellRef.current.classList.add("pulse");
-            setTimeout(() => shellRef.current?.classList.remove("pulse"), 600);
+            if (isCompact) return;
+            setPulseKey((k) => k + 1);
           }}
           placeholder={placeholder}
           aria-label="Search query"
           autoComplete="off"
           spellCheck={false}
-          className="search-bar-input flex-1 px-3"
+          className="search-bar-input relative flex-1 px-3"
         />
         {query && (
           <button
@@ -108,7 +122,7 @@ export function SearchBar({
               setQuery("");
               inputRef.current?.focus();
             }}
-            className={`flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors ${isCompact ? "w-7 h-7" : "w-8 h-8"} rounded-full`}
+            className={`relative flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors ${isCompact ? "w-7 h-7" : "w-8 h-8"} rounded-full`}
             aria-label="Clear search"
           >
             <X className={isCompact ? "w-3.5 h-3.5" : "w-4 h-4"} />
@@ -117,7 +131,7 @@ export function SearchBar({
         <button
           type="submit"
           disabled={!query.trim() || isLoading}
-          className="sb-submit"
+          className="sb-submit relative"
         >
           {isLoading ? (
             <>
