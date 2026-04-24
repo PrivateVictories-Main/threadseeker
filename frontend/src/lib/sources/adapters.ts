@@ -694,10 +694,10 @@ export async function searchHomebrew(query: string): Promise<SearchResult> {
       // top-level `version`. Surfacing it as `project.version` lights up the
       // header version chip with parity to npm/pypi/crates/etc.
       // The legacy `updated` field is *not* a timestamp — it mirrors
-      // `version` for back-compat but isn't usable as `updatedAt`. Until
-      // brew.sh exposes a real updated-at we leave updatedAt as "now"
-      // so the maintenance pill doesn't regress; it would otherwise
-      // misread the version string as a date.
+      // `version` for back-compat but isn't usable as `updatedAt`. Brew.sh
+      // doesn't expose a real updated-at on its index, so we leave
+      // updatedAt empty and let UI consumers (caption, maintenance pill)
+      // skip rendering rather than show a misleading "just now".
       const version: string | undefined = p.version || p.updated || undefined;
       return {
         id: `homebrew-${p.kind}-${p.full_token}`,
@@ -712,7 +712,7 @@ export async function searchHomebrew(query: string): Promise<SearchResult> {
         language: null,
         topics: [p.kind, p.tap].filter(Boolean),
         author: { name: p.tap || "homebrew", avatar: "" },
-        updatedAt: new Date().toISOString(),
+        updatedAt: "",
         version,
       };
     }),

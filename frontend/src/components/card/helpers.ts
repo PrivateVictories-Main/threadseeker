@@ -22,7 +22,10 @@ export function licenseBucket(raw: string | null | undefined): string {
 }
 
 export function maintenanceState(updatedAt: string): MaintenanceState {
-  const days = (Date.now() - new Date(updatedAt).getTime()) / 86_400_000;
+  if (!updatedAt) return "unknown";
+  const t = new Date(updatedAt).getTime();
+  if (Number.isNaN(t)) return "unknown";
+  const days = (Date.now() - t) / 86_400_000;
   if (days < 90) return "active";
   if (days < 365) return "recent";
   if (days < 365 * 3) return "stale";
