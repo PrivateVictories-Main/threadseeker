@@ -211,41 +211,11 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKey);
   }, [hasSearched, focusedIdx]);
 
-  // Reset focus only when the focused card actually disappears from the
-  // current view (or when we have no focus to begin with). Previously this
-  // fired on every query/sort/source/selectedSources change, which threw
-  // away the user's keyboard position even when their card was still
-  // visible — e.g. opening the source-filter dropdown without changing the
-  // selection still bumped focusedIdx back to -1.
+  // Tracks the *id* of the currently focused project (not its index in the
+  // view). When sort or filter changes, the index can shift but the id is
+  // stable, so we re-derive the index without dropping focus. When the
+  // focused project disappears from the view entirely, focus resets.
   const focusedIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (focusedIdx < 0) {
-      focusedIdRef.current = null;
-      return;
-    }
-    // Resolve the *current* view here so we know whether the focused card
-    // is still on screen. Using projects + sortMode + activeSourceFilter
-    // dependencies via a fresh sortedView/view computation would loop, so
-    // instead we trust focusedIdRef and look it up in the latest view.
-    const grid = resultsGridRef.current;
-    if (!grid) return;
-    const cards = grid.querySelectorAll<HTMLElement>("[data-result-card]");
-    const idCard = cards[focusedIdx];
-    const currentId = idCard?.getAttribute("data-result-id");
-    if (focusedIdRef.current && currentId !== focusedIdRef.current) {
-      // The card at focusedIdx is no longer the same project — try to find
-      // the original project by id; if it's gone from the view entirely,
-      // drop focus.
-      let nextIdx = -1;
-      cards.forEach((el, i) => {
-        if (el.getAttribute("data-result-id") === focusedIdRef.current) nextIdx = i;
-      });
-      setFocusedIdx(nextIdx);
-      if (nextIdx < 0) focusedIdRef.current = null;
-    } else if (currentId) {
-      focusedIdRef.current = currentId;
-    }
-  }, [focusedIdx, query, sortMode, activeSourceFilter, selectedSources, projects]);
 
   const handleSearch = useCallback(
     async (searchQuery: string, preserveView: boolean = false) => {
@@ -464,6 +434,40 @@ export default function Home() {
   const sortedView = mode === "results" ? applyResultsView(projects, sortMode, activeSourceFilter) : projects;
   const view = applyOperators(sortedView, parsedQuery);
   const opSummary = describeOperators(parsedQuery);
+
+  // O(n) once per view change — far cheaper than the previous DOM walk
+  // (`querySelectorAll('[data-result-card]')` on every render of pages
+  // with 100+ cards). Keyed by id, not index, so sort/filter changes
+  // re-resolve the focused index instead of dropping focus.
+  const viewIdToIndex = useMemo(() => {
+    const map = new Map<string, number>();
+    for (let i = 0; i < view.length; i++) {
+      map.set(view[i].id, i);
+    }
+    return map;
+  }, [view]);
+
+  // Reset focus only when the focused card actually disappears from the
+  // current view (or when we have no focus to begin with). Uses the
+  // memoized id→index lookup above instead of re-walking the DOM each
+  // dep change.
+  useEffect(() => {
+    if (focusedIdx < 0) {
+      focusedIdRef.current = null;
+      return;
+    }
+    const currentId = view[focusedIdx]?.id;
+    if (focusedIdRef.current && currentId !== focusedIdRef.current) {
+      // Index is stale — same project might still be in the view at a
+      // different position (sort changed) or might be gone (filter removed
+      // it). Map lookup is O(1) here.
+      const nextIdx = viewIdToIndex.get(focusedIdRef.current) ?? -1;
+      setFocusedIdx(nextIdx);
+      if (nextIdx < 0) focusedIdRef.current = null;
+    } else if (currentId) {
+      focusedIdRef.current = currentId;
+    }
+  }, [focusedIdx, view, viewIdToIndex]);
 
   // Progress bar % for the sticky header.
   const progressPct = isLoading
