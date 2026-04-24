@@ -141,11 +141,21 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick }: Props) {
           <p className="ts-desc">{project.description}</p>
         )}
 
-        {project.updatedAt && (
-          <p className="ts-caption">
-            updated {formatRelativeTime(project.updatedAt)}
-          </p>
-        )}
+        {project.updatedAt && (() => {
+          // Native title tooltip surfaces the exact ISO date on hover so a
+          // user who hovers "updated 11 months ago" gets the precise
+          // timestamp without having to dig — accessibility + utility
+          // win. Falls back gracefully if the value isn't a valid date.
+          const iso = (() => {
+            const d = new Date(project.updatedAt);
+            return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+          })();
+          return (
+            <p className="ts-caption" title={iso || undefined}>
+              updated {formatRelativeTime(project.updatedAt)}
+            </p>
+          );
+        })()}
 
         {topics.length > 0 && (
           <div className="ts-topics">
