@@ -160,3 +160,10 @@ body {
   color: white;
   border-color: transparent;
 }
+
+/* SourceFilter sheet */
+.source-filter-sheet {
+  padding: 16px;
+  max-width: 380px;
+  border-radius: var(--ts-radius-lg);
+}
