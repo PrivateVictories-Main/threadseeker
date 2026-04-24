@@ -382,3 +382,66 @@ Already shipped: palette fix, card redesign, search-as-you-type, dark-class purg
 - **AnimatedCard layout transition timing** — 0.3s ease-out cubic. Looks good for ~9 cards; on huge result sets the simultaneous animate could get visually noisy. Capping `layout` to the first 24 cards (matching the entry-variety cap suggested in iter 8) is a future option.
 - **`<NetworkErrorMessage>` is page-specific** — the component lives in `components/network/` but assumes the calling site has a single `query`/`handleSearch` flow. If TrendingSection or another widget ever needs the same retry vocabulary, the component would need a more generic API (currently `onRetry: () => void` is fine but `<NetworkErrorMessage>` hardcodes "Couldn't reach sources" / "All N sources were unreachable" — brittle if reused for non-search scenarios).
 - **emptySources reset on filter-source change?** — currently empty sources from the most-recent search persist as toolbar pills until the next search runs. If the user changes their selectedSources mid-session without re-searching, the pills refer to the old query's results. Fine in practice (the search auto-fires on selection change today), but worth flagging if that auto-fire is ever removed.
+
+### Iteration 10 — 2026-04-23 — drain iter-9 handoff + accessibility / tap-target sweep
+
+**Commits:**
+- 7c58dee — Polish: hover-gate audit — wrap btn/pill/chip/bookmark hovers in (hover: hover)
+- d2802b3 — Polish: AnimatedCard FLIP layout cap — skip layout past index 60
+- 4eacb4e — Polish: NetworkErrorMessage genericized — overridable icon/title/message/labels
+- 8a6dbd3 — Polish: sticky shadow tween — widen to 120px + ease-out for atmospheric ramp
+- 44a0f5d — Polish: empty-source pills collapse to "+N with no matches" past 5
+- 2605a77 — Polish: aria-label sweep — icon-only buttons + decorative-icon aria-hidden
+- 0e5f013 — Polish: sticky search bar wraps in semantic <header> with aria-label
+- 1493c09 — Polish: mobile tap-target audit — bookmark heart + clear-X buttons hit 44x44
+- 23033a3 — Polish: WCAG AA contrast — bump body text from slate-400 to slate-500
+- 854ad16 — Polish: tighten hero→results transition + add print stylesheet
+
+**Wins:**
+- **Hover-gate audit (handoff item 1).** Iter 9 wrapped only the `.ts-card:hover` lift in `@media (hover: hover)`. Touch devices fire `:hover` stickily after a tap (until the next scroll/tap), which left btn/pill/chip hovers stuck on phones/tablets. Wrapped `.btn:hover` bg, `.btn-primary:hover` translateY+shadow, `.btn-ghost:hover` color shift, `.topic-chip:hover` bg+border (kept `:active` scale outside the gate so tap feedback persists), `.sb-submit:hover` translateY+shadow, `.filter-pill:hover` translateY, and `.ts-top .ts-bookmark:hover` color/bg in `(hover: hover)` blocks. Tap-active states and focus-visible rings unchanged — they still fire on touch.
+- **AnimatedCard FLIP layout cap (handoff item 7 / iter-9).** `layout="position"` runs FLIP measure-and-animate per card on every layout-changing state. At 9-12 cards smooth; at 60+ the simultaneous animate burns frames. Cards past index 60 set `layout={false}` so sort reorder snaps. layoutId stays in place for the cheap hero→results shared-element pairing; entry/exit animations unchanged. Added a per-card `enableLayout = (index ?? 0) < LAYOUT_CAP` gate.
+- **NetworkErrorMessage genericized (handoff item 1 / from iter-9 still-rough).** Iter-9's extract was hardcoded to "Couldn't reach sources" + WifiOff. Generalized props: `icon: LucideIcon`, `title: ReactNode`, `message: ReactNode`, `retryLabel: ReactNode`, `clearLabel: ReactNode`, `onClear?: () => void` (now optional — secondary button hides when omitted). `sourceCount`-driven default copy stays as fallback so the existing search call site uses zero overrides — back-compat preserved.
+- **Sticky shadow tween tuning (handoff item 4).** Iter-9's `[0,60]→[0,1]` linear tween read like a snap-on past the first 30-40px of scroll. Widened to `[0, 24, 120] → [0, 0.18, 1]` with a 24px keyframe at 0.18 opacity so the first 24px of touch-bounce stays nearly flat (avoids shadow flickering on iOS rubber-banding) before the steeper ramp takes over. At 30px scroll the shadow is now ~0.21 (was 0.5 — overshoot); at 60px ~0.40; full vocabulary lands at 120px. Reads as atmospheric instead of threshold-snap.
+- **Empty-pill collapse (handoff item 5).** Iter-9 added quiet "0" badges for empty sources. On a sparse query (15+ of 28 sources had nothing) this filled the toolbar with a wall of pills. Above `EMPTY_COLLAPSE_THRESHOLD = 5` the per-source pills collapse into a single summary "+N with no matches" pill — full list available on hover/tap via `title=`. Active source pills above still show what delivered, so the read shifts from "exactly which 18 came up dry" to "did everything I expected get checked", which is the more useful signal in cluttered cases.
+- **Aria-label sweep (target 6).** Walked every icon-only and icon+text button. Recent-history clear (X icon) gained `aria-label="Clear search history"` — was title-only. SearchBar clear-X and Loader2 spinner gained `aria-hidden` so screen readers don't double-announce. ResultsToolbar MD/JSON/Share buttons got explicit aria-label copy ("Copy results as Markdown to clipboard" etc.) — the "MD"/"JSON" text alone reads poorly via screen reader. All decorative icons (Filter, Sort, Chevron, Check, Download, Link2) marked `aria-hidden`. ShortcutHelpModal close label sharpened to "Close keyboard shortcuts"; HelpCircle on the floating button got `aria-hidden` so the existing `aria-label="Show keyboard shortcuts"` stands alone.
+- **Semantic `<header>` for sticky bar (target 8).** The sticky results-mode bar was a bare `motion.div`. Promoted to `motion.header` with `aria-label="Search and refine results"` so screen readers + landmark navigation can locate it as a banner-region. The form inside still owns `role="search"`. Skip-to-main, role=status live-region, semantic main + footer were already in place from iter 8. Verified hero-page tab order (skip → search → try → sources → recent → saved → trending → footer) is sensible top-down — no `tabindex` reordering needed.
+- **Mobile tap-target audit (target 9).** Apple HIG / WCAG 2.5.5 minimum tap target is 44×44pt. Audited small UI:
+  - `.ts-bookmark` heart: was 22px font + 2px/4px padding (~26×30 hit area). Now `min-width/min-height: 44px` with symmetric `padding: 11px`; visual heart unchanged. Negative margin clawback (`margin: -11px -11px -11px auto`) keeps surrounding row layout intact — touch surface grows, layout doesn't shift.
+  - `ShortcutHelpButton` floating "?": was `w-9 h-9` (36px). Now `w-11 h-11 sm:w-9 sm:h-9` — 44px touch / 36px desktop.
+  - `ShortcutHelpModal` close: was `p-1.5` around `w-4 h-4` (~28×28). Now `p-3 sm:p-1.5` (44×44 touch / 28×28 desktop).
+  - `SearchBar` clear-X: hero was `w-8 h-8`, compact `w-7 h-7`. Now `w-11 h-11 sm:w-8 sm:h-8` / `w-9 h-9 sm:w-7 sm:h-7` — touch hits 44/36, desktop unchanged.
+  - Recent-history clear-X: was inline icon with no padding (~12px). Now `w-8 h-8 sm:w-auto sm:h-auto` hit area on touch.
+  - `SavedSection` X remove: was `p-1` around `w-3.5 h-3.5` (~22px) hidden until hover. On touch, opacity stays 100% (no hover) and hit area is `w-11 h-11`. Desktop keeps the reveal-on-hover small look.
+- **WCAG AA contrast (target 10).** Audited text-on-glass against the 4.5:1 floor for 12-13px body text. `slate-400` (#94a3b8) on white-glass is ~2.85:1 — fails. `slate-500` (#64748b) is ~5.13:1 — passes. Bumped body text from slate-400 → slate-500: ResultsToolbar "All N" caption, sticky header "results"/"loading"/"duration" captions, empty-source "0" pills (opacity 50% → 70%, text slate-600), "+N with no matches" summary (dropped opacity-60, added text-slate-600). Decorative slate-400 (uppercase tracking section labels, bullet `·` separators) left alone — those are "large text or non-essential" per WCAG and they carry tracking + font-weight that aids legibility. `.ts-caption` already uses `--ts-text-subtle` (#64748b) which passes 5.13:1.
+- **Page transition timing (target 11).** With `AnimatePresence mode="wait"` heroExit must complete before resultsEnter starts, so the user-visible "blank moment" between hero and results was ~350ms. Tightened heroExit `0.3s → 0.22s` and y `-40 → -24`; resultsEnter y `20 → 16` so the entrance arrives slightly closer. Net feel: ~250ms instead of ~350ms.
+- **Print stylesheet (target 13).** Added `@media print` rules. Strips body gradient + glass blur (most engines render `backdrop-filter` as gray opaque blocks on paper). Hides sticky progress bar, toast, search-bar pulse, submit button, bookmark heart, card actions — UI chrome that doesn't belong on a printout. Cards get `page-break-inside: avoid` + plain border so a result card doesn't split across pages. Pills/chips/source-badges lose their tinted backgrounds (toner-heavy in monochrome) and read as outlined tags. Hero gradient text falls back to solid indigo since gradient text doesn't print reliably.
+
+**Skipped this iteration:**
+- **Long content overflow safety (target 12).** Re-confirmed the existing safeguards: `.ts-title-main` is `white-space: nowrap; overflow: hidden; text-overflow: ellipsis`; `.ts-desc` is `-webkit-line-clamp: 2`; `.ts-caption` is single-line ellipsis with `white-space: nowrap`; topic-chip has `white-space: nowrap`; subline truncates. The toolbar "for {term}" line wraps at `flex-wrap` parent — fine. No code change needed.
+- **Sticky-progress-bar framer-motion migration** — already covered iter-9, re-verified the CSS-driven width transition is smooth.
+
+**Test count:** 47 (unchanged — no new test surface; all polish-class changes).
+
+**Files touched:**
+- `frontend/src/app/globals.css` (hover gates, tap-target, print stylesheet)
+- `frontend/src/components/motion/AnimatedCard.tsx` (layout cap)
+- `frontend/src/components/network/NetworkErrorMessage.tsx` (generic props)
+- `frontend/src/app/page.tsx` (sticky shadow tween, semantic header, aria, slate bumps, history clear button)
+- `frontend/src/components/ResultsToolbar.tsx` (empty-pill collapse, aria-labels, slate bumps)
+- `frontend/src/components/SearchBar.tsx` (clear-X tap target, Loader2 aria-hidden)
+- `frontend/src/components/ShortcutHelpModal.tsx` (close button, floating button tap target, aria-hidden)
+- `frontend/src/components/SavedSection.tsx` (X remove tap target)
+- `frontend/src/lib/motion.ts` (modeVariants timing tighten)
+
+**Still rough (hand off to iteration 11):**
+- **NetworkErrorMessage tray placement on 320px** — iter-9 still-rough, untouched. Indicator is `absolute left-0 top-full`; on iPhone-SE width the ~200px tray content can overflow the right viewport edge when the indicator is mid-row. Iter 11 candidate: detect available right space at click time and flip to `right-0` (auto-flipping menu pattern), or clamp `max-width: calc(100vw - 32px)` and let the inner list ellipsize.
+- **DockerHub version chip** — still off, latency cost outweighs polish unless explicitly requested. Documented.
+- **CountUp 100ms threshold** — still untouched. Worth tightening to 200ms if QA finds the snap visible on normal-speed streams. No telemetry yet.
+- **AnimatedCard `LAYOUT_CAP = 60`** — picked as a sensible default but not telemetry-driven. If pagination ever lands the cap can move down (e.g. 24 to match the entry-variety cap suggested earlier). On huge sets the user will hit the snap-vs-slide boundary as they scroll past index 60 — visually fine since they're past the viewport, but worth noting.
+- **Sticky shadow `[0, 24, 120]` keyframes** — works well at 60Hz; at higher refresh (120Hz iPad) the shadow ramp might feel even smoother, no degradation expected. No 120Hz device on hand to verify.
+- **`<NetworkErrorMessage>` generic props are now in place but the existing call site doesn't exercise overrides.** A second consumer (e.g. SavedSection error state, future trending error state) is the validation case. No second consumer landed this iteration.
+- **Aria-live region verbosity** — iter 8 noted current message is verbose ("27 results for {long term} across 28 sources, 1 source unavailable"). Still verbose. Real screen-reader QA could decide whether to trim or keep; defer.
+- **Contrast — uppercase tracking labels at slate-400.** Decorative-class but at ≥10px font-size + tracking ≥0.12em they're readable in practice. WCAG technically requires 4.5:1 for ≤17px. A future pass could decide whether to compromise (slate-500 less faint but loses the "decorative metadata" reading) or accept the technical fail.
+- **Print stylesheet hasn't been visually verified** on an actual printout — coded blind from CSS rules. Worth a real "print preview" pass in iter 11.
+- **Page transition timing on slow devices** — tightened heroExit 0.3s → 0.22s reads great on M-series + recent iPhones. On a low-end Android the 220ms might feel rushed if the device is mid-redraw. No way to tell without device QA.
+- **Per-category All/None button on touch** — the iter-8 toggle is now wrapped in the iter-7 zero-state fade (un-faded by iter-9 fix). Tap target is the small text "All"/"None" — at ~10px font + uppercase it might still be a small touch surface. Worth bumping to 36×36 hit area on touch in iter 11 if user testing surfaces complaints.
