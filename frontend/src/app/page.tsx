@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
 import { SearchBar } from "@/components/SearchBar";
 import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
 import { SourceFilter } from "@/components/SourceFilter";
@@ -173,6 +173,15 @@ export default function Home() {
   // Parsed query operators (lang:, source:, stars:>, license:) derived from
   // the raw query each render. Applied as a post-filter on projects below.
   const parsedQuery = useMemo(() => parseQuery(query), [query]);
+
+  // Sticky header shadow accumulates with scroll depth. At top (y=0) the
+  // header reads almost flat; once the user scrolls past ~60px the shadow
+  // tweens in to its full vocabulary. Subtle but real — gives the eye a
+  // confidence signal that the page is scrolling under the header rather
+  // than the header floating in space the whole time. useScroll/useTransform
+  // run on the rAF cycle so this doesn't trigger React re-renders.
+  const { scrollY } = useScroll();
+  const stickyShadowOpacity = useTransform(scrollY, [0, 60], [0, 1]);
 
   // Mode = hero (landing) vs results. Once the user has searched, we never go
   // back to hero until they explicitly clear — that keeps the transition from
@@ -686,8 +695,14 @@ export default function Home() {
               variants={modeVariants}
               className="flex flex-col"
             >
-              {/* Sticky glass header with compact SearchBar + live readout */}
-              <div className="sticky top-0 z-20 glass-sticky">
+              {/* Sticky glass header with compact SearchBar + live readout.
+                  Shadow opacity is driven by scrollY so the header reads
+                  flat at top of page and gains depth as the user scrolls
+                  past ~60px — see stickyShadowOpacity above. */}
+              <motion.div
+                className="sticky top-0 z-20 glass-sticky"
+                style={{ ["--ts-sticky-shadow-opacity" as string]: stickyShadowOpacity }}
+              >
                 <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
                   <div className="flex-1 min-w-0 sm:max-w-xl">
                     <SearchBar
@@ -734,7 +749,7 @@ export default function Home() {
                     <span style={{ width: `${progressPct}%` }} />
                   </div>
                 )}
-              </div>
+              </motion.div>
 
               <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 w-full">
                 {isLoading && resultCount === 0 ? (

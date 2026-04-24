@@ -150,7 +150,14 @@ body > * {
   backdrop-filter: blur(var(--ts-blur-strong)) saturate(160%);
   -webkit-backdrop-filter: blur(var(--ts-blur-strong)) saturate(160%);
   border-bottom: 1px solid var(--ts-border-soft);
-  box-shadow: var(--ts-shadow-sticky);
+  /* Shadow opacity is driven by --ts-sticky-shadow-opacity, fed from
+     framer's useScroll/useTransform in page.tsx. At scroll-top the shadow
+     fades to ~0 (header reads flush with the gradient); past ~60px it
+     reaches full vocabulary. Falls back to 1 (always visible) if the
+     custom property isn't supplied. */
+  box-shadow:
+    0 1px 0 rgba(99, 102, 241, calc(0.06 * var(--ts-sticky-shadow-opacity, 1))),
+    0 8px 20px rgba(30, 27, 75, calc(0.05 * var(--ts-sticky-shadow-opacity, 1)));
 }
 
 @supports not (backdrop-filter: blur(1px)) {
