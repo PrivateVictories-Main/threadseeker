@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import type { UnifiedProject } from "@/lib/sources/types";
 import { SourceBadge } from "./card/SourceBadge";
 import { CardPills } from "./card/CardPills";
@@ -16,9 +15,13 @@ import {
   copyItemsForSource,
 } from "./card/helpers";
 
-export function UnifiedProjectCard({ project }: { project: UnifiedProject }) {
+interface Props {
+  project: UnifiedProject;
+  onToast?: (msg: string) => void;
+}
+
+export function UnifiedProjectCard({ project, onToast }: Props) {
   const { isBookmarked, toggle } = useBookmark(project);
-  const [copied, setCopied] = useState<string | null>(null);
   const bookmarkControls = useAnimationControls();
 
   const popularity =
@@ -74,11 +77,9 @@ export function UnifiedProjectCard({ project }: { project: UnifiedProject }) {
           url={project.url}
           copyItems={copyItems}
           onCopy={(text) => {
-            setCopied(text);
-            setTimeout(() => setCopied(null), 1500);
+            onToast?.(`Copied: ${text.slice(0, 40)}`);
           }}
         />
-        {copied && <div className="ts-toast">Copied: {copied.slice(0, 40)}</div>}
       </article>
     </AnimatedCard>
   );

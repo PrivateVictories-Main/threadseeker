@@ -12,6 +12,7 @@ import { SearchProgressBar } from "@/components/SearchProgressBar";
 import { CardSkeleton } from "@/components/CardSkeleton";
 import { ShortcutHelpModal } from "@/components/ShortcutHelpModal";
 import { AnimatedGrid } from "@/components/motion/AnimatedGrid";
+import { Toast } from "@/components/motion/Toast";
 import {
   searchAllSources,
   UnifiedProject,
@@ -146,6 +147,7 @@ export default function Home() {
   const [history, setHistory] = useState<string[]>([]);
   const [searchDurationMs, setSearchDurationMs] = useState<number | null>(null);
   const [focusedIdx, setFocusedIdx] = useState<number>(-1);
+  const [toast, setToast] = useState<string | null>(null);
   const initialLoadDone = useRef(false);
   const searchRunIdRef = useRef(0);
   const resultsGridRef = useRef<HTMLDivElement | null>(null);
@@ -365,6 +367,11 @@ export default function Home() {
     const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
     window.history.replaceState(null, "", newUrl);
   }, [query, selectedSources, hasSearched, sortMode, activeSourceFilter]);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 1500);
+  }, []);
 
   const handleSourceToggle = (source: SourceType) => {
     setSelectedSources((prev) => {
@@ -594,7 +601,7 @@ export default function Home() {
                           : ""
                       }`}
                     >
-                      <UnifiedProjectCard project={project} />
+                      <UnifiedProjectCard project={project} onToast={showToast} />
                     </div>
                   ))}
                 </AnimatedGrid>
@@ -750,6 +757,7 @@ export default function Home() {
           </div>
         </div>
       </footer>
+      <Toast message={toast} />
     </div>
   );
 }
