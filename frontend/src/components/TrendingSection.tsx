@@ -139,7 +139,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
   return (
     <div className="glass section-container mt-12">
       <h2 className="section-title flex items-center justify-center gap-2">
-        <Flame className="w-3 h-3 text-amber-600" />
+        <Flame className="w-3 h-3 text-amber-600" aria-hidden />
         Trending this week
       </h2>
 
@@ -200,7 +200,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
             className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-indigo-700 hover:text-indigo-800 transition-colors"
             aria-label="Retry fetching trending repos"
           >
-            <RefreshCw className="w-3 h-3" />
+            <RefreshCw className="w-3 h-3" aria-hidden />
             Try again
           </button>
         </div>
@@ -276,10 +276,13 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
                   )}
                 </div>
                 <div className="flex items-center gap-1 text-[11px] text-slate-500 tabular-nums flex-shrink-0">
-                  <Star className="w-3 h-3 text-amber-500" />
+                  <Star className="w-3 h-3 text-amber-500" aria-hidden />
                   {r.stars.toLocaleString()}
                 </div>
-                <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-600 transition-colors flex-shrink-0" />
+                <ArrowUpRight
+                  className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-600 transition-colors flex-shrink-0"
+                  aria-hidden
+                />
               </a>
             );
           })}

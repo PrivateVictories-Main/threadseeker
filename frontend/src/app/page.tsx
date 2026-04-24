@@ -629,7 +629,10 @@ export default function Home() {
                       className="group inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-600 hover:text-indigo-700 bg-white/70 hover:bg-white border border-indigo-200/80 hover:border-indigo-300 rounded-full px-3 py-1.5 transition-all"
                     >
                       <span>{eq}</span>
-                      <ArrowRight className="w-3 h-3 text-indigo-400 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                      <ArrowRight
+                        className="w-3 h-3 text-indigo-400 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all"
+                        aria-hidden
+                      />
                     </button>
                   ))}
                 </div>
@@ -668,7 +671,7 @@ export default function Home() {
                     transition={{ duration: 0.32, ease: [0.22, 0.61, 0.36, 1] }}
                   >
                     <div className="flex items-center justify-center gap-1.5 mb-4 text-[11px] uppercase tracking-[0.14em] text-slate-400 font-semibold">
-                      <Clock className="w-3 h-3" />
+                      <Clock className="w-3 h-3" aria-hidden />
                       Recent
                       <button
                         onClick={() => {
@@ -679,7 +682,7 @@ export default function Home() {
                         title="Clear history"
                         aria-label="Clear search history"
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-3 h-3" aria-hidden />
                       </button>
                     </div>
                     <motion.div
@@ -703,7 +706,10 @@ export default function Home() {
                           className="group inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3 py-1.5 transition-all"
                         >
                           <span>{h}</span>
-                          <ArrowRight className="w-3 h-3 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                          <ArrowRight
+                            className="w-3 h-3 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all"
+                            aria-hidden
+                          />
                         </motion.button>
                       ))}
                     </motion.div>
@@ -936,7 +942,7 @@ export default function Home() {
                           >
                             <Icon className="w-3.5 h-3.5" aria-hidden />
                             <span>See all on {cfg.name}</span>
-                            <ArrowRight className="w-3 h-3" />
+                            <ArrowRight className="w-3 h-3" aria-hidden />
                           </a>
                         </div>
                       );
@@ -974,7 +980,7 @@ export default function Home() {
                                 >
                                   <Icon className="w-3.5 h-3.5" aria-hidden />
                                   <span>{cfg.name}</span>
-                                  <ArrowRight className="w-3 h-3" />
+                                  <ArrowRight className="w-3 h-3" aria-hidden />
                                 </a>
                               );
                             })}
@@ -1069,7 +1075,7 @@ export default function Home() {
                         key: "github",
                         label: (
                           <>
-                            Search GitHub directly <ArrowRight className="w-3 h-3" />
+                            Search GitHub directly <ArrowRight className="w-3 h-3" aria-hidden />
                           </>
                         ),
                         shortLabel: "Search GitHub",
@@ -1122,12 +1128,12 @@ export default function Home() {
                               className={primaryMobileClass}
                             >
                               {primary.shortLabel}
-                              <ArrowRight className="w-3.5 h-3.5" />
+                              <ArrowRight className="w-3.5 h-3.5" aria-hidden />
                             </a>
                           ) : (
                             <button onClick={primary.onClick} className={primaryMobileClass}>
                               {primary.shortLabel}
-                              <ArrowRight className="w-3.5 h-3.5" />
+                              <ArrowRight className="w-3.5 h-3.5" aria-hidden />
                             </button>
                           )}
                           {/* Full set — visible sm+, with the primary duplicated

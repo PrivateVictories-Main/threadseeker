@@ -40,7 +40,7 @@ export function SavedSection() {
     <div className="glass section-container mt-12">
       <div className="relative flex items-center justify-center mb-3">
         <h2 className="section-title flex items-center gap-2 m-0">
-          <BookmarkCheck className="w-3 h-3 text-rose-500" />
+          <BookmarkCheck className="w-3 h-3 text-rose-500" aria-hidden />
           Saved · {items.length}
         </h2>
         {/* Clear-all sits on the right, ghost-weight so it reads as an
