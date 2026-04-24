@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SearchBar } from "@/components/SearchBar";
 import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
@@ -765,59 +765,131 @@ export default function Home() {
                       Try broadening your query, removing filters, or enabling
                       more sources.
                     </p>
-                    <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-                      {describeOperators(parsedQuery) && (
-                        <button
-                          onClick={() => handleSearch(parsedQuery.freeText || query)}
-                          className="text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
-                        >
-                          Drop filters:{" "}
-                          <span className="font-mono text-slate-500">
-                            {describeOperators(parsedQuery)}
-                          </span>
-                        </button>
-                      )}
-                      {selectedSources.length < ALL_SOURCES.length && (
-                        <button
-                          onClick={() => {
+                    {(() => {
+                      const dropOneTerm = () => {
+                        const tokens = parsedQuery.freeText.split(/\s+/).filter(Boolean);
+                        const stop = new Set(["the", "a", "an", "for", "to", "of", "in", "on"]);
+                        const candidates = tokens.filter((t) => !stop.has(t.toLowerCase()));
+                        const victim = candidates.sort((a, b) => a.length - b.length)[0] ?? tokens[0];
+                        const next = tokens.filter((t) => t !== victim).join(" ");
+                        if (next.trim()) handleSearch(next);
+                      };
+                      type Action = {
+                        key: string;
+                        label: ReactNode;
+                        shortLabel: string; // compact mobile-primary copy
+                        onClick: () => void;
+                        href?: string;
+                      };
+                      const ghQ = encodeURIComponent(parsedQuery.freeText || query);
+                      const actions: Action[] = [];
+                      if (describeOperators(parsedQuery)) {
+                        actions.push({
+                          key: "filters",
+                          label: (
+                            <>
+                              Drop filters:{" "}
+                              <span className="font-mono text-slate-500">
+                                {describeOperators(parsedQuery)}
+                              </span>
+                            </>
+                          ),
+                          shortLabel: "Drop filters",
+                          onClick: () => handleSearch(parsedQuery.freeText || query),
+                        });
+                      }
+                      if (selectedSources.length < ALL_SOURCES.length) {
+                        actions.push({
+                          key: "sources",
+                          label: `Search all ${ALL_SOURCES.length} sources`,
+                          shortLabel: `Search all ${ALL_SOURCES.length} sources`,
+                          onClick: () => {
                             setSelectedSources(ALL_SOURCES);
                             handleSearch(query);
-                          }}
-                          className="text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
-                        >
-                          Search all {ALL_SOURCES.length} sources
-                        </button>
-                      )}
-                      {parsedQuery.freeText && parsedQuery.freeText.split(/\s+/).length > 1 && (
-                        <button
-                          onClick={() => {
-                            const tokens = parsedQuery.freeText.split(/\s+/).filter(Boolean);
-                            const stop = new Set(["the", "a", "an", "for", "to", "of", "in", "on"]);
-                            const candidates = tokens.filter((t) => !stop.has(t.toLowerCase()));
-                            const victim = candidates.sort((a, b) => a.length - b.length)[0] ?? tokens[0];
-                            const next = tokens.filter((t) => t !== victim).join(" ");
-                            if (next.trim()) handleSearch(next);
-                          }}
-                          className="text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
-                        >
-                          Drop one term
-                        </button>
-                      )}
-                      <a
-                        href={`https://github.com/search?q=${encodeURIComponent(parsedQuery.freeText || query)}&type=repositories`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors inline-flex items-center gap-1"
-                      >
-                        Search GitHub directly <ArrowRight className="w-3 h-3" />
-                      </a>
-                      <button
-                        onClick={handleClear}
-                        className="text-[12.5px] font-medium text-slate-500 hover:text-indigo-700 transition-colors px-3.5 py-1.5"
-                      >
-                        Back to home
-                      </button>
-                    </div>
+                          },
+                        });
+                      }
+                      if (
+                        parsedQuery.freeText &&
+                        parsedQuery.freeText.split(/\s+/).length > 1
+                      ) {
+                        actions.push({
+                          key: "term",
+                          label: "Drop one term",
+                          shortLabel: "Drop one term",
+                          onClick: dropOneTerm,
+                        });
+                      }
+                      actions.push({
+                        key: "github",
+                        label: (
+                          <>
+                            Search GitHub directly <ArrowRight className="w-3 h-3" />
+                          </>
+                        ),
+                        shortLabel: "Search GitHub",
+                        onClick: () => {},
+                        href: `https://github.com/search?q=${ghQ}&type=repositories`,
+                      });
+                      const [primary, ...secondary] = actions;
+                      const pillClass =
+                        "text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors inline-flex items-center justify-center gap-1";
+                      const primaryMobileClass =
+                        "sm:hidden w-full text-[13px] font-semibold text-white bg-gradient-to-br from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 rounded-full px-3.5 py-2.5 transition-colors inline-flex items-center justify-center gap-1.5 shadow-sm";
+                      const renderPill = (a: Action, extra = "") =>
+                        a.href ? (
+                          <a
+                            key={a.key}
+                            href={a.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${pillClass} ${extra}`}
+                          >
+                            {a.label}
+                          </a>
+                        ) : (
+                          <button
+                            key={a.key}
+                            onClick={a.onClick}
+                            className={`${pillClass} ${extra}`}
+                          >
+                            {a.label}
+                          </button>
+                        );
+                      return (
+                        <div className="mt-6 w-full max-w-md mx-auto flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-center gap-2">
+                          {/* Mobile-only promoted primary (full-width gradient CTA). */}
+                          {primary.href ? (
+                            <a
+                              href={primary.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={primaryMobileClass}
+                            >
+                              {primary.shortLabel}
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </a>
+                          ) : (
+                            <button onClick={primary.onClick} className={primaryMobileClass}>
+                              {primary.shortLabel}
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {/* Full set — visible sm+, with the primary duplicated
+                              there as a ghost pill so the desktop row keeps its
+                              meaning. On mobile the secondary actions still
+                              appear as smaller pills below the CTA. */}
+                          {renderPill(primary, "hidden sm:inline-flex")}
+                          {secondary.map((a) => renderPill(a))}
+                          <button
+                            onClick={handleClear}
+                            className="text-[12.5px] font-medium text-slate-500 hover:text-indigo-700 transition-colors px-3.5 py-1.5"
+                          >
+                            Back to home
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : null}
               </div>
