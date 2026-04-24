@@ -11,6 +11,7 @@ import { DirectJumps } from "@/components/DirectJumps";
 import { SearchProgressBar } from "@/components/SearchProgressBar";
 import { CardSkeleton } from "@/components/CardSkeleton";
 import { ShortcutHelpModal } from "@/components/ShortcutHelpModal";
+import { AnimatedGrid } from "@/components/motion/AnimatedGrid";
 import {
   searchAllSources,
   UnifiedProject,
@@ -577,8 +578,9 @@ export default function Home() {
                   )}
                 </p>
 
-                <div
+                <AnimatedGrid
                   ref={resultsGridRef}
+                  keyed={query || parsedQuery.freeText}
                   className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
                 >
                   {view.map((project, idx) => (
@@ -595,7 +597,7 @@ export default function Home() {
                       <UnifiedProjectCard project={project} />
                     </div>
                   ))}
-                </div>
+                </AnimatedGrid>
 
                 {/* Escape hatch when the user wants more than ThreadSeeker's
                     top-ranked slice from a single source. */}
