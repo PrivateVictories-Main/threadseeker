@@ -6,6 +6,8 @@ import { SourceBadge } from "./card/SourceBadge";
 import { CardPills } from "./card/CardPills";
 import { CardActions, type CopyItem } from "./card/CardActions";
 import { AnimatedCard } from "./motion/AnimatedCard";
+import { motion, useAnimationControls } from "framer-motion";
+import { bookmarkVariants } from "@/lib/motion";
 import { useBookmark } from "@/lib/bookmarks";
 import {
   formatCount,
@@ -17,6 +19,7 @@ import {
 export function UnifiedProjectCard({ project }: { project: UnifiedProject }) {
   const { isBookmarked, toggle } = useBookmark(project);
   const [copied, setCopied] = useState<string | null>(null);
+  const bookmarkControls = useAnimationControls();
 
   const popularity =
     project.stars > 0
@@ -37,13 +40,20 @@ export function UnifiedProjectCard({ project }: { project: UnifiedProject }) {
       <article className="ts-card glass">
         <div className="ts-top">
           <SourceBadge source={project.source} />
-          <button
+          <motion.button
             className={`ts-bookmark ${isBookmarked ? "bookmarked" : ""}`}
-            onClick={toggle}
+            variants={bookmarkVariants}
+            animate={bookmarkControls}
+            onClick={() => {
+              toggle();
+              bookmarkControls
+                .start("tapped")
+                .then(() => bookmarkControls.start("rest"));
+            }}
             aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
           >
             {isBookmarked ? "♥" : "♡"}
-          </button>
+          </motion.button>
         </div>
         <h3 className="ts-title">
           {project.name}
