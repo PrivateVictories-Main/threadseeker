@@ -397,6 +397,13 @@ body > * {
   overflow: hidden;
   min-height: calc(2 * 1.55em);
 }
+/* Placeholder variant — italic + faint so it reads as "absence
+   acknowledged" rather than content. Same line-clamp + min-height
+   as the real description so rows align. */
+.ts-desc-empty {
+  font-style: italic;
+  color: var(--ts-text-faint);
+}
 .ts-caption {
   font-size: 11.5px;
   color: var(--ts-text-subtle);

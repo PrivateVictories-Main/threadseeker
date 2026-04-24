@@ -188,8 +188,20 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index }: Pr
           </h3>
         </div>
 
-        {project.description && (
+        {project.description ? (
           <p className="ts-desc">{project.description}</p>
+        ) : (
+          // Subtle italic placeholder when the upstream doesn't ship a
+          // description (common on obscure GitHub repos, AUR packages,
+          // some HF models). Better than empty space because:
+          //   - the card retains its 2-line vertical rhythm so a row of
+          //     mixed-description cards aligns instead of stair-stepping
+          //   - the user understands "this card has no description" vs
+          //     "this card has a bug" — the absence is intentional
+          // Tone: italic + faint slate, never reads as content.
+          <p className="ts-desc ts-desc-empty" aria-hidden>
+            No description provided.
+          </p>
         )}
 
         {project.updatedAt && (() => {
