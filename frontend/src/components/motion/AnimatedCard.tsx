@@ -33,6 +33,12 @@ export function AnimatedCard({
 
   return (
     <motion.div
+      // layout="position" enables FLIP for sort-change re-ordering but
+      // keeps width/height static — cards slide between grid cells
+      // smoothly without animating their box dimensions (which would
+      // squash content with different heights). layoutId still pairs
+      // identical projects across hero→results transitions.
+      layout="position"
       layoutId={layoutId}
       variants={cardVariants}
       initial={enterFrom}
@@ -40,6 +46,7 @@ export function AnimatedCard({
       exit="exit"
       whileHover="hover"
       whileTap="tap"
+      transition={{ layout: { duration: 0.3, ease: [0.32, 0.72, 0, 1] } }}
       className="h-full"
     >
       {children}
