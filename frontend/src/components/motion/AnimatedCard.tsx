@@ -24,6 +24,9 @@ export function AnimatedCard({
   children,
   layoutId,
   index,
+  className,
+  resultId,
+  resultUrl,
 }: {
   children: React.ReactNode;
   layoutId?: string;
@@ -38,6 +41,23 @@ export function AnimatedCard({
    * never reaches them.
    */
   index?: number;
+  /**
+   * Extra classes merged onto the motion.div — used by the page-level
+   * grid to paint a focus-ring when the card is keyboard-focused. Hoisted
+   * here (instead of a wrapping motion.div in page.tsx) so each card has
+   * exactly one motion layer instead of two — every motion node carries
+   * a mount/unmount cost from AnimatePresence's tracking. The wrapper-
+   * vs-AnimatedCard split was concerns-separated but motion-cost-double.
+   */
+  className?: string;
+  /**
+   * Optional data attributes for the keyboard-navigation harness in
+   * page.tsx (data-result-card / data-result-id / data-result-url). Pass
+   * the project id + url; the component stamps the data-result-card
+   * sentinel automatically when either is provided.
+   */
+  resultId?: string;
+  resultUrl?: string;
 }) {
   // Per-card hidden-state offset. Keeps the rhythm subtle: max ±4px on
   // y and ±2px on x; otherwise the pattern is loud. Even rows stay
@@ -52,6 +72,11 @@ export function AnimatedCard({
   // hero→results shared-element transition (cheap; only fires on mount
   // pairing) and entry/exit animations.
   const enableLayout = (index ?? 0) < LAYOUT_CAP;
+
+  // Compose className: keep the h-full anchor + layered focus-ring
+  // styling from the caller.
+  const composedClassName = className ? `h-full ${className}` : "h-full";
+  const isResult = !!(resultId || resultUrl);
 
   return (
     <motion.div
@@ -69,7 +94,10 @@ export function AnimatedCard({
       whileHover="hover"
       whileTap="tap"
       transition={{ layout: { duration: 0.3, ease: [0.32, 0.72, 0, 1] } }}
-      className="h-full"
+      className={composedClassName}
+      data-result-card={isResult ? "" : undefined}
+      data-result-id={resultId}
+      data-result-url={resultUrl}
     >
       {children}
     </motion.div>

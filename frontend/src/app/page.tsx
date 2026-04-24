@@ -878,37 +878,28 @@ export default function Home() {
                       className="grid gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
                     >
                       {view.map((project, idx) => (
-                        // motion.div wrapper (instead of plain <div>) so
-                        // the inner AnimatePresence in AnimatedGrid can
-                        // track per-card mount/unmount and fade on
-                        // filter-change. AnimatePresence only animates
-                        // its *direct* motion children — a plain <div>
-                        // here would snap. Exit/initial/animate inherit
-                        // the cardVariants vocabulary so the fade
-                        // matches the entry rhythm.
-                        <motion.div
+                        // UnifiedProjectCard's inner AnimatedCard is the
+                        // single motion.div per card — focus-ring class
+                        // and the data-result-card / data-result-id /
+                        // data-result-url keyboard-nav attrs are hoisted
+                        // through `outerClassName` props so we only mount
+                        // one motion node per result instead of two
+                        // (wrapper + AnimatedCard). Filter-change exit
+                        // now uses cardVariants.exit (scale 0.94) which
+                        // is shared with the rest of the entry/exit
+                        // vocabulary.
+                        <UnifiedProjectCard
                           key={project.id}
-                          layout
-                          initial={{ opacity: 0, scale: 0.96 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.96 }}
-                          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-                          data-result-card
-                          data-result-id={project.id}
-                          data-result-url={project.url}
-                          className={`h-full transition-shadow rounded-[18px] ${
+                          project={project}
+                          index={idx}
+                          onToast={showToast}
+                          onTopicClick={(topic) => handleSearch(topic)}
+                          outerClassName={`transition-shadow rounded-[18px] ${
                             focusedIdx === idx
                               ? "ring-2 ring-indigo-500/60 ring-offset-2 ring-offset-transparent"
                               : ""
                           }`}
-                        >
-                          <UnifiedProjectCard
-                            project={project}
-                            index={idx}
-                            onToast={showToast}
-                            onTopicClick={(topic) => handleSearch(topic)}
-                          />
-                        </motion.div>
+                        />
                       ))}
                     </AnimatedGrid>
 

@@ -25,9 +25,16 @@ interface Props {
   onTopicClick?: (topic: string) => void;
   /** Position in the result grid — drives subtle entry-direction variety. */
   index?: number;
+  /**
+   * Extra outer-ring class (e.g. focus-ring on keyboard-focused card).
+   * Forwarded to the underlying AnimatedCard so we don't need a wrapping
+   * motion.div in page.tsx — collapses the per-card motion-component
+   * count from 2 → 1.
+   */
+  outerClassName?: string;
 }
 
-export function UnifiedProjectCard({ project, onToast, onTopicClick, index }: Props) {
+export function UnifiedProjectCard({ project, onToast, onTopicClick, index, outerClassName }: Props) {
   const { isBookmarked, toggle } = useBookmark(project);
   const bookmarkControls = useAnimationControls();
   // Per-card pulse-ring overlay triggered after a bookmark add/remove.
@@ -92,7 +99,13 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index }: Pr
   const isSparse = !project.description && topics.length === 0;
 
   return (
-    <AnimatedCard layoutId={project.id} index={index}>
+    <AnimatedCard
+      layoutId={project.id}
+      index={index}
+      className={outerClassName}
+      resultId={project.id}
+      resultUrl={project.url}
+    >
       <article className={`ts-card glass${isSparse ? " ts-card-sparse" : ""}`}>
         {/* Bookmark-pulse ring — absolutely positioned overlay so it
             fades over the card without disturbing the existing glass

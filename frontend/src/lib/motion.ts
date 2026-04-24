@@ -19,8 +19,13 @@ export const cardVariants: Variants = {
   // `initial` prop (see AnimatedCard's odd/even tilt) animate back to
   // the same resting offset. Without it framer would only animate the
   // declared keys.
-  visible: { opacity: 1, y: 0, x: 0, transition: springSoft },
-  exit:    { opacity: 0, y: -8, scale: 0.98, transition: { duration: 0.18 } },
+  visible: { opacity: 1, y: 0, x: 0, scale: 1, transition: springSoft },
+  // exit scale 0.94 (was 0.98 / page-wrapper 0.96) so the filter-toggle
+  // collapse reads as a deliberate "card leaves the set" rather than a
+  // gentle ghost — at 0.96 the depart was nearly indistinguishable from
+  // a small layout shift. 0.94 keeps it inside the "subtle" budget
+  // (still under 6% scale delta) while landing the read.
+  exit:    { opacity: 0, y: -8, scale: 0.94, transition: { duration: 0.18 } },
   hover:   { y: -4, transition: springSoft },
   tap:     { scale: 0.98, transition: { duration: 0.1 } },
 };
