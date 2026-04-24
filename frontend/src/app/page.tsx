@@ -878,8 +878,21 @@ export default function Home() {
                       className="grid gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
                     >
                       {view.map((project, idx) => (
-                        <div
+                        // motion.div wrapper (instead of plain <div>) so
+                        // the inner AnimatePresence in AnimatedGrid can
+                        // track per-card mount/unmount and fade on
+                        // filter-change. AnimatePresence only animates
+                        // its *direct* motion children — a plain <div>
+                        // here would snap. Exit/initial/animate inherit
+                        // the cardVariants vocabulary so the fade
+                        // matches the entry rhythm.
+                        <motion.div
                           key={project.id}
+                          layout
+                          initial={{ opacity: 0, scale: 0.96 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.96 }}
+                          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
                           data-result-card
                           data-result-id={project.id}
                           data-result-url={project.url}
@@ -895,7 +908,7 @@ export default function Home() {
                             onToast={showToast}
                             onTopicClick={(topic) => handleSearch(topic)}
                           />
-                        </div>
+                        </motion.div>
                       ))}
                     </AnimatedGrid>
 
