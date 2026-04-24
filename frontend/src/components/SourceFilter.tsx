@@ -92,6 +92,7 @@ export function SourceFilter({
                   <div className="flex flex-wrap gap-1.5">
                     {group.sources.map((source) => {
                       const config = getSourceConfig(source);
+                      const Icon = config.lucideIcon;
                       const isActive = selectedSources.includes(source);
                       return (
                         <button
@@ -100,7 +101,7 @@ export function SourceFilter({
                           data-active={String(isActive)}
                           className="filter-pill pill text-[12px] flex items-center gap-1.5"
                         >
-                          <span className="text-[12px]">{config.icon}</span>
+                          <Icon className="w-3.5 h-3.5" aria-hidden />
                           <span>{config.name}</span>
                         </button>
                       );

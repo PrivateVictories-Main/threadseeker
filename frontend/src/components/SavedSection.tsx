@@ -61,6 +61,7 @@ export function SavedSection() {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-w-3xl mx-auto">
         {shelf.map((b) => {
           const cfg = getSourceConfig(b.source);
+          const Icon = cfg.lucideIcon;
           const owner = b.fullName.includes("/") ? b.fullName.split("/")[0] : "";
           return (
             <div
@@ -75,10 +76,10 @@ export function SavedSection() {
                 title={b.description ?? b.fullName}
               >
                 <span
-                  className="flex items-center justify-center w-6 h-6 rounded-md bg-indigo-50 border border-indigo-100 text-[13px] flex-shrink-0"
+                  className="flex items-center justify-center w-6 h-6 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-600 flex-shrink-0"
                   aria-hidden
                 >
-                  {cfg.icon}
+                  <Icon className="w-3.5 h-3.5" />
                 </span>
                 <span className="flex flex-col min-w-0 flex-1">
                   <span className="text-[12.5px] font-medium text-slate-800 group-hover:text-indigo-700 truncate">

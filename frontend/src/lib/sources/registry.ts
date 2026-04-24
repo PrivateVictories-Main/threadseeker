@@ -2,6 +2,29 @@
 // "open the native search on this platform" URL. Kept together because a new
 // source registration touches both — forgetting either is a common paper cut.
 
+import {
+  Github,
+  Gitlab,
+  Package,
+  Box,
+  Container,
+  MessageCircle,
+  BookOpen,
+  GraduationCap,
+  FileText,
+  Coffee,
+  FlaskConical,
+  Sparkles,
+  PenTool,
+  Atom,
+  Smile,
+  Bug,
+  Gem,
+  TreePine,
+  Hash,
+  Layers,
+  type LucideIcon,
+} from "lucide-react";
 import { SourceType } from "./types";
 
 // Human category buckets used by SourceFilter to group the 28 sources into
@@ -27,7 +50,16 @@ export const CATEGORY_META: Record<
 
 interface SourceDisplayConfig {
   name: string;
+  // Legacy emoji icon. Still rendered in places that haven't migrated to
+  // the lucide variant yet (page.tsx pending-source ticker, Markdown export,
+  // DirectJumps fallback). Long-term the lucide icon below will be the
+  // single source of truth.
   icon: string;
+  // Lucide React icon component for this source. Renders monochrome on
+  // glass surfaces — reads as "system UI" rather than "cartoon emoji".
+  // Some sources reuse the same icon (e.g. multiple package registries
+  // → Package) since the registry name carries the disambiguation.
+  lucideIcon: LucideIcon;
   color: string;
   borderColor: string;
   bgColor: string;
@@ -45,6 +77,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   github: {
     name: "GitHub",
     icon: "🐙",
+    lucideIcon: Github,
     color: "from-gray-500 to-gray-700",
     borderColor: "border-gray-500/30",
     bgColor: "bg-gray-500/10",
@@ -54,6 +87,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   huggingface: {
     name: "Hugging Face",
     icon: "🤗",
+    lucideIcon: Smile,
     color: "from-yellow-500 to-orange-500",
     borderColor: "border-yellow-500/30",
     bgColor: "bg-yellow-500/10",
@@ -63,6 +97,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   gitlab: {
     name: "GitLab",
     icon: "🦊",
+    lucideIcon: Gitlab,
     color: "from-orange-500 to-red-500",
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
@@ -72,6 +107,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   npm: {
     name: "npm",
     icon: "📦",
+    lucideIcon: Package,
     color: "from-red-600 to-red-700",
     borderColor: "border-red-500/30",
     bgColor: "bg-red-500/10",
@@ -81,6 +117,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   pypi: {
     name: "PyPI",
     icon: "🐍",
+    lucideIcon: Box,
     color: "from-blue-500 to-cyan-500",
     borderColor: "border-blue-500/30",
     bgColor: "bg-blue-500/10",
@@ -90,6 +127,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   crates: {
     name: "crates.io",
     icon: "🦀",
+    lucideIcon: Box,
     color: "from-orange-600 to-amber-700",
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
@@ -99,6 +137,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   hackernews: {
     name: "Hacker News",
     icon: "💬",
+    lucideIcon: MessageCircle,
     color: "from-orange-400 to-amber-500",
     borderColor: "border-amber-500/30",
     bgColor: "bg-amber-500/10",
@@ -109,6 +148,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   codeberg: {
     name: "Codeberg",
     icon: "🌲",
+    lucideIcon: TreePine,
     color: "from-emerald-500 to-teal-600",
     borderColor: "border-emerald-500/30",
     bgColor: "bg-emerald-500/10",
@@ -118,6 +158,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   packagist: {
     name: "Packagist",
     icon: "🐘",
+    lucideIcon: Package,
     color: "from-indigo-500 to-purple-600",
     borderColor: "border-indigo-500/30",
     bgColor: "bg-indigo-500/10",
@@ -127,6 +168,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   rubygems: {
     name: "RubyGems",
     icon: "💎",
+    lucideIcon: Gem,
     color: "from-red-500 to-pink-600",
     borderColor: "border-rose-500/30",
     bgColor: "bg-rose-500/10",
@@ -136,6 +178,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   reddit: {
     name: "Reddit",
     icon: "👾",
+    lucideIcon: MessageCircle,
     color: "from-orange-500 to-red-500",
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
@@ -146,6 +189,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   dockerhub: {
     name: "Docker Hub",
     icon: "🐳",
+    lucideIcon: Container,
     color: "from-sky-500 to-blue-600",
     borderColor: "border-sky-500/30",
     bgColor: "bg-sky-500/10",
@@ -155,6 +199,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   jsr: {
     name: "JSR",
     icon: "🦕",
+    lucideIcon: Package,
     color: "from-yellow-400 to-amber-500",
     borderColor: "border-yellow-500/30",
     bgColor: "bg-yellow-500/10",
@@ -164,6 +209,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   flathub: {
     name: "Flathub",
     icon: "📦",
+    lucideIcon: Package,
     color: "from-sky-600 to-indigo-600",
     borderColor: "border-indigo-500/30",
     bgColor: "bg-indigo-500/10",
@@ -173,6 +219,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   devto: {
     name: "Dev.to",
     icon: "✍️",
+    lucideIcon: PenTool,
     color: "from-zinc-400 to-zinc-600",
     borderColor: "border-zinc-500/30",
     bgColor: "bg-zinc-500/10",
@@ -183,6 +230,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   lobsters: {
     name: "Lobsters",
     icon: "🦞",
+    lucideIcon: MessageCircle,
     color: "from-rose-400 to-red-500",
     borderColor: "border-rose-500/30",
     bgColor: "bg-rose-500/10",
@@ -193,6 +241,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   stackoverflow: {
     name: "Stack Overflow",
     icon: "📚",
+    lucideIcon: GraduationCap,
     color: "from-orange-400 to-amber-500",
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
@@ -203,6 +252,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   paperswithcode: {
     name: "Papers with Code",
     icon: "📄",
+    lucideIcon: FileText,
     color: "from-violet-500 to-fuchsia-500",
     borderColor: "border-violet-500/30",
     bgColor: "bg-violet-500/10",
@@ -212,6 +262,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   homebrew: {
     name: "Homebrew",
     icon: "🍺",
+    lucideIcon: Coffee,
     color: "from-amber-500 to-yellow-600",
     borderColor: "border-amber-500/30",
     bgColor: "bg-amber-500/10",
@@ -221,6 +272,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   fdroid: {
     name: "F-Droid",
     icon: "🤖",
+    lucideIcon: Bug,
     color: "from-lime-500 to-green-600",
     borderColor: "border-lime-500/30",
     bgColor: "bg-lime-500/10",
@@ -230,6 +282,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   arxiv: {
     name: "arXiv",
     icon: "📜",
+    lucideIcon: BookOpen,
     color: "from-red-500 to-rose-600",
     borderColor: "border-red-500/30",
     bgColor: "bg-red-500/10",
@@ -239,6 +292,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   aur: {
     name: "AUR",
     icon: "🏛️",
+    lucideIcon: Layers,
     color: "from-sky-500 to-blue-600",
     borderColor: "border-sky-500/30",
     bgColor: "bg-sky-500/10",
@@ -248,6 +302,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   openvsx: {
     name: "Open VSX",
     icon: "🧩",
+    lucideIcon: Sparkles,
     color: "from-violet-500 to-purple-600",
     borderColor: "border-violet-500/30",
     bgColor: "bg-violet-500/10",
@@ -257,6 +312,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   conda: {
     name: "conda-forge",
     icon: "🥬",
+    lucideIcon: Atom,
     color: "from-green-500 to-emerald-600",
     borderColor: "border-green-500/30",
     bgColor: "bg-green-500/10",
@@ -266,6 +322,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   zenodo: {
     name: "Zenodo",
     icon: "🧪",
+    lucideIcon: FlaskConical,
     color: "from-cyan-500 to-teal-600",
     borderColor: "border-cyan-500/30",
     bgColor: "bg-cyan-500/10",
@@ -275,6 +332,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   nuget: {
     name: "NuGet",
     icon: "🔷",
+    lucideIcon: Hash,
     color: "from-blue-600 to-indigo-700",
     borderColor: "border-blue-500/30",
     bgColor: "bg-blue-500/10",
@@ -284,6 +342,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   wordpress: {
     name: "WordPress",
     icon: "📝",
+    lucideIcon: FileText,
     color: "from-slate-500 to-slate-700",
     borderColor: "border-slate-500/30",
     bgColor: "bg-slate-500/10",
@@ -293,6 +352,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   maven: {
     name: "Maven Central",
     icon: "☕",
+    lucideIcon: Coffee,
     color: "from-amber-600 to-orange-700",
     borderColor: "border-amber-500/30",
     bgColor: "bg-amber-500/10",
@@ -303,6 +363,13 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
 
 export function getSourceConfig(source: SourceType): SourceDisplayConfig {
   return SOURCE_CONFIGS[source];
+}
+
+// Returns the lucide React icon component for a source. Render as e.g.
+// `<Icon className="w-3.5 h-3.5" />` — the caller controls size + color
+// so the icon inherits the surrounding text color (currentColor).
+export function getSourceIcon(source: SourceType): LucideIcon {
+  return SOURCE_CONFIGS[source].lucideIcon;
 }
 
 // Returns true when a source typically yields cards without descriptions

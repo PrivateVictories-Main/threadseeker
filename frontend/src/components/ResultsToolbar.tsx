@@ -304,6 +304,7 @@ export function ResultsToolbar({
               </motion.button>
               {orderedSources.map(([source, count]) => {
                 const cfg = getSourceConfig(source);
+                const Icon = cfg.lucideIcon;
                 const active = activeSource === source;
                 return (
                   <motion.button
@@ -317,7 +318,7 @@ export function ResultsToolbar({
                     }}
                     transition={springSnappy}
                   >
-                    <span>{cfg.icon}</span>
+                    <Icon className="w-3.5 h-3.5" aria-hidden />
                     <span>{cfg.name}</span>
                     <span className="opacity-70">{count}</span>
                   </motion.button>
