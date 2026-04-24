@@ -63,11 +63,11 @@ export function DirectJumps({ query }: Props) {
   if (hits.length === 0) return null;
 
   return (
-    <div className="rounded-lg border border-amber-900/20 bg-amber-950/10 px-3 py-2">
+    <div className="glass section-container">
+      <h3 className="section-title">
+        Jump to <span className="font-mono">{q}</span> on
+      </h3>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[10px] uppercase tracking-wide text-amber-300/70">
-          Jump to <span className="font-mono text-amber-200">{q}</span> on
-        </span>
         {hits.map((r) => (
           <a
             key={r.name}

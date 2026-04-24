@@ -125,11 +125,11 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
   }, [lang]);
 
   return (
-    <div className="mt-8">
-      <div className="flex items-center justify-center gap-2 mb-3 text-[10px] uppercase tracking-wide text-slate-600">
+    <div className="glass section-container mt-8">
+      <h2 className="section-title flex items-center justify-center gap-2">
         <Flame className="w-3 h-3 text-amber-500/70" />
         Trending this week on GitHub
-      </div>
+      </h2>
 
       {/* Language tabs */}
       <div className="flex flex-wrap justify-center gap-1.5 mb-3">

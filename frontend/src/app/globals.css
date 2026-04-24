@@ -167,3 +167,16 @@ body {
   max-width: 380px;
   border-radius: var(--ts-radius-lg);
 }
+
+.section-container {
+  padding: 20px 24px;
+  margin-bottom: 18px;
+}
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ts-text-subtle);
+  margin: 0 0 12px;
+}

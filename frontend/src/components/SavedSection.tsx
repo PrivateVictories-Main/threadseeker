@@ -26,11 +26,11 @@ export function SavedSection() {
   if (items.length === 0) return null;
 
   return (
-    <div className="mt-6">
-      <div className="flex items-center justify-center gap-2 mb-3 text-[10px] uppercase tracking-wide text-slate-600">
+    <div className="glass section-container mt-6">
+      <h2 className="section-title flex items-center justify-center gap-2">
         <BookmarkCheck className="w-3 h-3 text-amber-400/70" />
         Saved · {items.length}
-      </div>
+      </h2>
       <div className="flex flex-wrap justify-center gap-2 max-w-3xl mx-auto">
         {items.slice(0, 12).map((b) => {
           const cfg = getSourceConfig(b.source);
