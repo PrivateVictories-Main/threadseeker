@@ -211,10 +211,41 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKey);
   }, [hasSearched, focusedIdx]);
 
-  // Reset focus whenever results change underneath us.
+  // Reset focus only when the focused card actually disappears from the
+  // current view (or when we have no focus to begin with). Previously this
+  // fired on every query/sort/source/selectedSources change, which threw
+  // away the user's keyboard position even when their card was still
+  // visible — e.g. opening the source-filter dropdown without changing the
+  // selection still bumped focusedIdx back to -1.
+  const focusedIdRef = useRef<string | null>(null);
   useEffect(() => {
-    setFocusedIdx(-1);
-  }, [query, sortMode, activeSourceFilter, selectedSources]);
+    if (focusedIdx < 0) {
+      focusedIdRef.current = null;
+      return;
+    }
+    // Resolve the *current* view here so we know whether the focused card
+    // is still on screen. Using projects + sortMode + activeSourceFilter
+    // dependencies via a fresh sortedView/view computation would loop, so
+    // instead we trust focusedIdRef and look it up in the latest view.
+    const grid = resultsGridRef.current;
+    if (!grid) return;
+    const cards = grid.querySelectorAll<HTMLElement>("[data-result-card]");
+    const idCard = cards[focusedIdx];
+    const currentId = idCard?.getAttribute("data-result-id");
+    if (focusedIdRef.current && currentId !== focusedIdRef.current) {
+      // The card at focusedIdx is no longer the same project — try to find
+      // the original project by id; if it's gone from the view entirely,
+      // drop focus.
+      let nextIdx = -1;
+      cards.forEach((el, i) => {
+        if (el.getAttribute("data-result-id") === focusedIdRef.current) nextIdx = i;
+      });
+      setFocusedIdx(nextIdx);
+      if (nextIdx < 0) focusedIdRef.current = null;
+    } else if (currentId) {
+      focusedIdRef.current = currentId;
+    }
+  }, [focusedIdx, query, sortMode, activeSourceFilter, selectedSources, projects]);
 
   const handleSearch = useCallback(
     async (searchQuery: string, preserveView: boolean = false) => {
@@ -700,6 +731,7 @@ export default function Home() {
                         <div
                           key={project.id}
                           data-result-card
+                          data-result-id={project.id}
                           data-result-url={project.url}
                           className={`h-full transition-shadow rounded-[18px] ${
                             focusedIdx === idx

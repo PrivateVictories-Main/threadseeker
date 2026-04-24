@@ -137,7 +137,16 @@ export function ResultsToolbar({
             onClick={() => setFilterOpen((v) => !v)}
             className="btn btn-ghost text-[12.5px] h-8 px-3 min-w-0"
             aria-expanded={filterOpen}
-            title="Filter by source"
+            title={
+              activeSource
+                ? `Sources · ${getSourceConfig(activeSource).name} (click to change)`
+                : `Filter by source · All ${activeSourceCount}`
+            }
+            aria-label={
+              activeSource
+                ? `Filter by source. Currently showing ${getSourceConfig(activeSource).name}.`
+                : `Filter by source. Currently showing all ${activeSourceCount} sources.`
+            }
           >
             <Filter className="w-3.5 h-3.5 flex-shrink-0" />
             <span className="truncate">
@@ -158,6 +167,8 @@ export function ResultsToolbar({
               className="btn btn-ghost text-[12.5px] h-8 px-3"
               aria-expanded={sortOpen}
               aria-haspopup="listbox"
+              title={`Sort: ${currentSortLabel}`}
+              aria-label={`Sort order. Currently sorted by ${currentSortLabel}.`}
             >
               <ArrowDownWideNarrow className="w-3.5 h-3.5 flex-shrink-0" />
               <span className="truncate">{currentSortLabel}</span>
