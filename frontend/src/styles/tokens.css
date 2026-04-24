@@ -11,7 +11,9 @@
   /* Glass surfaces — more opaque so text on top is readable. */
   --ts-surface: rgba(255, 255, 255, 0.78);
   --ts-surface-strong: rgba(255, 255, 255, 0.92);
+  --ts-surface-sticky: rgba(255, 255, 255, 0.82);
   --ts-border: rgba(99, 102, 241, 0.22);
+  --ts-border-soft: rgba(99, 102, 241, 0.14);
 
   /* Accent stays indigo-violet family but tuned away from magenta. */
   --ts-accent: #6366f1;
@@ -23,16 +25,32 @@
   --ts-text: #0f172a;
   --ts-text-muted: #334155;
   --ts-text-subtle: #64748b;
+  --ts-text-faint: #94a3b8;
 
   --ts-radius-lg: 18px;
   --ts-radius-md: 12px;
   --ts-radius-sm: 8px;
   --ts-radius-full: 999px;
 
-  --ts-shadow-rest: 0 8px 28px rgba(30, 27, 75, 0.10);
-  --ts-shadow-hover: 0 14px 40px rgba(30, 27, 75, 0.18);
+  /* Layered shadows — softer near surface, progressively wider spread with
+     distance, so cards float without looking stamped-on. */
+  --ts-shadow-sm:
+    0 1px 2px rgba(30, 27, 75, 0.04),
+    0 1px 3px rgba(30, 27, 75, 0.05);
+  --ts-shadow-rest:
+    0 1px 3px rgba(30, 27, 75, 0.05),
+    0 4px 16px rgba(30, 27, 75, 0.06),
+    0 12px 32px rgba(30, 27, 75, 0.08);
+  --ts-shadow-hover:
+    0 2px 4px rgba(30, 27, 75, 0.06),
+    0 8px 24px rgba(30, 27, 75, 0.10),
+    0 20px 48px rgba(30, 27, 75, 0.14);
+  --ts-shadow-sticky:
+    0 1px 0 rgba(99, 102, 241, 0.06),
+    0 8px 20px rgba(30, 27, 75, 0.05);
 
   --ts-blur: 20px;
+  --ts-blur-strong: 28px;
 
   /* Intent-tint defaults to 220 = INDIGO. Not 280 (pink territory). */
   --ts-intent-hue: 220;
