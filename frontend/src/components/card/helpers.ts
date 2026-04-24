@@ -89,24 +89,39 @@ export function avatarFallbackHue(id: string): number {
   return FALLBACK_HUES[(h >>> 0) % FALLBACK_HUES.length];
 }
 
-// Source-aware primary-action label. Threads get "Open thread", scholarly
-// papers get "View paper", everything else stays at the generic default.
-// Tightening the verb to match the destination makes the unified card
-// feel less generic — you click "View paper" and you know you're about
-// to land on an arXiv abstract, not a GitHub repo.
+// Source-aware primary-action label. Tightens the click affordance to
+// name what the user is about to visit — "View paper", "Get app",
+// "Install extension" — instead of the all-purpose "Open". Each label
+// is short enough to fit the existing button width vocabulary (the
+// trailing "→" lives in CardActions, so each return here is the verb +
+// noun only). Sources outside this map fall back to "Open".
+//
+// Stack Overflow renders as "View answer" (top result is the question
+// page, where the accepted answer is the headline content) rather than
+// the more generic "Open thread" — same destination, sharper read.
 export function openLabelForSource(source: UnifiedProject["source"]): string {
   switch (source) {
     case "reddit":
     case "hackernews":
     case "lobsters":
-    case "stackoverflow":
       return "Open thread";
+    case "stackoverflow":
+      return "View answer";
     case "arxiv":
     case "paperswithcode":
     case "zenodo":
       return "View paper";
     case "devto":
       return "Read post";
+    case "flathub":
+    case "fdroid":
+      return "Get app";
+    case "openvsx":
+      return "Install extension";
+    case "wordpress":
+      return "View plugin";
+    case "dockerhub":
+      return "Pull image";
     default:
       return "Open";
   }
