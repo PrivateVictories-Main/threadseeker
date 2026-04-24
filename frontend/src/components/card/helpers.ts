@@ -122,6 +122,13 @@ export function openLabelForSource(source: UnifiedProject["source"]): string {
       return "View plugin";
     case "dockerhub":
       return "Pull image";
+    case "aur":
+      // "View package" rather than "Install via AUR" — the latter is too
+      // prescriptive (assumes Arch + that the user wants to clone the
+      // PKGBUILD) for what's actually just a deep-link to the AUR page.
+      return "View package";
+    case "nuget":
+      return "View package";
     default:
       return "Open";
   }

@@ -88,6 +88,11 @@ describe("openLabelForSource", () => {
     expect(openLabelForSource("dockerhub")).toBe("Pull image");
   });
 
+  it("returns 'View package' for AUR and NuGet (package vocabulary)", () => {
+    expect(openLabelForSource("aur")).toBe("View package");
+    expect(openLabelForSource("nuget")).toBe("View package");
+  });
+
   it("falls back to generic 'Open' for repos and packages", () => {
     expect(openLabelForSource("github")).toBe("Open");
     expect(openLabelForSource("gitlab")).toBe("Open");

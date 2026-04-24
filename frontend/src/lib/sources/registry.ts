@@ -174,7 +174,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-emerald-500/10",
     supportsOr: true,
     category: "repos",
-    tagline: "Non-profit Forgejo-hosted repos",
+    tagline: "Non-profit, community-run GitHub alternative",
   },
   packagist: {
     name: "Packagist",
