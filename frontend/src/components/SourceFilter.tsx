@@ -1,7 +1,12 @@
 "use client";
 
+import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { SourceType, getSourceConfig } from "@/lib/sources";
+import {
+  SourceType,
+  getSourceConfig,
+  groupSourcesByCategory,
+} from "@/lib/sources";
 import { sheetVariants } from "@/lib/motion";
 
 interface SourceFilterProps {
@@ -12,50 +17,9 @@ interface SourceFilterProps {
   open?: boolean;
 }
 
-// Grouping the 28 sources into five human categories keeps the sheet
-// scannable — "npm, pypi, crates, packagist…" in a single row reads as
-// noise; broken into Repos / Packages / Community / AI+ML / Scholarly
-// it reads like a table of contents.
-const CATEGORIES: Array<{ title: string; sources: SourceType[] }> = [
-  {
-    title: "Repos",
-    sources: ["github", "gitlab", "codeberg"],
-  },
-  {
-    title: "Packages",
-    sources: [
-      "npm",
-      "pypi",
-      "crates",
-      "rubygems",
-      "packagist",
-      "jsr",
-      "dockerhub",
-      "conda",
-      "nuget",
-      "maven",
-      "homebrew",
-      "fdroid",
-      "aur",
-      "flathub",
-      "openvsx",
-      "wordpress",
-    ],
-  },
-  {
-    title: "AI & ML",
-    sources: ["huggingface", "paperswithcode"],
-  },
-  {
-    title: "Community",
-    sources: ["hackernews", "reddit", "lobsters", "stackoverflow", "devto"],
-  },
-  {
-    title: "Scholarly",
-    sources: ["arxiv", "zenodo"],
-  },
-];
-
+// Categories are now declared per-source on the registry (see
+// `SourceDisplayConfig.category` in registry.ts). Adding a new source
+// = declaring its category once; SourceFilter groups dynamically.
 export function SourceFilter({
   allSources,
   selectedSources,
@@ -63,8 +27,8 @@ export function SourceFilter({
   onClear,
   open = true,
 }: SourceFilterProps) {
-  const allowed = new Set<SourceType>(allSources);
   const canClear = selectedSources.length < allSources.length;
+  const groups = useMemo(() => groupSourcesByCategory(allSources), [allSources]);
 
   return (
     <AnimatePresence>
@@ -93,34 +57,30 @@ export function SourceFilter({
           </div>
 
           <div className="flex flex-col gap-4">
-            {CATEGORIES.map((cat) => {
-              const visible = cat.sources.filter((s) => allowed.has(s));
-              if (visible.length === 0) return null;
-              return (
-                <div key={cat.title}>
-                  <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-slate-400 mb-2">
-                    {cat.title}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {visible.map((source) => {
-                      const config = getSourceConfig(source);
-                      const active = selectedSources.includes(source);
-                      return (
-                        <button
-                          key={source}
-                          onClick={() => onToggle(source)}
-                          data-active={String(active)}
-                          className="filter-pill pill text-[12px] flex items-center gap-1.5"
-                        >
-                          <span className="text-[12px]">{config.icon}</span>
-                          <span>{config.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+            {groups.map((group) => (
+              <div key={group.category}>
+                <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-slate-400 mb-2">
+                  {group.title}
                 </div>
-              );
-            })}
+                <div className="flex flex-wrap gap-1.5">
+                  {group.sources.map((source) => {
+                    const config = getSourceConfig(source);
+                    const active = selectedSources.includes(source);
+                    return (
+                      <button
+                        key={source}
+                        onClick={() => onToggle(source)}
+                        data-active={String(active)}
+                        className="filter-pill pill text-[12px] flex items-center gap-1.5"
+                      >
+                        <span className="text-[12px]">{config.icon}</span>
+                        <span>{config.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </motion.div>
       )}

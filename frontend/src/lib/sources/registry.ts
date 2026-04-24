@@ -4,6 +4,27 @@
 
 import { SourceType } from "./types";
 
+// Human category buckets used by SourceFilter to group the 28 sources into
+// scannable sections. Ordering in `CATEGORY_ORDER` drives the sheet
+// render order, so the "most useful" buckets come first.
+export type SourceCategory =
+  | "repos"
+  | "packages"
+  | "ai"
+  | "community"
+  | "scholarly";
+
+export const CATEGORY_META: Record<
+  SourceCategory,
+  { title: string; order: number }
+> = {
+  repos:     { title: "Repos",     order: 0 },
+  packages:  { title: "Packages",  order: 1 },
+  ai:        { title: "AI & ML",   order: 2 },
+  community: { title: "Community", order: 3 },
+  scholarly: { title: "Scholarly", order: 4 },
+};
+
 interface SourceDisplayConfig {
   name: string;
   icon: string;
@@ -11,6 +32,7 @@ interface SourceDisplayConfig {
   borderColor: string;
   bgColor: string;
   supportsOr: boolean;
+  category: SourceCategory;
 }
 
 const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
@@ -21,6 +43,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-gray-500/30",
     bgColor: "bg-gray-500/10",
     supportsOr: true,
+    category: "repos",
   },
   huggingface: {
     name: "Hugging Face",
@@ -29,6 +52,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-yellow-500/30",
     bgColor: "bg-yellow-500/10",
     supportsOr: false,
+    category: "ai",
   },
   gitlab: {
     name: "GitLab",
@@ -37,6 +61,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
     supportsOr: true,
+    category: "repos",
   },
   npm: {
     name: "npm",
@@ -45,6 +70,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-red-500/30",
     bgColor: "bg-red-500/10",
     supportsOr: false,
+    category: "packages",
   },
   pypi: {
     name: "PyPI",
@@ -53,6 +79,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-blue-500/30",
     bgColor: "bg-blue-500/10",
     supportsOr: false,
+    category: "packages",
   },
   crates: {
     name: "crates.io",
@@ -61,6 +88,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
     supportsOr: false,
+    category: "packages",
   },
   hackernews: {
     name: "Hacker News",
@@ -69,6 +97,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-amber-500/30",
     bgColor: "bg-amber-500/10",
     supportsOr: false,
+    category: "community",
   },
   codeberg: {
     name: "Codeberg",
@@ -77,6 +106,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-emerald-500/30",
     bgColor: "bg-emerald-500/10",
     supportsOr: true,
+    category: "repos",
   },
   packagist: {
     name: "Packagist",
@@ -85,6 +115,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-indigo-500/30",
     bgColor: "bg-indigo-500/10",
     supportsOr: false,
+    category: "packages",
   },
   rubygems: {
     name: "RubyGems",
@@ -93,6 +124,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-rose-500/30",
     bgColor: "bg-rose-500/10",
     supportsOr: false,
+    category: "packages",
   },
   reddit: {
     name: "Reddit",
@@ -101,6 +133,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
     supportsOr: false,
+    category: "community",
   },
   dockerhub: {
     name: "Docker Hub",
@@ -109,6 +142,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-sky-500/30",
     bgColor: "bg-sky-500/10",
     supportsOr: false,
+    category: "packages",
   },
   jsr: {
     name: "JSR",
@@ -117,6 +151,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-yellow-500/30",
     bgColor: "bg-yellow-500/10",
     supportsOr: false,
+    category: "packages",
   },
   flathub: {
     name: "Flathub",
@@ -125,6 +160,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-indigo-500/30",
     bgColor: "bg-indigo-500/10",
     supportsOr: false,
+    category: "packages",
   },
   devto: {
     name: "Dev.to",
@@ -133,6 +169,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-zinc-500/30",
     bgColor: "bg-zinc-500/10",
     supportsOr: false,
+    category: "community",
   },
   lobsters: {
     name: "Lobsters",
@@ -141,6 +178,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-rose-500/30",
     bgColor: "bg-rose-500/10",
     supportsOr: false,
+    category: "community",
   },
   stackoverflow: {
     name: "Stack Overflow",
@@ -149,6 +187,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
     supportsOr: false,
+    category: "community",
   },
   paperswithcode: {
     name: "Papers with Code",
@@ -157,6 +196,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-violet-500/30",
     bgColor: "bg-violet-500/10",
     supportsOr: false,
+    category: "ai",
   },
   homebrew: {
     name: "Homebrew",
@@ -165,6 +205,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-amber-500/30",
     bgColor: "bg-amber-500/10",
     supportsOr: false,
+    category: "packages",
   },
   fdroid: {
     name: "F-Droid",
@@ -173,6 +214,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-lime-500/30",
     bgColor: "bg-lime-500/10",
     supportsOr: false,
+    category: "packages",
   },
   arxiv: {
     name: "arXiv",
@@ -181,6 +223,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-red-500/30",
     bgColor: "bg-red-500/10",
     supportsOr: false,
+    category: "scholarly",
   },
   aur: {
     name: "AUR",
@@ -189,6 +232,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-sky-500/30",
     bgColor: "bg-sky-500/10",
     supportsOr: false,
+    category: "packages",
   },
   openvsx: {
     name: "Open VSX",
@@ -197,6 +241,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-violet-500/30",
     bgColor: "bg-violet-500/10",
     supportsOr: false,
+    category: "packages",
   },
   conda: {
     name: "conda-forge",
@@ -205,6 +250,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-green-500/30",
     bgColor: "bg-green-500/10",
     supportsOr: false,
+    category: "packages",
   },
   zenodo: {
     name: "Zenodo",
@@ -213,6 +259,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-cyan-500/30",
     bgColor: "bg-cyan-500/10",
     supportsOr: false,
+    category: "scholarly",
   },
   nuget: {
     name: "NuGet",
@@ -221,6 +268,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-blue-500/30",
     bgColor: "bg-blue-500/10",
     supportsOr: false,
+    category: "packages",
   },
   wordpress: {
     name: "WordPress",
@@ -229,6 +277,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-slate-500/30",
     bgColor: "bg-slate-500/10",
     supportsOr: false,
+    category: "packages",
   },
   maven: {
     name: "Maven Central",
@@ -237,11 +286,37 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     borderColor: "border-amber-500/30",
     bgColor: "bg-amber-500/10",
     supportsOr: false,
+    category: "packages",
   },
 };
 
 export function getSourceConfig(source: SourceType): SourceDisplayConfig {
   return SOURCE_CONFIGS[source];
+}
+
+// Group a list of sources by their declared category, preserving the
+// CATEGORY_META ordering. Empty categories are dropped. Callers get a
+// ready-to-render list of { title, sources[] } pairs.
+export function groupSourcesByCategory(
+  sources: SourceType[],
+): Array<{ category: SourceCategory; title: string; sources: SourceType[] }> {
+  const buckets = new Map<SourceCategory, SourceType[]>();
+  for (const s of sources) {
+    const cfg = SOURCE_CONFIGS[s];
+    if (!cfg) continue;
+    const list = buckets.get(cfg.category) ?? [];
+    list.push(s);
+    buckets.set(cfg.category, list);
+  }
+  return [...buckets.entries()]
+    .map(([category, list]) => ({
+      category,
+      title: CATEGORY_META[category].title,
+      sources: list,
+    }))
+    .sort(
+      (a, b) => CATEGORY_META[a.category].order - CATEGORY_META[b.category].order,
+    );
 }
 
 // Native search URL on the upstream platform, used by the "see all on X"
