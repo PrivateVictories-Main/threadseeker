@@ -99,10 +99,12 @@ export function SourceFilter({
                 }
               };
               return (
-                <div
-                  key={group.category}
-                  className={`transition-opacity duration-200 ${allInactive ? "opacity-60" : "opacity-100"}`}
-                >
+                <div key={group.category}>
+                  {/* Header row stays at full opacity so the All/None
+                      toggle and category title remain crisp/discoverable
+                      even when the chip cluster below is in zero-state
+                      fade. Only the chip section recedes — the affordance
+                      to bring the category back never reads as disabled. */}
                   <div className="flex items-baseline justify-between mb-2 gap-2">
                     <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-slate-400">
                       {group.title}
@@ -138,7 +140,9 @@ export function SourceFilter({
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div
+                    className={`flex flex-wrap gap-1.5 transition-opacity duration-200 ${allInactive ? "opacity-60" : "opacity-100"}`}
+                  >
                     {group.sources.map((source) => {
                       const config = getSourceConfig(source);
                       const Icon = config.lucideIcon;
