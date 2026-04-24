@@ -92,6 +92,14 @@ function saveCache(lang: LangKey, data: TrendingRepo[]) {
   }
 }
 
+function clearCache(lang: LangKey) {
+  try {
+    sessionStorage.removeItem(cacheKey(lang));
+  } catch {
+    /* private mode — ignore */
+  }
+}
+
 export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) => void }) {
   const [lang, setLang] = useState<LangKey>("");
   const [repos, setRepos] = useState<TrendingRepo[] | null>(null);
@@ -178,7 +186,17 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
           </p>
           <button
             type="button"
-            onClick={() => setRetryNonce((n) => n + 1)}
+            onClick={() => {
+              // Drop any persisted cache for this language before
+              // refetching so retry hits the network instead of
+              // silently re-rendering whatever stale (or post-error)
+              // state lingered. The effect dep on retryNonce already
+              // skips the in-flight cache read, but clearing the
+              // sessionStorage entry guarantees the next fresh visit
+              // also doesn't see ghost data if the retry itself fails.
+              clearCache(lang);
+              setRetryNonce((n) => n + 1);
+            }}
             className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-indigo-700 hover:text-indigo-800 transition-colors"
             aria-label="Retry fetching trending repos"
           >
