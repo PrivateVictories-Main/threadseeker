@@ -838,8 +838,12 @@ export default function Home() {
                       const [primary, ...secondary] = actions;
                       const pillClass =
                         "text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors inline-flex items-center justify-center gap-1";
+                      // Canonical primary-CTA look: extends the .btn-primary
+                      // utility (which already wires --ts-accent-gradient),
+                      // overriding only the shape/width so it reads as a
+                      // full-width phone CTA rather than a 36px button.
                       const primaryMobileClass =
-                        "sm:hidden w-full text-[13px] font-semibold text-white bg-gradient-to-br from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 rounded-full px-3.5 py-2.5 transition-colors inline-flex items-center justify-center gap-1.5 shadow-sm";
+                        "sm:hidden btn btn-primary w-full rounded-full h-11 text-[13px]";
                       const renderPill = (a: Action, extra = "") =>
                         a.href ? (
                           <a

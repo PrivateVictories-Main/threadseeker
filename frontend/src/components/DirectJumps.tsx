@@ -79,9 +79,11 @@ export function DirectJumps({ query }: Props) {
             href={r.url(q)}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-2.5 py-1 transition-colors"
+            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-2.5 py-1 transition-colors"
           >
-            <span className="text-[11px]">{r.icon}</span>
+            {/* Bumped 11px → 14px so emoji icons read as icons instead of
+                specks. leading-none keeps the pill height honest. */}
+            <span className="text-[14px] leading-none">{r.icon}</span>
             <span>{r.name}</span>
           </a>
         ))}
