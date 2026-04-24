@@ -76,4 +76,84 @@ export const BACKTEST_QUERIES: BacktestQuery[] = [
   // --- Ecosystem: "best in X" ---
   { query: "react components library", category: "ecosystem", expected: ["shadcn", "radix", "chakra", "mantine", "mui", "antd"] },
   { query: "llm inference", category: "ecosystem", expected: ["llama.cpp", "vllm", "ollama", "transformers", "llamafile"] },
+
+  // --- Newer-meta / 2025-2026 ---
+  { query: "mcp server", category: "broad-concept", expected: ["mcp", "model-context-protocol", "modelcontextprotocol/servers"] },
+  { query: "mcp server for postgres", category: "task-shaped", expected: ["mcp", "postgres"] },
+  { query: "agentic framework", category: "broad-concept", expected: ["langgraph", "crewai", "autogen", "swarm"] },
+  { query: "ai agent framework python", category: "language-scoped", expected: ["langgraph", "crewai", "autogen"] },
+  { query: "local llm runtime", category: "broad-concept", expected: ["ollama", "llama.cpp", "vllm", "lm-studio"] },
+  { query: "llm observability", category: "broad-concept", expected: ["langfuse", "helicone", "traceloop"] },
+  { query: "vector database self hosted", category: "task-shaped", expected: ["chroma", "qdrant", "weaviate", "milvus"] },
+  { query: "text to image open source", category: "task-shaped", expected: ["stable-diffusion", "comfyui", "flux"] },
+  { query: "whisper transcription", category: "exact-name", expected: ["whisper", "openai/whisper"] },
+  { query: "rag pipeline", category: "broad-concept", expected: ["llamaindex", "langchain", "haystack"] },
+
+  // --- Dev tooling ---
+  { query: "ripgrep", category: "exact-name", expected: ["ripgrep"], idealWinner: "BurntSushi/ripgrep" },
+  { query: "diff tool cli", category: "task-shaped", expected: ["delta", "difftastic"] },
+  { query: "code editor rust", category: "language-scoped", expected: ["zed", "helix"] },
+  { query: "terminal emulator gpu", category: "broad-concept", expected: ["ghostty", "wezterm", "alacritty", "kitty"] },
+  { query: "js bundler fast", category: "broad-concept", expected: ["vite", "turbopack", "esbuild", "rolldown"] },
+  { query: "monorepo tool", category: "broad-concept", expected: ["turborepo", "nx", "lerna"] },
+
+  // --- Framework ecosystems ---
+  { query: "react form library", category: "language-scoped", expected: ["react-hook-form", "formik", "tanstack-form"] },
+  { query: "react data fetching", category: "language-scoped", expected: ["tanstack-query", "react-query", "swr"] },
+  { query: "vue state management", category: "language-scoped", expected: ["pinia", "vuex"] },
+  { query: "svelte component library", category: "language-scoped", expected: ["melt", "bits-ui", "skeleton"] },
+  { query: "react component library", category: "language-scoped", expected: ["shadcn", "radix", "chakra", "mui"] },
+
+  // --- Data / DB ---
+  { query: "postgres orm javascript", category: "language-scoped", expected: ["prisma", "drizzle", "typeorm", "kysely"] },
+  { query: "local first sync engine", category: "task-shaped", expected: ["automerge", "powersync", "replicache", "electric"] },
+  { query: "duckdb", category: "exact-name", expected: ["duckdb"], idealWinner: "duckdb/duckdb" },
+  { query: "valkey", category: "exact-name", expected: ["valkey"], idealWinner: "valkey-io/valkey" },
+
+  // --- Infra ---
+  { query: "reverse proxy", category: "broad-concept", expected: ["caddy", "traefik", "nginx"] },
+  { query: "tunnel localhost", category: "task-shaped", expected: ["cloudflared", "ngrok", "tailscale"] },
+  { query: "kubernetes alternative", category: "broad-concept", expected: ["nomad", "k3s", "docker-swarm"] },
+  { query: "edge runtime", category: "broad-concept", expected: ["cloudflare-workers", "deno-deploy", "fastly"] },
+
+  // --- Security ---
+  { query: "password manager self hosted", category: "task-shaped", expected: ["bitwarden", "vaultwarden", "keepassxc"] },
+
+  // --- Graphics ---
+  { query: "3d in browser", category: "task-shaped", expected: ["three.js", "babylon", "react-three-fiber"] },
+  { query: "shader playground", category: "task-shaped", expected: ["shadertoy", "twgl", "regl"] },
+  { query: "webgpu library", category: "broad-concept", expected: ["wgpu", "three.js", "babylon"] },
+
+  // --- Go / Java / Scala ---
+  { query: "go web framework", category: "language-scoped", expected: ["gin", "echo", "fiber", "chi"] },
+  { query: "java web framework", category: "language-scoped", expected: ["spring-boot", "quarkus", "micronaut"] },
+
+  // --- Workflow / automation ---
+  { query: "n8n", category: "exact-name", expected: ["n8n"], idealWinner: "n8n-io/n8n" },
+  { query: "workflow automation self hosted", category: "task-shaped", expected: ["n8n", "windmill", "activepieces"] },
+
+  // --- Newer editors ---
+  { query: "zed editor", category: "exact-name", expected: ["zed"], idealWinner: "zed-industries/zed" },
+  { query: "helix editor", category: "exact-name", expected: ["helix"], idealWinner: "helix-editor/helix" },
+
+  // --- Media / video ---
+  { query: "video editor open source", category: "task-shaped", expected: ["shotcut", "kdenlive", "openshot", "olive"] },
+
+  // --- Markdown / editors ---
+  { query: "rich text editor javascript", category: "language-scoped", expected: ["tiptap", "lexical", "slate", "prosemirror"] },
+  { query: "markdown wysiwyg", category: "task-shaped", expected: ["tiptap", "milkdown", "lexical"] },
+
+  // --- Observability ---
+  { query: "metrics time series db", category: "task-shaped", expected: ["prometheus", "influxdb", "victoriametrics"] },
+  { query: "log aggregation", category: "broad-concept", expected: ["loki", "vector", "fluentbit"] },
+
+  // --- Static site ---
+  { query: "static site generator", category: "broad-concept", expected: ["astro", "hugo", "zola", "eleventy"] },
+
+  // --- Niche but canonical ---
+  { query: "ollama", category: "exact-name", expected: ["ollama"], idealWinner: "ollama/ollama" },
+  { query: "comfyui", category: "exact-name", expected: ["comfyui"], idealWinner: "comfyanonymous/comfyui" },
+  { query: "langgraph", category: "exact-name", expected: ["langgraph"], idealWinner: "langchain-ai/langgraph" },
+  { query: "tiptap", category: "exact-name", expected: ["tiptap"], idealWinner: "ueberdosis/tiptap" },
+  { query: "shadcn ui", category: "exact-name", expected: ["shadcn", "shadcn-ui/ui"], idealWinner: "shadcn-ui/ui" },
 ];
