@@ -183,10 +183,16 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
       ) : (
         <div className="grid gap-1.5 sm:grid-cols-2 max-w-2xl mx-auto">
           {repos.slice(0, 6).map((r) => {
-            // GitHub avatar URL can be derived from the owner segment of the
-            // full name — avoids a second API call.
+            // GitHub avatar URL is derived from the owner segment of the
+            // full name. TrendingSection only hits api.github.com today, so
+            // every owner has a matching avatar — but if this section ever
+            // grows to include gitlab/codeberg trending, the URL prefix
+            // here is the place to branch on source. The img onError below
+            // gracefully degrades to a glyph placeholder so a single 404
+            // from a deleted-account ghost owner doesn't show a broken icon.
             const owner = r.fullName.split("/")[0];
             const avatar = `https://avatars.githubusercontent.com/${owner}?s=40`;
+            const initial = (r.name.charAt(0) || "?").toUpperCase();
             return (
               <a
                 key={r.fullName}
@@ -210,8 +216,22 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
                   alt=""
                   loading="lazy"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    // Hide the broken img and show its sibling fallback.
+                    const img = e.currentTarget;
+                    img.style.display = "none";
+                    const next = img.nextElementSibling as HTMLElement | null;
+                    if (next) next.style.display = "inline-flex";
+                  }}
                   className="w-5 h-5 rounded-full flex-shrink-0 border border-indigo-100 bg-white"
                 />
+                <span
+                  aria-hidden
+                  style={{ display: "none" }}
+                  className="w-5 h-5 rounded-full flex-shrink-0 bg-indigo-100 text-indigo-700 text-[10px] font-semibold inline-flex items-center justify-center"
+                >
+                  {initial}
+                </span>
                 <div className="min-w-0 flex-1 flex items-baseline gap-1.5">
                   <span className="text-[13px] font-medium text-slate-800 group-hover:text-indigo-700 truncate flex-shrink-0 max-w-[55%]">
                     {r.name}
