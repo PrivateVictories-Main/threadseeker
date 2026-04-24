@@ -127,28 +127,31 @@ export function ResultsToolbar({
 
   return (
     <div className="glass flex flex-col gap-2 px-4 py-2.5 rounded-xl">
-      <div className="flex items-center gap-2 flex-wrap">
-        <button
-          onClick={() => setFilterOpen((v) => !v)}
-          className="btn btn-ghost text-[12.5px] h-8 px-3"
-          aria-expanded={filterOpen}
-          title="Filter by source"
-        >
-          <Filter className="w-3.5 h-3.5" />
-          <span>
-            Sources
-            {activeSource ? (
-              <span className="ml-1 text-indigo-700">· {getSourceConfig(activeSource).name}</span>
-            ) : (
-              <span className="ml-1 text-slate-400">· All {activeSourceCount}</span>
-            )}
-          </span>
-          <ChevronDown
-            className={`w-3.5 h-3.5 transition-transform ${filterOpen ? "rotate-180" : ""}`}
-          />
-        </button>
-
-        <div className="ml-auto flex items-center gap-2">
+      {/* Two logical groups: [Sources + Sort] on the left, [MD/JSON/Share]
+          on the right. Both clusters are flex-wrap with min-w-0 so a narrow
+          viewport breaks the row between groups instead of awkwardly
+          mid-button or stacking every control on its own line. */}
+      <div className="flex items-center gap-x-3 gap-y-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <button
+            onClick={() => setFilterOpen((v) => !v)}
+            className="btn btn-ghost text-[12.5px] h-8 px-3 min-w-0"
+            aria-expanded={filterOpen}
+            title="Filter by source"
+          >
+            <Filter className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">
+              Sources
+              {activeSource ? (
+                <span className="ml-1 text-indigo-700">· {getSourceConfig(activeSource).name}</span>
+              ) : (
+                <span className="ml-1 text-slate-400">· All {activeSourceCount}</span>
+              )}
+            </span>
+            <ChevronDown
+              className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${filterOpen ? "rotate-180" : ""}`}
+            />
+          </button>
           <div className="relative" ref={sortRef}>
             <button
               onClick={() => setSortOpen((v) => !v)}
@@ -156,10 +159,10 @@ export function ResultsToolbar({
               aria-expanded={sortOpen}
               aria-haspopup="listbox"
             >
-              <ArrowDownWideNarrow className="w-3.5 h-3.5" />
-              <span>{currentSortLabel}</span>
+              <ArrowDownWideNarrow className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">{currentSortLabel}</span>
               <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform ${sortOpen ? "rotate-180" : ""}`}
+                className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${sortOpen ? "rotate-180" : ""}`}
               />
             </button>
             <AnimatePresence>
@@ -198,7 +201,9 @@ export function ResultsToolbar({
               )}
             </AnimatePresence>
           </div>
-          <div className="hidden sm:block w-px h-5 bg-indigo-100" aria-hidden />
+        </div>
+
+        <div className="ml-auto flex items-center gap-2 flex-wrap min-w-0">
           <motion.button
             onClick={() => handleExport("md")}
             className="btn btn-ghost text-[12.5px] h-8 px-3"

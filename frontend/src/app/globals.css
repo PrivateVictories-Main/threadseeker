@@ -298,6 +298,13 @@ body {
   color: var(--ts-text-subtle);
   font-variant-numeric: tabular-nums;
   margin: -4px 0 0;
+  /* Long-form units ("11 months ago") can wrap on narrow cards — keep the
+     line on a single row and ellipsize the tail rather than letting the
+     caption push the card geometry around. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 .ts-topics {
   display: flex; flex-wrap: wrap; gap: 6px;
