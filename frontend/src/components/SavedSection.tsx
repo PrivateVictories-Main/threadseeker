@@ -97,11 +97,17 @@ export function SavedSection() {
                   removeBookmark(b.id);
                   emitBookmarksChanged();
                 }}
-                className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0"
+                /* On touch the bookmark cards have no hover state to
+                   reveal the remove button — we let opacity stay 100%
+                   on touch (`group-hover` won't fire reliably) and
+                   bump the hit area to 44x44 so it's tappable. On
+                   hover-capable pointers the button stays small +
+                   reveal-on-hover for the cleaner desktop look. */
+                className="inline-flex items-center justify-center w-11 h-11 sm:w-auto sm:h-auto sm:p-1 -m-2 sm:m-0 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 flex-shrink-0"
                 aria-label={`Remove ${b.name} from saved`}
                 title="Remove"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3.5 h-3.5" aria-hidden />
               </button>
             </div>
           );

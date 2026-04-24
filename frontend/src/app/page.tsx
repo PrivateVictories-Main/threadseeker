@@ -669,7 +669,7 @@ export default function Home() {
                           setHistory([]);
                           saveHistory([]);
                         }}
-                        className="ml-1 text-slate-300 hover:text-slate-600 transition-colors"
+                        className="ml-1 inline-flex items-center justify-center w-8 h-8 sm:w-auto sm:h-auto sm:p-0 -my-1 text-slate-300 hover:text-slate-600 transition-colors rounded-full"
                         title="Clear history"
                         aria-label="Clear search history"
                       >

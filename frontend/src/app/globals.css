@@ -278,7 +278,20 @@ body > * {
   margin-left: auto;
   background: transparent; border: none; cursor: pointer;
   color: var(--ts-text-faint); font-size: 22px; line-height: 1;
-  padding: 2px 4px;
+  /* Apple HIG / WCAG 2.5.5: minimum 44x44pt tap target. The visible
+     heart glyph stays at 22px; padding inflates the hit area to 44x44
+     so phones/tablets don't require pixel-perfect taps. Padding is
+     symmetric so the heart stays optically centered in its row. */
+  min-width: 44px;
+  min-height: 44px;
+  padding: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Negative margin clawback so the larger hit-area doesn't push the
+     surrounding ts-top row layout (badge + bookmark) — visually the
+     button still occupies its old slot, only the touch surface grows. */
+  margin: -11px -11px -11px auto;
   border-radius: var(--ts-radius-sm);
   transition: color .15s ease, transform .15s ease, background .15s ease;
 }

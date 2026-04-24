@@ -73,7 +73,7 @@ export function ShortcutHelpModal() {
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="p-1.5 -mr-1 -mt-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-white/60 transition-colors"
+                className="p-3 sm:p-1.5 -mr-2 -mt-2 sm:-mr-1 sm:-mt-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-white/60 transition-colors inline-flex items-center justify-center"
                 aria-label="Close keyboard shortcuts"
               >
                 <X className="w-4 h-4" aria-hidden />
@@ -136,7 +136,7 @@ export function ShortcutHelpButton({ visible = true }: { visible?: boolean } = {
           onClick={openHelp}
           aria-label="Show keyboard shortcuts"
           title="Keyboard shortcuts (?)"
-          className="fixed bottom-4 right-4 z-30 w-9 h-9 rounded-full glass-strong flex items-center justify-center text-slate-500 hover:text-indigo-700 hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-indigo-400"
+          className="fixed bottom-4 right-4 z-30 w-11 h-11 sm:w-9 sm:h-9 rounded-full glass-strong flex items-center justify-center text-slate-500 hover:text-indigo-700 hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-indigo-400"
           initial={{ opacity: 0, y: 8, scale: 0.92 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 8, scale: 0.92 }}
