@@ -19,8 +19,10 @@ import {
   mergeRelatedProjects,
   getSourceConfig,
   getSourceSearchUrl,
+  expandQuery,
+  rankCorpus,
+  buildSearchQuery,
 } from "@/lib/sources";
-import { optimizeQueries, relatedQueries, isBackendConfigured } from "@/lib/api-client";
 import { parseQuery, applyOperators, describeOperators } from "@/lib/query-parser";
 import { toast } from "sonner";
 import { Search, Globe, ArrowRight, Clock, X } from "lucide-react";
@@ -143,7 +145,6 @@ export default function Home() {
   const [activeSourceFilter, setActiveSourceFilter] = useState<SourceType | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [searchDurationMs, setSearchDurationMs] = useState<number | null>(null);
-  const [related, setRelated] = useState<string[]>([]);
   const [focusedIdx, setFocusedIdx] = useState<number>(-1);
   const initialLoadDone = useRef(false);
   const searchRunIdRef = useRef(0);
@@ -222,7 +223,6 @@ export default function Home() {
       setProjects([]);
       setIsLoading(true);
       setSearchDurationMs(null);
-      setRelated([]);
       // If the query pins a specific source, only search that one.
       const targetSources = parsed.source && (selectedSources as string[]).includes(parsed.source)
         ? [parsed.source]
@@ -244,24 +244,16 @@ export default function Home() {
       }
 
       try {
-        // Fetch AI-optimized per-platform queries in parallel with a best-effort timeout.
-        // If the backend is down or slow, fall back to the raw query everywhere.
-        let overrides: Partial<Record<SourceType, string>> = {};
-        if (isBackendConfigured()) {
-          const timeoutP = new Promise<null>((resolve) =>
-            setTimeout(() => resolve(null), 3500),
-          );
-          const optimized = await Promise.race([optimizeQueries(freeText), timeoutP]);
-          if (optimized) {
-            overrides = {
-              github: optimized.github_query,
-              gitlab: optimized.github_query,
-              codeberg: optimized.github_query,
-              huggingface: optimized.huggingface_query,
-              reddit: optimized.reddit_query,
-              hackernews: optimized.reddit_query,
-            };
-          }
+        // Deterministic synonym expansion — no backend call. For sources that
+        // accept boolean OR syntax (github/gitlab/codeberg), expand the query
+        // to include synonym terms; everything else uses the raw query.
+        const expansion = expandQuery(freeText);
+        const overrides: Partial<Record<SourceType, string>> = {};
+        const orExpanded = buildSearchQuery(freeText, expansion, { supportsOr: true });
+        if (orExpanded !== freeText) {
+          overrides.github = orExpanded;
+          overrides.gitlab = orExpanded;
+          overrides.codeberg = orExpanded;
         }
 
         // Stream each source's results into state as they arrive. The
@@ -295,17 +287,11 @@ export default function Home() {
 
         if (searchRunIdRef.current !== runId) return;
         // Final authoritative sort + cross-source dedup once everything is in.
-        setProjects(mergeRelatedProjects(results));
+        const ranked = rankCorpus(mergeRelatedProjects(results), freeText, expansion);
+        setProjects(ranked);
 
         if (results.length === 0) {
           toast.info("No results found. Try different keywords or enable more sources.");
-        }
-
-        // Fire-and-forget related queries — not critical, just decorative.
-        if (isBackendConfigured() && results.length > 0) {
-          relatedQueries(freeText).then((list) => {
-            if (searchRunIdRef.current === runId) setRelated(list);
-          });
         }
       } catch (error) {
         if (searchRunIdRef.current !== runId) return;
@@ -586,24 +572,6 @@ export default function Home() {
                     </span>
                   )}
                 </p>
-
-                {/* Related searches — Groq-suggested sibling queries. */}
-                {related.length > 0 && !isLoading && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-wide text-slate-600">
-                      Related
-                    </span>
-                    {related.map((r) => (
-                      <button
-                        key={r}
-                        onClick={() => handleSearch(r)}
-                        className="text-[11px] text-slate-400 hover:text-slate-100 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-2.5 py-1 transition-colors"
-                      >
-                        {r}
-                      </button>
-                    ))}
-                  </div>
-                )}
 
                 <div
                   ref={resultsGridRef}

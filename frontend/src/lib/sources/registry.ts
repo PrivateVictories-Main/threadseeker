@@ -10,6 +10,7 @@ interface SourceDisplayConfig {
   color: string;
   borderColor: string;
   bgColor: string;
+  supportsOr: boolean;
 }
 
 const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
@@ -19,6 +20,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-gray-500 to-gray-700",
     borderColor: "border-gray-500/30",
     bgColor: "bg-gray-500/10",
+    supportsOr: true,
   },
   huggingface: {
     name: "Hugging Face",
@@ -26,6 +28,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-yellow-500 to-orange-500",
     borderColor: "border-yellow-500/30",
     bgColor: "bg-yellow-500/10",
+    supportsOr: false,
   },
   gitlab: {
     name: "GitLab",
@@ -33,6 +36,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-orange-500 to-red-500",
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
+    supportsOr: true,
   },
   npm: {
     name: "npm",
@@ -40,6 +44,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-red-600 to-red-700",
     borderColor: "border-red-500/30",
     bgColor: "bg-red-500/10",
+    supportsOr: false,
   },
   pypi: {
     name: "PyPI",
@@ -47,6 +52,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-blue-500 to-cyan-500",
     borderColor: "border-blue-500/30",
     bgColor: "bg-blue-500/10",
+    supportsOr: false,
   },
   crates: {
     name: "crates.io",
@@ -54,6 +60,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-orange-600 to-amber-700",
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
+    supportsOr: false,
   },
   hackernews: {
     name: "Hacker News",
@@ -61,6 +68,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-orange-400 to-amber-500",
     borderColor: "border-amber-500/30",
     bgColor: "bg-amber-500/10",
+    supportsOr: false,
   },
   codeberg: {
     name: "Codeberg",
@@ -68,6 +76,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-emerald-500 to-teal-600",
     borderColor: "border-emerald-500/30",
     bgColor: "bg-emerald-500/10",
+    supportsOr: true,
   },
   packagist: {
     name: "Packagist",
@@ -75,6 +84,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-indigo-500 to-purple-600",
     borderColor: "border-indigo-500/30",
     bgColor: "bg-indigo-500/10",
+    supportsOr: false,
   },
   rubygems: {
     name: "RubyGems",
@@ -82,6 +92,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-red-500 to-pink-600",
     borderColor: "border-rose-500/30",
     bgColor: "bg-rose-500/10",
+    supportsOr: false,
   },
   reddit: {
     name: "Reddit",
@@ -89,6 +100,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-orange-500 to-red-500",
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
+    supportsOr: false,
   },
   dockerhub: {
     name: "Docker Hub",
@@ -96,6 +108,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-sky-500 to-blue-600",
     borderColor: "border-sky-500/30",
     bgColor: "bg-sky-500/10",
+    supportsOr: false,
   },
   jsr: {
     name: "JSR",
@@ -103,6 +116,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-yellow-400 to-amber-500",
     borderColor: "border-yellow-500/30",
     bgColor: "bg-yellow-500/10",
+    supportsOr: false,
   },
   flathub: {
     name: "Flathub",
@@ -110,6 +124,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-sky-600 to-indigo-600",
     borderColor: "border-indigo-500/30",
     bgColor: "bg-indigo-500/10",
+    supportsOr: false,
   },
   devto: {
     name: "Dev.to",
@@ -117,6 +132,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-zinc-400 to-zinc-600",
     borderColor: "border-zinc-500/30",
     bgColor: "bg-zinc-500/10",
+    supportsOr: false,
   },
   lobsters: {
     name: "Lobsters",
@@ -124,6 +140,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-rose-400 to-red-500",
     borderColor: "border-rose-500/30",
     bgColor: "bg-rose-500/10",
+    supportsOr: false,
   },
   stackoverflow: {
     name: "Stack Overflow",
@@ -131,6 +148,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-orange-400 to-amber-500",
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
+    supportsOr: false,
   },
   paperswithcode: {
     name: "Papers with Code",
@@ -138,6 +156,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-violet-500 to-fuchsia-500",
     borderColor: "border-violet-500/30",
     bgColor: "bg-violet-500/10",
+    supportsOr: false,
   },
   homebrew: {
     name: "Homebrew",
@@ -145,6 +164,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-amber-500 to-yellow-600",
     borderColor: "border-amber-500/30",
     bgColor: "bg-amber-500/10",
+    supportsOr: false,
   },
   fdroid: {
     name: "F-Droid",
@@ -152,6 +172,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-lime-500 to-green-600",
     borderColor: "border-lime-500/30",
     bgColor: "bg-lime-500/10",
+    supportsOr: false,
   },
   arxiv: {
     name: "arXiv",
@@ -159,6 +180,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-red-500 to-rose-600",
     borderColor: "border-red-500/30",
     bgColor: "bg-red-500/10",
+    supportsOr: false,
   },
   aur: {
     name: "AUR",
@@ -166,6 +188,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-sky-500 to-blue-600",
     borderColor: "border-sky-500/30",
     bgColor: "bg-sky-500/10",
+    supportsOr: false,
   },
   openvsx: {
     name: "Open VSX",
@@ -173,6 +196,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-violet-500 to-purple-600",
     borderColor: "border-violet-500/30",
     bgColor: "bg-violet-500/10",
+    supportsOr: false,
   },
   conda: {
     name: "conda-forge",
@@ -180,6 +204,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-green-500 to-emerald-600",
     borderColor: "border-green-500/30",
     bgColor: "bg-green-500/10",
+    supportsOr: false,
   },
   zenodo: {
     name: "Zenodo",
@@ -187,6 +212,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-cyan-500 to-teal-600",
     borderColor: "border-cyan-500/30",
     bgColor: "bg-cyan-500/10",
+    supportsOr: false,
   },
   nuget: {
     name: "NuGet",
@@ -194,6 +220,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-blue-600 to-indigo-700",
     borderColor: "border-blue-500/30",
     bgColor: "bg-blue-500/10",
+    supportsOr: false,
   },
   wordpress: {
     name: "WordPress",
@@ -201,6 +228,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-slate-500 to-slate-700",
     borderColor: "border-slate-500/30",
     bgColor: "bg-slate-500/10",
+    supportsOr: false,
   },
   maven: {
     name: "Maven Central",
@@ -208,6 +236,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-amber-600 to-orange-700",
     borderColor: "border-amber-500/30",
     bgColor: "bg-amber-500/10",
+    supportsOr: false,
   },
 };
 

@@ -45,7 +45,9 @@ import {
 
 export * from "./types";
 export * from "./registry";
-export * from "./ranking";
+export { rankCorpus } from "./ranking-bm25";
+export { expandQuery } from "./synonyms";
+export type { ExpandQueryResult } from "./synonyms";
 export * from "./merge";
 export * from "./adapters";
 
@@ -207,4 +209,23 @@ export async function searchAllSources(
   return allProjects.sort(
     (a, b) => calculateRelevanceScore(b, query) - calculateRelevanceScore(a, query),
   );
+}
+
+import type { ExpandQueryResult } from "./synonyms";
+
+/**
+ * For sources that support OR operators in their search query (GitHub, npm),
+ * build a single composite query string. Falls back to raw user query for
+ * APIs that don't support ORs.
+ */
+export function buildSearchQuery(
+  rawQuery: string,
+  expansion: ExpandQueryResult,
+  opts: { supportsOr: boolean },
+): string {
+  if (!opts.supportsOr) return rawQuery;
+  const topN = expansion.expandedTerms.slice(0, 5);
+  if (topN.length <= 1) return rawQuery;
+  // GitHub-style: "raw OR term1 OR term2"
+  return topN.map((t) => (t.includes(" ") ? `"${t}"` : t)).join(" OR ");
 }
