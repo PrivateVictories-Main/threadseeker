@@ -393,10 +393,11 @@ body {
   border-color: transparent;
 }
 
-/* SourceFilter sheet */
+/* SourceFilter sheet — grouped by category, stays on the 24px rhythm. */
 .source-filter-sheet {
-  padding: 16px;
-  max-width: 520px;
+  padding: 24px;
+  max-width: 640px;
+  width: 100%;
   border-radius: var(--ts-radius-lg);
 }
 

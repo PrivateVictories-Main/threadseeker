@@ -501,6 +501,7 @@ export default function Home() {
                       allSources={ALL_SOURCES}
                       selectedSources={selectedSources}
                       onToggle={handleSourceToggle}
+                      onClear={() => setSelectedSources(ALL_SOURCES)}
                     />
                   )}
                 </div>
