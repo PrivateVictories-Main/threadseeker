@@ -4,6 +4,8 @@ import { UnifiedProject, SourceType, getSourceConfig } from "@/lib/sources";
 import { ArrowDownWideNarrow, Link2, Check, Download } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { springSnappy } from "@/lib/motion";
 
 export type SortMode = "relevance" | "stars" | "updated" | "downloads";
 
@@ -105,27 +107,38 @@ export function ResultsToolbar({
   return (
     <div className="glass flex flex-wrap items-center gap-2 p-2">
       <div className="flex items-center gap-1.5 flex-wrap">
-        <button
+        <motion.button
           onClick={() => onSourceClick(null)}
           data-active={String(activeSource === null)}
           className="filter-pill pill text-[11px]"
+          animate={{
+            backgroundColor:
+              activeSource === null ? "#7c3aed" : "rgba(255,255,255,0.85)",
+            color: activeSource === null ? "#ffffff" : undefined,
+          }}
+          transition={springSnappy}
         >
           All {projects.length}
-        </button>
+        </motion.button>
         {orderedSources.map(([source, count]) => {
           const cfg = getSourceConfig(source);
           const active = activeSource === source;
           return (
-            <button
+            <motion.button
               key={source}
               onClick={() => onSourceClick(active ? null : source)}
               data-active={String(active)}
               className="filter-pill pill text-[11px] flex items-center gap-1.5"
+              animate={{
+                backgroundColor: active ? "#7c3aed" : "rgba(255,255,255,0.85)",
+                color: active ? "#ffffff" : undefined,
+              }}
+              transition={springSnappy}
             >
               <span>{cfg.icon}</span>
               <span>{cfg.name}</span>
               <span className="opacity-70">{count}</span>
-            </button>
+            </motion.button>
           );
         })}
       </div>
