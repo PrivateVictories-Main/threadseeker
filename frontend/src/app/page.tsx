@@ -180,13 +180,19 @@ export default function Home() {
   const parsedQuery = useMemo(() => parseQuery(query), [query]);
 
   // Sticky header shadow accumulates with scroll depth. At top (y=0) the
-  // header reads almost flat; once the user scrolls past ~60px the shadow
-  // tweens in to its full vocabulary. Subtle but real — gives the eye a
-  // confidence signal that the page is scrolling under the header rather
-  // than the header floating in space the whole time. useScroll/useTransform
-  // run on the rAF cycle so this doesn't trigger React re-renders.
+  // header reads almost flat; the shadow tweens in across the first
+  // 120px of scroll so the depth signal feels atmospheric rather than
+  // snap-on. Eased input (slight ease-out applied via the second
+  // breakpoint) keeps the shadow restrained for the first few px of
+  // touch-bounce without delaying the eventual full-shadow read.
+  // useScroll/useTransform run on the rAF cycle so this doesn't trigger
+  // React re-renders.
   const { scrollY } = useScroll();
-  const stickyShadowOpacity = useTransform(scrollY, [0, 60], [0, 1]);
+  const stickyShadowOpacity = useTransform(
+    scrollY,
+    [0, 24, 120],
+    [0, 0.18, 1],
+  );
 
   // Mode = hero (landing) vs results. Once the user has searched, we never go
   // back to hero until they explicitly clear — that keeps the transition from
