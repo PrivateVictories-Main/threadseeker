@@ -3,15 +3,15 @@
 // and should never need to know about the file split behind this barrel.
 //
 // Split rationale:
-//   types.ts     — shapes every other layer depends on
-//   registry.ts  — per-source display config + native search URLs
-//   ranking.ts   — the single cross-source relevance score
-//   merge.ts     — cross-platform de-duplication
-//   adapters.ts  — one function per upstream API
-//   index.ts     — this file; re-exports + the orchestrator
+//   types.ts         — shapes every other layer depends on
+//   registry.ts      — per-source display config + native search URLs
+//   ranking-bm25.ts  — the single cross-source relevance score (BM25 + synonyms)
+//   synonyms.ts      — query expansion driving the BM25 ranker
+//   merge.ts         — cross-platform de-duplication
+//   adapters.ts      — one function per upstream API
+//   index.ts         — this file; re-exports + the orchestrator
 
 import { UnifiedProject, SearchResult, SearchProgressCallback, SourceType } from "./types";
-import { calculateRelevanceScore } from "./ranking";
 import {
   searchGitHub,
   searchHuggingFace,
@@ -187,15 +187,13 @@ export async function searchAllSources(
 
     remaining -= 1;
     if (onProgress) {
-      // Rank within a single source so streaming partials are already
-      // usefully ordered before slower sources catch up.
-      const ranked = [...result.projects].sort(
-        (a, b) =>
-          calculateRelevanceScore(b, query) - calculateRelevanceScore(a, query),
-      );
+      // Streaming partials arrive in the upstream API's native order. The
+      // consumer (page.tsx) re-ranks the merged corpus authoritatively via
+      // rankCorpus() once all sources have returned, so a per-source sort
+      // here would just be thrown away.
       onProgress({
         source,
-        projects: ranked,
+        projects: result.projects,
         done: remaining === 0,
         remaining,
       });
@@ -206,9 +204,8 @@ export async function searchAllSources(
   const results = await Promise.all(searchPromises);
   const allProjects = results.flatMap((r) => r.projects);
 
-  return allProjects.sort(
-    (a, b) => calculateRelevanceScore(b, query) - calculateRelevanceScore(a, query),
-  );
+  // Intentionally unsorted — final ranking is rankCorpus() in the caller.
+  return allProjects;
 }
 
 import type { ExpandQueryResult } from "./synonyms";

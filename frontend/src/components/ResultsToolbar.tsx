@@ -198,7 +198,7 @@ export function ResultsToolbar({
 }
 
 // Apply sort + source filter to a project list. Keeps the original "relevance"
-// order (the array comes pre-sorted by calculateRelevanceScore) by default.
+// order (the array comes pre-sorted by rankCorpus) by default.
 export function applyResultsView(
   projects: UnifiedProject[],
   sortMode: SortMode,
