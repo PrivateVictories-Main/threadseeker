@@ -6,7 +6,7 @@
 // tabbing back & forth doesn't burn the 10-rpm rate limit.
 
 import { useEffect, useState } from "react";
-import { Flame, Star, ArrowUpRight } from "lucide-react";
+import { Flame, Star, ArrowUpRight, RefreshCw } from "lucide-react";
 
 interface TrendingRepo {
   name: string;
@@ -96,13 +96,17 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
   const [lang, setLang] = useState<LangKey>("");
   const [repos, setRepos] = useState<TrendingRepo[] | null>(null);
   const [errored, setErrored] = useState(false);
+  // Bump to force a refetch (skipping the cache).
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
     setErrored(false);
-    const cached = loadCache(lang);
-    if (cached) {
-      setRepos(cached);
-      return;
+    if (retryNonce === 0) {
+      const cached = loadCache(lang);
+      if (cached) {
+        setRepos(cached);
+        return;
+      }
     }
     setRepos(null);
     let cancelled = false;
@@ -122,7 +126,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
     return () => {
       cancelled = true;
     };
-  }, [lang]);
+  }, [lang, retryNonce]);
 
   return (
     <div className="glass section-container mt-12">
@@ -168,9 +172,20 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
       </div>
 
       {errored ? (
-        <p className="text-center text-[12px] text-slate-500">
-          Couldn&apos;t fetch trending (rate limit — try again in a minute).
-        </p>
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-center text-[12px] text-slate-500">
+            Couldn&apos;t fetch trending (rate limit — try again in a minute).
+          </p>
+          <button
+            type="button"
+            onClick={() => setRetryNonce((n) => n + 1)}
+            className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-indigo-700 hover:text-indigo-800 transition-colors"
+            aria-label="Retry fetching trending repos"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Try again
+          </button>
+        </div>
       ) : !repos ? (
         <div className="grid gap-1.5 sm:grid-cols-2 max-w-2xl mx-auto">
           {Array.from({ length: 4 }).map((_, i) => (
