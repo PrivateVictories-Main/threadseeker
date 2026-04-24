@@ -827,12 +827,12 @@ export default function Home() {
       </main>
 
       <footer className="mt-auto border-t border-indigo-100/70">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-[12px] text-slate-500">
-          <div>
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6 text-[12px] text-slate-500">
+          <div className="leading-relaxed">
             ThreadSeeker — unified search across {ALL_SOURCES.length} open-source
             platforms · no paid APIs · no tracking
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 md:flex-shrink-0">
             <a
               href="https://github.com/PrivateVictories-Main/threadseeker"
               target="_blank"
@@ -842,11 +842,11 @@ export default function Home() {
               GitHub
             </a>
             <span className="text-slate-300">·</span>
-            <span>
-              Press{" "}
+            <span className="inline-flex items-center gap-1.5">
+              Press
               <kbd className="px-1.5 py-0.5 rounded border border-indigo-200 bg-white text-slate-700 font-mono text-[11px]">
                 ?
-              </kbd>{" "}
+              </kbd>
               for shortcuts
             </span>
           </div>

@@ -64,23 +64,47 @@ export function DirectJumps({ query }: Props) {
 
   return (
     <div className="glass section-container">
-      <h3 className="section-title">
-        Jump to <span className="font-mono normal-case tracking-normal text-slate-600">{q}</span>
-      </h3>
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Desktop: stacked title + pill row. Mobile: single inline "Jump to
+          <pkg> on: [npm] [PyPI]…" so the section doesn't claim two rows of
+          vertical space on phones. */}
+      <div className="sm:hidden flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] text-slate-500">
+        <span className="uppercase tracking-[0.14em] font-semibold text-[10.5px] text-slate-400">
+          Jump to
+        </span>
+        <span className="font-mono text-slate-700">{q}</span>
+        <span className="text-slate-300">·</span>
         {hits.map((r) => (
           <a
             key={r.name}
             href={r.url(q)}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3 py-1.5 transition-colors"
+            className="inline-flex items-center gap-1 text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-2.5 py-1 transition-colors"
           >
-            <span>{r.icon}</span>
+            <span className="text-[11px]">{r.icon}</span>
             <span>{r.name}</span>
-            <ArrowUpRight className="w-3 h-3 text-slate-400" />
           </a>
         ))}
+      </div>
+      <div className="hidden sm:block">
+        <h3 className="section-title">
+          Jump to <span className="font-mono normal-case tracking-normal text-slate-600">{q}</span>
+        </h3>
+        <div className="flex flex-wrap items-center gap-2">
+          {hits.map((r) => (
+            <a
+              key={r.name}
+              href={r.url(q)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3 py-1.5 transition-colors"
+            >
+              <span>{r.icon}</span>
+              <span>{r.name}</span>
+              <ArrowUpRight className="w-3 h-3 text-slate-400" />
+            </a>
+          ))}
+        </div>
       </div>
     </div>
   );
