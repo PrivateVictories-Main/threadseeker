@@ -118,13 +118,36 @@ export default function RootLayout({
         <MotionProvider>{children}</MotionProvider>
         <Toaster
           position="bottom-right"
+          // 4-toast stack: a burst of copy-success toasts (e.g.
+          // "Markdown copied" + "Link copied" in quick succession)
+          // visibly stacks instead of clobbering the previous one.
+          // Sonner default is 3 — a touch tight for our flow.
+          visibleToasts={4}
+          // Closing on click is more forgiving than the small X target
+          // on a touch surface — tap-anywhere dismisses without
+          // requiring tight-target accuracy.
+          closeButton={false}
           toastOptions={{
+            // 3.2s default duration. Sonner's default is 4s; trimmed
+            // because our toasts are short ("Copied: ...", "Saved
+            // bookmark") and 4s feels lingering on a desktop with a
+            // hot-active flow.
+            duration: 3200,
             style: {
-              background: "rgba(255, 255, 255, 0.92)",
+              background: "rgba(255, 255, 255, 0.94)",
               border: "1px solid rgba(99, 102, 241, 0.22)",
               color: "#0f172a",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
+              // Layered shadow: a tight inner ring for definition + a
+              // softer outer drop so the toast reads as floating glass
+              // above the gradient body without a single flat shadow
+              // line. Mirrors the .glass shadow vocabulary.
+              boxShadow:
+                "0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.08)",
+              backdropFilter: "blur(18px) saturate(140%)",
+              WebkitBackdropFilter: "blur(18px) saturate(140%)",
+              borderRadius: "14px",
+              fontSize: "13px",
+              padding: "10px 14px",
             },
           }}
         />
