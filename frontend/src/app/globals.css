@@ -186,6 +186,16 @@ body {
   color: var(--ts-text);
   transition: transform .25s ease-out, box-shadow .25s ease-out;
 }
+/* Keyboard-nav scroll target — when j/k focuses a card and we call
+   scrollIntoView({ block: 'nearest' }), the sticky header (≈68px:
+   py-3 = 24px + 44px compact search bar) would otherwise occlude the
+   focused card. scroll-margin-top reserves enough headroom for the
+   focused card to land below the sticky header. Also applied to the
+   wrapper that owns the focus ring so either selector hits. */
+.ts-card,
+[data-result-card] {
+  scroll-margin-top: 80px;
+}
 .ts-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--ts-shadow-hover);
