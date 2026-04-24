@@ -112,7 +112,7 @@ export default function RootLayout({
         ))}
       </head>
       <body
-        className={`${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen bg-black`}
+        className={`${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen`}
       >
         {children}
         <Toaster 
