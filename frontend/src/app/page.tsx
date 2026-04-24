@@ -10,7 +10,7 @@ import { TrendingSection } from "@/components/TrendingSection";
 import { SavedSection } from "@/components/SavedSection";
 import { DirectJumps } from "@/components/DirectJumps";
 import { CardSkeleton } from "@/components/CardSkeleton";
-import { ShortcutHelpModal } from "@/components/ShortcutHelpModal";
+import { ShortcutHelpModal, ShortcutHelpButton } from "@/components/ShortcutHelpModal";
 import { AnimatedGrid } from "@/components/motion/AnimatedGrid";
 import { Toast } from "@/components/motion/Toast";
 import { CountUp } from "@/components/motion/CountUp";
@@ -933,6 +933,7 @@ export default function Home() {
         </div>
       </footer>
       <Toast message={toast} />
+      <ShortcutHelpButton />
     </div>
   );
 }

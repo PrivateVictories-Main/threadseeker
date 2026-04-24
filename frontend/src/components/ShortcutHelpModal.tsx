@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { HelpCircle, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { sheetVariants } from "@/lib/motion";
 
@@ -13,6 +13,11 @@ const SHORTCUTS: Array<{ keys: string[]; label: string }> = [
   { keys: ["Esc"], label: "Clear focus" },
   { keys: ["?"], label: "Toggle this help" },
 ];
+
+// Custom-event contract for opening the modal from anywhere in the app
+// without prop-threading. Kept here so callers can import the event name
+// without reaching into the component's internals.
+export const SHORTCUT_HELP_EVENT = "threadseeker:open-shortcut-help";
 
 export function ShortcutHelpModal() {
   const [open, setOpen] = useState(false);
@@ -30,8 +35,13 @@ export function ShortcutHelpModal() {
         setOpen(false);
       }
     };
+    const onOpenEvent = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(SHORTCUT_HELP_EVENT, onOpenEvent);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(SHORTCUT_HELP_EVENT, onOpenEvent);
+    };
   }, [open]);
 
   return (
@@ -101,5 +111,27 @@ export function ShortcutHelpModal() {
         </div>
       )}
     </AnimatePresence>
+  );
+}
+
+// Floating ghost-glass help button docked bottom-right. Provides a visible
+// affordance for the `?` shortcut on mouse-only users / first-time
+// visitors who'd otherwise never discover keyboard nav. Dispatches the
+// shared open event instead of owning its own open state so the modal
+// remains the single source of truth.
+export function ShortcutHelpButton() {
+  const openHelp = () => {
+    window.dispatchEvent(new CustomEvent(SHORTCUT_HELP_EVENT));
+  };
+  return (
+    <button
+      type="button"
+      onClick={openHelp}
+      aria-label="Show keyboard shortcuts"
+      title="Keyboard shortcuts (?)"
+      className="fixed bottom-4 right-4 z-30 w-9 h-9 rounded-full glass-strong flex items-center justify-center text-slate-500 hover:text-indigo-700 hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-indigo-400"
+    >
+      <HelpCircle className="w-4 h-4" />
+    </button>
   );
 }
