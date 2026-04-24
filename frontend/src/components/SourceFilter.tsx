@@ -68,8 +68,16 @@ export function SourceFilter({
                 (n, s) => n + (selectedSources.includes(s) ? 1 : 0),
                 0,
               );
+              // When every chip in a category is de-selected the section
+              // visually recedes (~60% opacity) so the eye reads "nothing
+              // active here" without the user having to count chips. Chips
+              // stay clickable — fade is purely visual, not pointer-events.
+              const allInactive = active === 0;
               return (
-                <div key={group.category}>
+                <div
+                  key={group.category}
+                  className={`transition-opacity duration-200 ${allInactive ? "opacity-60" : "opacity-100"}`}
+                >
                   <div className="flex items-baseline justify-between mb-2">
                     <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-slate-400">
                       {group.title}
