@@ -198,11 +198,13 @@ body {
 .ts-top .ts-bookmark {
   margin-left: auto;
   background: transparent; border: none; cursor: pointer;
-  color: #cbd5e1; font-size: 22px; line-height: 1;
+  color: var(--ts-text-faint); font-size: 22px; line-height: 1;
   padding: 2px 4px;
-  transition: color .15s ease, transform .15s ease;
+  border-radius: var(--ts-radius-sm);
+  transition: color .15s ease, transform .15s ease, background .15s ease;
 }
-.ts-top .ts-bookmark:hover { color: #ef4444; }
+.ts-top .ts-bookmark:hover { color: #ef4444; background: rgba(239,68,68,0.08); }
+.ts-top .ts-bookmark:focus-visible { outline-offset: 1px; }
 .ts-top .ts-bookmark.bookmarked { color: #ef4444; }
 
 .ts-title-row {
@@ -259,6 +261,14 @@ body {
   color: var(--ts-accent-strong);
   border: 1px solid rgba(99,102,241,0.18);
   white-space: nowrap;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.topic-chip:hover {
+  background: rgba(99,102,241,0.16);
+  border-color: rgba(99,102,241,0.32);
+}
+.topic-chip:active {
+  transform: scale(0.97);
 }
 
 /* Source badge — small pill identifying which platform the hit came from.
@@ -391,8 +401,8 @@ body {
 }
 
 .section-container {
-  padding: 20px 24px;
-  margin-bottom: 18px;
+  padding: 24px;
+  margin-bottom: 16px;
 }
 .section-title {
   font-size: 11px;

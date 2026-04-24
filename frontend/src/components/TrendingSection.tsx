@@ -132,15 +132,15 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
       </h2>
 
       {/* Language tabs */}
-      <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+      <div className="flex flex-wrap justify-center gap-1.5 mb-4">
         {LANGUAGES.map((l) => (
           <button
             key={l.value}
             onClick={() => setLang(l.value)}
-            className={`text-[11px] font-medium rounded-full px-3 py-1 transition-colors border ${
+            className={`text-[11.5px] font-medium rounded-full px-3 py-1 transition-colors border ${
               lang === l.value
                 ? "border-transparent bg-indigo-500 text-white shadow-sm"
-                : "border-indigo-200 bg-white/70 text-slate-600 hover:text-slate-900 hover:border-indigo-300"
+                : "border-indigo-200 bg-white/70 text-slate-600 hover:text-slate-900 hover:border-indigo-300 hover:bg-white"
             }`}
           >
             {l.label}
@@ -157,7 +157,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="h-14 rounded-md bg-white/50 border border-indigo-100 animate-pulse"
+              className="h-[58px] rounded-xl bg-white/50 border border-indigo-100 animate-pulse"
             />
           ))}
         </div>
@@ -177,7 +177,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
                   onQueryClick(r.name);
                 }
               }}
-              className="group flex items-center justify-between gap-2 rounded-md bg-white/70 hover:bg-white border border-indigo-100 hover:border-indigo-300 px-3 py-2 transition-colors"
+              className="group flex items-center justify-between gap-2 rounded-xl bg-white/70 hover:bg-white border border-indigo-100 hover:border-indigo-300 px-3 py-2.5 transition-colors"
               title={r.description ?? r.fullName}
             >
               <div className="min-w-0 flex-1">
@@ -191,7 +191,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
                 )}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                <div className="flex items-center gap-1 text-[11px] text-slate-500 tabular-nums">
                   <Star className="w-3 h-3" />
                   {r.stars.toLocaleString()}
                 </div>

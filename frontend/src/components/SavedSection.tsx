@@ -26,7 +26,7 @@ export function SavedSection() {
   if (items.length === 0) return null;
 
   return (
-    <div className="glass section-container mt-6">
+    <div className="glass section-container mt-8">
       <h2 className="section-title flex items-center justify-center gap-2">
         <BookmarkCheck className="w-3 h-3 text-rose-500" />
         Saved · {items.length}
