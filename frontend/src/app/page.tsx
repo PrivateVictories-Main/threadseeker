@@ -933,7 +933,7 @@ export default function Home() {
         </div>
       </footer>
       <Toast message={toast} />
-      <ShortcutHelpButton />
+      <ShortcutHelpButton visible={mode === "results"} />
     </div>
   );
 }

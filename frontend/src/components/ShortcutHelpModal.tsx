@@ -119,19 +119,32 @@ export function ShortcutHelpModal() {
 // visitors who'd otherwise never discover keyboard nav. Dispatches the
 // shared open event instead of owning its own open state so the modal
 // remains the single source of truth.
-export function ShortcutHelpButton() {
+//
+// Hidden on the hero/landing page — there are no result cards to navigate
+// across yet, so the floating affordance is visual clutter. Fades in once
+// the user has searched (mode === "results"). The keyboard `?` shortcut
+// itself stays globally available either way.
+export function ShortcutHelpButton({ visible = true }: { visible?: boolean } = {}) {
   const openHelp = () => {
     window.dispatchEvent(new CustomEvent(SHORTCUT_HELP_EVENT));
   };
   return (
-    <button
-      type="button"
-      onClick={openHelp}
-      aria-label="Show keyboard shortcuts"
-      title="Keyboard shortcuts (?)"
-      className="fixed bottom-4 right-4 z-30 w-9 h-9 rounded-full glass-strong flex items-center justify-center text-slate-500 hover:text-indigo-700 hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-indigo-400"
-    >
-      <HelpCircle className="w-4 h-4" />
-    </button>
+    <AnimatePresence>
+      {visible && (
+        <motion.button
+          type="button"
+          onClick={openHelp}
+          aria-label="Show keyboard shortcuts"
+          title="Keyboard shortcuts (?)"
+          className="fixed bottom-4 right-4 z-30 w-9 h-9 rounded-full glass-strong flex items-center justify-center text-slate-500 hover:text-indigo-700 hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-indigo-400"
+          initial={{ opacity: 0, y: 8, scale: 0.92 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 8, scale: 0.92 }}
+          transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
+        >
+          <HelpCircle className="w-4 h-4" />
+        </motion.button>
+      )}
+    </AnimatePresence>
   );
 }
