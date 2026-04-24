@@ -125,7 +125,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
   }, [lang]);
 
   return (
-    <div className="glass section-container mt-8">
+    <div className="glass section-container mt-12">
       <h2 className="section-title flex items-center justify-center gap-2">
         <Flame className="w-3 h-3 text-amber-600" />
         Trending this week
