@@ -64,14 +64,16 @@ export function DirectJumps({ query }: Props) {
 
   return (
     <div className="glass section-container">
-      {/* Desktop: stacked title + pill row. Mobile: single inline "Jump to
-          <pkg> on: [npm] [PyPI]…" so the section doesn't claim two rows of
-          vertical space on phones. */}
-      <div className="sm:hidden flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-[12px] text-slate-500">
-        {/* iPhone-SE-friendly mobile layout — tighter horizontal gap (1.5
-            vs 2), the package name allowed to take its own row if needed
-            (basis-full on the prefix cluster), pills shrunk to 11.5px
-            with px-2 so 6 pills fit in two clean rows on 320px width. */}
+      {/* Breakpoint cadence aligns with the rest of the app:
+          <md (≤768px): inline single-row "Jump to <pkg> · [npm] [PyPI]…"
+                        — phones AND small tablets where vertical space
+                        is still tight and the card grid is 1–2 cols.
+          ≥md         : stacked sectioned card with title + pill row,
+                        matching the cadence the SearchBar header and
+                        SavedSection switch from compact to comfortable.
+          The inline variant flex-wraps the prefix to its own line at
+          ≤sm so iPhone-SE 320px doesn't need to truncate the name. */}
+      <div className="md:hidden flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-[12px] text-slate-500">
         <span className="inline-flex items-center gap-x-1.5 basis-full sm:basis-auto">
           <span className="uppercase tracking-[0.14em] font-semibold text-[10.5px] text-slate-400">
             Jump to
@@ -93,7 +95,7 @@ export function DirectJumps({ query }: Props) {
           </a>
         ))}
       </div>
-      <div className="hidden sm:block">
+      <div className="hidden md:block">
         <h3 className="section-title">
           Jump to <span className="font-mono normal-case tracking-normal text-slate-600">{q}</span>
         </h3>
