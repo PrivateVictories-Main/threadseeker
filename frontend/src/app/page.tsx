@@ -506,9 +506,15 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* Recent */}
+                {/* Recent — staggered fade-in so the cluster materializes
+                    rather than popping when the first query lands. */}
                 {history.length > 0 && (
-                  <div className="mt-12">
+                  <motion.div
+                    className="mt-12"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.32, ease: [0.22, 0.61, 0.36, 1] }}
+                  >
                     <div className="flex items-center justify-center gap-1.5 mb-4 text-[11px] uppercase tracking-[0.14em] text-slate-400 font-semibold">
                       <Clock className="w-3 h-3" />
                       Recent
@@ -523,19 +529,32 @@ export default function Home() {
                         <X className="w-3 h-3" />
                       </button>
                     </div>
-                    <div className="flex flex-wrap justify-center gap-2">
+                    <motion.div
+                      className="flex flex-wrap justify-center gap-2"
+                      initial="hidden"
+                      animate="visible"
+                      variants={{
+                        hidden: {},
+                        visible: { transition: { staggerChildren: 0.04 } },
+                      }}
+                    >
                       {history.slice(0, 6).map((h) => (
-                        <button
+                        <motion.button
                           key={h}
                           onClick={() => handleSearch(h)}
+                          variants={{
+                            hidden: { opacity: 0, y: 4 },
+                            visible: { opacity: 1, y: 0 },
+                          }}
+                          transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
                           className="group inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3 py-1.5 transition-all"
                         >
                           <span>{h}</span>
                           <ArrowRight className="w-3 h-3 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all" />
-                        </button>
+                        </motion.button>
                       ))}
-                    </div>
-                  </div>
+                    </motion.div>
+                  </motion.div>
                 )}
 
                 <SavedSection />
