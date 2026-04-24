@@ -610,3 +610,76 @@ Already shipped: palette fix, card redesign, search-as-you-type, dark-class purg
 - **Aria-live region verbosity** (iter-8 onwards). Real screen-reader QA could decide to trim or keep.
 - **Print stylesheet** still hasn't been visually verified on a printout (iter-10 onwards). Coded blind from CSS rules.
 - **Iter-13 review found no remaining "feels off" motion / no className-soup that's worth extracting / no leftover dark-theme remnants.** The shadcn HSL `--background` / `--foreground` / etc. tokens at `globals.css:8-30` are valid light-theme triplets, not dark-mode leftovers. The ts-source-* color list (`globals.css:465-492`) is a long but consistent enumeration — not soup; each color is per-source-deliberate. Tokens.css is comment-clean. globals.css is comment-rich and the rules are grouped by concern (glass / pills / buttons / card / source-badge / search-bar / sticky-progress / hero / print). Iter 13's remaining time was spent on the legitimate gaps surfaced above.
+
+### Iteration 14 — 2026-04-23 — TS typecheck cleanup, responsive audit, design-system docs
+
+**Pivot from iter 1-13.** Three independent tracks rather than a polish sweep: (A) drain the iter-13 tsc-noEmit hand-off, (B) audit the layout at five widths and tighten anything that breaks, (C) capture the calcified design system into a contributor-facing reference so the polish work survives contributor churn.
+
+**Commits:**
+- 08acfb9 — Polish: fix ranking-bm25.test.ts UnifiedProject shape — tsc --noEmit clean
+- 65e0173 — Polish: hero h1 — 40px at iPhone-SE width, 44px from xs (400px) up
+- 864ce0c — Polish: add frontend/DESIGN.md — contributor design-system reference
+
+**Track A — TypeScript typecheck cleanup (iter-13 hand-off primary 1).**
+`frontend/src/lib/sources/ranking-bm25.test.ts` had two TS errors flagged by `tsc --noEmit`: the `mk()` helper used the legacy UnifiedProject shape (`avatarUrl: string | null`, `license: string | null`) which predates the current contract (`author: { name; avatar }`, `license?: string`). Vitest doesn't typecheck so the tests passed; Next's build skips test files so `npm run build` was clean — but `tsc --noEmit` would block any future strict-CI gate. Aligned the helper with the real type. Tests still 59/59 green; `tsc --noEmit` from the frontend dir is now clean. ~5 min fix as predicted.
+
+**Track B — Responsive deep audit (320 / 375 / 768 / 1024 / 1440).**
+Walked every UI surface at all five widths via close reading of the Tailwind class trees + token sizes + the responsive vocabulary established across iter 1-13. Findings per width:
+
+- **320px (iPhone SE):** Hero h1 at `text-[44px]` was visually heavy — "Search open source" wraps to two lines and "everywhere" lands on a third. Workable but bumped down to `text-[40px]` for the very-narrow band. Added an `xs: 400px` breakpoint to the Tailwind config so iPhone 12 mini / standard widths still get the original 44px. Everything else at 320px (sticky header SearchBar + Clear button, card grid 1-col, filter chips wrap, footer stack, NetworkErrorTray clamp from iter-11, empty-state action stack with capped 2 secondary pills from iter-10) verified clean — no horizontal scroll, no overflow, no awkward wrap.
+- **375px (iPhone 12 mini):** Above the new `xs:` floor — inherits the 44px hero, otherwise identical to 320 layout. No new fixes needed.
+- **768px (iPad portrait, md):** Card grid sits at 2-col (sm:grid-cols-2 holds through to lg). Footer transitions to flex-row at md. ResultsToolbar fits both groups on one row. DirectJumps switches from inline-row to stacked-section card at md. No issues.
+- **1024px (iPad landscape, lg):** Card grid switches to 3-col + lg:gap-6. Each card ~315px wide which is on the tight side (24+24=48 padding leaves ~267 content) but workable; the `auto-rows-fr` row alignment + 17px title size keeps the geometry readable. No fixes — this is a deliberate "more cards, slightly tighter" trade.
+- **1440px (desktop):** max-w-[1280px] caps content; px-4 sm:px-6 outer padding holds. Hero h1 at `lg:text-7xl` (72px) balances the 1280 column. No issues.
+
+**Track C — Design system documentation.**
+Wrote `frontend/DESIGN.md` (378 lines) — a contributor-facing reference for the visual vocabulary across `tokens.css`, `globals.css`, `motion.ts`, and the component tree. Sections:
+- Where things live (file → purpose table)
+- `--ts-*` token vocabulary (surfaces, accent, text, radii, shadows, blur, intent-hue)
+- Rhythm scale (4/8/12/16/24/32/48)
+- Glass surface tiers + the `@supports not` fallback
+- Pill / button / chip / topic-chip patterns
+- Typography scale + letter-spacing convention
+- Spring preset table with "when to reach for which" guidance
+- Pre-built variant catalog (cardVariants, sheetVariants, modeVariants, bookmarkVariants, gridContainer)
+- Reduced-motion two-layer contract (CSS @media + framer MotionConfig)
+- Intent-hue mapping (220/150/200/240/350/40)
+- Accessibility patterns (focus-visible, aria-hidden, aria-label, 44×44 tap targets, live regions, skip link)
+- Card structure (`.ts-card`) + `auto-rows-fr` alignment
+- Source-vocabulary touchpoints (4 files per new source)
+- Responsive breakpoint table (incl. new xs:400px)
+- Print stylesheet expectations
+- Anti-patterns ("don't inline shadows", "don't bypass MotionProvider", etc.)
+- Adding-a-new-component checklist
+
+Located at `frontend/DESIGN.md` (project root level) so contributors find it next to the package.json — chosen over `frontend/src/styles/README.md` because the doc covers more than just styles (motion, accessibility, source vocabulary, responsive system).
+
+**Skipped this iteration (with reason):**
+- **Hero subtitle / footer wrap concerns at 320px.** Read both — subtitle wraps to 2 lines via natural word-break (fine), footer dot-separators wrap mid-sentence at 320 (acceptable; adding `whitespace-nowrap` to each pair would gold-plate). No fix.
+- **Card grid 3-col at lg:1024.** Considered keeping 2-col through xl:1280 and bumping to 3-col only at xl. But the user-tuned design wants more density at iPad-landscape; respected the existing decision.
+- **Sticky header at 320px.** Confirmed SearchBar (`flex-1 min-w-0`) + hidden-on-mobile count + Clear button fit within 288 inner width. SearchBar gets ~226px which gives the input ~130px after submit button — placeholder ellipsizes. Functional. No fix.
+- **iter-13 hand-off items beyond TS:** all defer-class items still defer (cross-browser QA, source-tagline-on-touch, etc.).
+
+**Test count:** 59 (unchanged — Track A is a type-only fix, Track B touched only Tailwind tokens + one className, Track C is a new markdown file).
+
+**Build:** clean. Page bundle 88.1 kB unchanged.
+
+**Files touched:**
+- `frontend/src/lib/sources/ranking-bm25.test.ts` (UnifiedProject shape)
+- `frontend/tailwind.config.ts` (xs:400px breakpoint)
+- `frontend/src/app/page.tsx` (hero h1 size adjustment)
+- `frontend/DESIGN.md` (new — 378 lines)
+
+**Still rough (hand off to iteration 15):**
+The polish track is approaching declared-shipped status. Remaining items are all defer-class:
+- **Toast close-button cross-browser QA** (iter-12 hand-off, untouched). Sonner's `[data-close-button]` selector still drives ghost styling. Manual smoke recommended.
+- **Source-tagline tooltip on touch** (iter-12 hand-off, untouched). Touch widths ignore `title=`. A tap-and-hold popover or `(?)` icon on opaque labels (JSR, AUR, openvsx) would fill the gap. Adds JS over zero-cost browser-native. Defer until a touch user reports confusion.
+- **Per-card motion-dedup may break framer FLIP edge cases** (iter-12, structural). Standard pattern; no observed regression.
+- **cardVariants.exit scale 0.94 vs hover scale 1.0** (iter-12). Visual judgment call at 60Hz; high confidence.
+- **Decorative slate-400 uppercase tracking labels below WCAG 4.5:1** (iter-10). Decorative-class; conscious decision.
+- **DockerHub version chip** still off (iter-9). Latency cost outweighs polish unless explicitly requested.
+- **Aria-live region verbosity** (iter-8). Real screen-reader QA could decide.
+- **Print stylesheet** unverified on real printout (iter-10).
+- **iPad-landscape 3-col density at 1024.** Cards ~315 wide which is on the tight side. Could keep 2-col through xl:1280 and bump 3-col only at xl. Design judgment call; left as-is.
+
+**Iter-15 prompt:** the realistic next move is "declare shipped" — close out the overnight polish run and let the remaining defer-class items sit until someone reports actual UX regression. If iter 15 *does* run, the highest-value targets are real-browser cross-device QA (Toast + intent-hue + print + close-button on Safari/Firefox/iOS Safari on a 120Hz device) and the touch-aware tagline disambiguation, both of which need a user device + manual eyes rather than another close-reading pass.
