@@ -670,16 +670,21 @@ export default function Home() {
                   <div className="space-y-5">
                     <div className="flex items-center gap-2 text-[13px] text-slate-500">
                       <span>Searching {activeSources} sources</span>
-                      <span className="inline-flex items-center gap-1 text-slate-400">
-                        {pendingSourceList.slice(0, 10).map((src) => (
-                          <span
-                            key={src}
-                            title={getSourceConfig(src).name}
-                            className="inline-block animate-pulse"
-                          >
-                            {getSourceConfig(src).icon}
-                          </span>
-                        ))}
+                      <span className="inline-flex items-center gap-1.5 text-slate-400">
+                        {pendingSourceList.slice(0, 10).map((src) => {
+                          const cfg = getSourceConfig(src);
+                          const Icon = cfg.lucideIcon;
+                          return (
+                            <span
+                              key={src}
+                              title={cfg.name}
+                              className="inline-flex animate-pulse"
+                              aria-hidden
+                            >
+                              <Icon className="w-3.5 h-3.5" />
+                            </span>
+                          );
+                        })}
                         {pendingSourceList.length > 10 && (
                           <span className="text-slate-400">
                             +{pendingSourceList.length - 10}
@@ -764,22 +769,24 @@ export default function Home() {
 
                     {/* Escape hatch when the user wants more than ThreadSeeker's
                         top-ranked slice from a single source. */}
-                    {activeSourceFilter && query && getSourceSearchUrl(activeSourceFilter, query) && (
-                      <div className="flex justify-center pt-6">
-                        <a
-                          href={getSourceSearchUrl(activeSourceFilter, query) || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
-                        >
-                          <span>{getSourceConfig(activeSourceFilter).icon}</span>
-                          <span>
-                            See all on {getSourceConfig(activeSourceFilter).name}
-                          </span>
-                          <ArrowRight className="w-3 h-3" />
-                        </a>
-                      </div>
-                    )}
+                    {activeSourceFilter && query && getSourceSearchUrl(activeSourceFilter, query) && (() => {
+                      const cfg = getSourceConfig(activeSourceFilter);
+                      const Icon = cfg.lucideIcon;
+                      return (
+                        <div className="flex justify-center pt-6">
+                          <a
+                            href={getSourceSearchUrl(activeSourceFilter, query) || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
+                          >
+                            <Icon className="w-3.5 h-3.5" aria-hidden />
+                            <span>See all on {cfg.name}</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </a>
+                        </div>
+                      );
+                    })()}
 
                     {/* "Load more" equivalent for the unfiltered view — deep-links
                         out to the native search on the top-hit sources. */}
@@ -800,19 +807,23 @@ export default function Home() {
                             More from
                           </div>
                           <div className="flex flex-wrap justify-center gap-2">
-                            {top.map((src) => (
-                              <a
-                                key={src}
-                                href={getSourceSearchUrl(src, parsedQuery.freeText) || "#"}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
-                              >
-                                <span>{getSourceConfig(src).icon}</span>
-                                <span>{getSourceConfig(src).name}</span>
-                                <ArrowRight className="w-3 h-3" />
-                              </a>
-                            ))}
+                            {top.map((src) => {
+                              const cfg = getSourceConfig(src);
+                              const Icon = cfg.lucideIcon;
+                              return (
+                                <a
+                                  key={src}
+                                  href={getSourceSearchUrl(src, parsedQuery.freeText) || "#"}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
+                                >
+                                  <Icon className="w-3.5 h-3.5" aria-hidden />
+                                  <span>{cfg.name}</span>
+                                  <ArrowRight className="w-3 h-3" />
+                                </a>
+                              );
+                            })}
                           </div>
                         </div>
                       );
