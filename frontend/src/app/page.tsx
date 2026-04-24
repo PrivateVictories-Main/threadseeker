@@ -150,6 +150,11 @@ export default function Home() {
   // "every queried source failed" case so the empty state can route to a
   // retry card instead of the generic no-results message.
   const [lastSearchedCount, setLastSearchedCount] = useState(0);
+  // Sources that completed successfully but returned zero matches. Lets
+  // the toolbar render quiet "0" badges on empty filter pills so the user
+  // can see "I queried this source and it had nothing" rather than
+  // wondering whether their selection took effect.
+  const [emptySources, setEmptySources] = useState<SourceType[]>([]);
   // Whether the failed-sources tray (set by the toolbar indicator) is open.
   const [failedTrayOpen, setFailedTrayOpen] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -266,6 +271,7 @@ export default function Home() {
       setPendingSources(targetSources.length);
       setPendingSourceList(targetSources);
       setFailedSources([]);
+      setEmptySources([]);
       setLastSearchedCount(targetSources.length);
       setFailedTrayOpen(false);
       setHasSearched(true);
@@ -320,6 +326,14 @@ export default function Home() {
             setPendingSourceList((prev) => prev.filter((s) => s !== event.source));
             if (event.error) {
               setFailedSources((prev) =>
+                prev.includes(event.source) ? prev : [...prev, event.source],
+              );
+            } else if (event.projects.length === 0) {
+              // Source responded successfully but had nothing to say.
+              // Distinct from failedSources — this isn't an error,
+              // just a "no matches here" signal we surface in the
+              // toolbar pills as a quiet "0" badge.
+              setEmptySources((prev) =>
                 prev.includes(event.source) ? prev : [...prev, event.source],
               );
             }
@@ -436,6 +450,7 @@ export default function Home() {
     setPendingSources(0);
     setPendingSourceList([]);
     setFailedSources([]);
+    setEmptySources([]);
     setHasSearched(false);
     setActiveSourceFilter(null);
     setSortMode("relevance");
@@ -794,6 +809,7 @@ export default function Home() {
                       onSortChange={setSortMode}
                       activeSource={activeSourceFilter}
                       onSourceClick={setActiveSourceFilter}
+                      emptySources={emptySources}
                     />
 
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1">

@@ -29,6 +29,15 @@ interface Props {
   onSortChange: (mode: SortMode) => void;
   activeSource: SourceType | null;
   onSourceClick: (source: SourceType | null) => void;
+  /**
+   * Sources that the most recent search queried, completed
+   * successfully, but returned zero matches. Distinct from failed
+   * sources (those bubble up via the failed-sources tray). Rendered
+   * as quiet "0"-badged pills below the active filter row so the
+   * user can see "this source had nothing for your query" rather
+   * than wondering whether the source ran at all.
+   */
+  emptySources?: SourceType[];
 }
 
 function toMarkdown(projects: UnifiedProject[]): string {
@@ -58,6 +67,7 @@ export function ResultsToolbar({
   onSortChange,
   activeSource,
   onSourceClick,
+  emptySources,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const [exportedAs, setExportedAs] = useState<null | "md" | "json">(null);
@@ -342,6 +352,26 @@ export function ResultsToolbar({
                     <span>{cfg.name}</span>
                     <span className="opacity-70">{count}</span>
                   </motion.button>
+                );
+              })}
+              {/* Empty sources — queried, succeeded, but had no matches.
+                  Rendered as desaturated, non-interactive pills with a
+                  trailing "0" so the user can see "this source had
+                  nothing for your query" without confusing them for
+                  failed sources (those live in the amber tray). */}
+              {emptySources?.map((source) => {
+                const cfg = getSourceConfig(source);
+                const Icon = cfg.lucideIcon;
+                return (
+                  <span
+                    key={source}
+                    className="filter-pill pill text-[12px] flex items-center gap-1.5 opacity-50 cursor-default"
+                    title={`${cfg.name} — no matches`}
+                  >
+                    <Icon className="w-3.5 h-3.5" aria-hidden />
+                    <span>{cfg.name}</span>
+                    <span className="opacity-70 tabular-nums">0</span>
+                  </span>
                 );
               })}
             </div>
