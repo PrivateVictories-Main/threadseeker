@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { MotionProvider } from "@/components/motion/MotionProvider";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -114,7 +115,7 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen`}
       >
-        {children}
+        <MotionProvider>{children}</MotionProvider>
         <Toaster
           position="bottom-right"
           toastOptions={{
