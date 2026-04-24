@@ -51,6 +51,26 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick }: Props) {
       ? project.fullName
       : "";
 
+  // Source-aware version chip — shown only for package registries where the
+  // upstream exposes a stable "latest version" string. Repos (github / gitlab
+  // / codeberg) and model hubs (huggingface) have weaker version semantics
+  // (tags, branches, commit shas) so we omit the chip there to avoid noise.
+  const VERSION_SOURCES = new Set<UnifiedProject["source"]>([
+    "npm",
+    "pypi",
+    "crates",
+    "rubygems",
+    "packagist",
+    "nuget",
+    "maven",
+    "jsr",
+    "conda",
+    "homebrew",
+    "dockerhub",
+  ]);
+  const showVersion =
+    !!project.version && VERSION_SOURCES.has(project.source);
+
   // Sparse cards (no description AND no topics) get a lower min-height so a
   // row of them doesn't waste vertical space. auto-rows-fr still aligns all
   // cards in a row to the tallest, so grid geometry stays correct.
@@ -97,7 +117,14 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick }: Props) {
             </div>
           )}
           <h3 className="ts-title">
-            <span className="ts-title-main">{project.name}</span>
+            <span className="ts-title-main-row">
+              <span className="ts-title-main">{project.name}</span>
+              {showVersion && (
+                <span className="ts-version-chip" title={`Latest version ${project.version}`}>
+                  v{project.version}
+                </span>
+              )}
+            </span>
             {subline && <span className="ts-title-sub">{subline}</span>}
           </h3>
         </div>
