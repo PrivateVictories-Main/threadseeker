@@ -2,8 +2,11 @@
 
 import { motion } from "framer-motion";
 import { cardVariants } from "@/lib/motion";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
 
+// Reduced-motion handling is delegated to the global MotionConfig provider
+// (`reducedMotion="user"` in MotionProvider). Framer auto-skips the
+// transition portions of these variants when the OS pref is set, so the
+// previous per-component `useReducedMotion` branch was redundant.
 export function AnimatedCard({
   children,
   layoutId,
@@ -11,16 +14,15 @@ export function AnimatedCard({
   children: React.ReactNode;
   layoutId?: string;
 }) {
-  const reduced = useReducedMotion();
   return (
     <motion.div
       layoutId={layoutId}
-      variants={reduced ? {} : cardVariants}
+      variants={cardVariants}
       initial="hidden"
       animate="visible"
       exit="exit"
-      whileHover={reduced ? undefined : "hover"}
-      whileTap={reduced ? undefined : "tap"}
+      whileHover="hover"
+      whileTap="tap"
       className="h-full"
     >
       {children}

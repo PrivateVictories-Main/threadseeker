@@ -3,7 +3,6 @@
 import { forwardRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { gridContainer } from "@/lib/motion";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 interface AnimatedGridProps {
   children: React.ReactNode;
@@ -11,15 +10,18 @@ interface AnimatedGridProps {
   className?: string;
 }
 
+// Reduced-motion handling is delegated to the global MotionConfig provider
+// (`reducedMotion="user"` in MotionProvider) — framer auto-skips the
+// stagger / fade / slide here under reduce-motion, so the previous
+// per-component `useReducedMotion` branch was redundant.
 export const AnimatedGrid = forwardRef<HTMLDivElement, AnimatedGridProps>(
   function AnimatedGrid({ children, keyed, className }, ref) {
-    const reduced = useReducedMotion();
     return (
       <AnimatePresence mode="popLayout">
         <motion.div
           ref={ref}
           key={keyed}
-          variants={reduced ? {} : gridContainer}
+          variants={gridContainer}
           initial="hidden"
           animate="visible"
           exit="exit"
