@@ -444,4 +444,59 @@ Already shipped: palette fix, card redesign, search-as-you-type, dark-class purg
 - **Contrast — uppercase tracking labels at slate-400.** Decorative-class but at ≥10px font-size + tracking ≥0.12em they're readable in practice. WCAG technically requires 4.5:1 for ≤17px. A future pass could decide whether to compromise (slate-500 less faint but loses the "decorative metadata" reading) or accept the technical fail.
 - **Print stylesheet hasn't been visually verified** on an actual printout — coded blind from CSS rules. Worth a real "print preview" pass in iter 11.
 - **Page transition timing on slow devices** — tightened heroExit 0.3s → 0.22s reads great on M-series + recent iPhones. On a low-end Android the 220ms might feel rushed if the device is mid-redraw. No way to tell without device QA.
+
+### Iteration 11 — 2026-04-23 — drain iter-10 handoff + cross-source card audit + filter-fade motion
+
+**Commits:**
+- 162dfab — Polish: SourceFilter All/None toggle — 44x44 tap target on touch
+- abb5647 — Polish: NetworkErrorTray narrow-viewport clamp — no 320px overflow
+- 2bffebf — Polish: cross-source card audit — source-aware action label + thread popularity
+- 4e08d2f — Polish: filter-change card fade — per-card AnimatePresence inside grid
+- 1982821 — Polish: toast styling — layered glass shadow + tighter duration + 4-stack
+- faa83d5 — Polish: SearchBar focus — persistent indigo halo while focused
+- 5052572 — Polish: intent-hue transition — curve matches app's standard ease-out
+- ea01d5e — Polish: card description fallback — italic 'No description provided'
+
+**Wins:**
+- **All/None tap target (handoff item / primary 1).** Iter-10's audit caught 44×44 elsewhere but the per-category All/None button (added iter-8) was still 10px caption-scale text with no padding pad — ~16×12 hit area. Wrapped the visible label in an inner `<span>` and gave the outer `<button>` negative margin (`-my-2 -mx-1.5`) + clawed-out `min-w/min-h-[44px]` so it hits Apple HIG / WCAG 2.5.5 on touch widths. `sm:+` reverts to the original tight layout (m-0 p-0 min-w-0) so desktop reads the same as before. Visual size unchanged on either breakpoint.
+- **NetworkErrorTray 320px clamp (handoff item / primary 2).** Iter-10's still-rough flagged the tray's `min-w-[200px]` punching past the right edge at iPhone-SE width when the indicator sat mid-row in a flex-wrap context. Added `max-w-[calc(100vw-32px)]` so the tray width is clamped to viewport minus a 16px margin per side, plus `min-w-0` on the wrapper so the flex parent can actually shrink. Long source names ellipsize via `truncate` on the inner `<span>` instead of wrapping. `sm:+` restores the original 200px floor since the pressure is gone there.
+- **Cross-source card audit (primary 3).** Two light data-shape nudges so the unified card feels coherent across all 28 sources without rebuilding the variant system:
+  - `openLabelForSource()` (new helper) returns `"View paper"` for arxiv/paperswithcode/zenodo, `"Open thread"` for HN/Reddit/Lobsters/StackOverflow, `"Read post"` for dev.to, `"Open"` elsewhere. CardActions accepts an `openLabel` prop. Click affordance now names what the user is about to visit ("View paper →" on an arXiv card vs. "Open →" on a generic GitHub repo) instead of the all-purpose default.
+  - `popularityForProject()` (new helper) swaps the `★` glyph for `▲` on thread cards (more semantically accurate for an upvote count) and appends a `💬 N` comments-count when present. Repos and packages keep the existing `★`/`↓` vocabulary unchanged. Pure-data swap; pills/layout untouched.
+  - Walked the rest of the audit: arXiv `description = abstract` is already 2-line-clamped and renders cleanly. HF `description` falls back to `pipeline_tag || "AI Model"` so it's never blank. Lobsters/HN already carry `commentsCount` — now surfaced. Authors on papers are already mapped into `author.name` (not separately rendered as a "by N authors" line — left alone, the `subline` already shows fullName which serves the role).
+- **Filter-change card fade (primary 4).** AnimatedGrid had AnimatePresence keyed on `keyed` (the query string) — a new search smoothly cross-faded the grid, but toggling source filters mounted/unmounted individual cards as plain React children with no exit animation: cards just snapped out. Restructured into two AnimatePresence layers: outer (`mode="wait"`) handles the keyed grid swap as before; inner (`mode="popLayout"`, no key on its wrapper) handles per-card mount/unmount within a stable grid. Page.tsx's per-card wrapper is promoted from `<div>` to `motion.div` with cardVariants-aligned opacity+scale fade (0.22s, `[0.32, 0.72, 0, 1]`) so the inner AnimatePresence has direct motion children to track. Filter toggles now fade cards in/out smoothly. `initial={false}` on the inner Presence so the first paint after a query swap doesn't re-fade every card.
+- **Toast styling (secondary 5).** Layout.tsx Toaster passed an inline-style override that clobbered the underlying `@/components/ui/sonner` styles. Polished the override: `duration: 3200` (down from Sonner default 4s — our copy is short), `visibleToasts: 4` (so a burst of "Copied: X" + "Bookmark saved" stacks visibly), layered box-shadow matching `.glass` vocabulary (`0 1px 2px + 0 8px 24px` instead of a single flat shadow line), `backdrop-filter: blur(18px) saturate(140%)` so the gradient peeking through stays vibrant, `borderRadius: 14px`, `padding: 10px 14px`, `fontSize: 13px` — all in proportion to the rest of the glass system. `closeButton: false` explicit so tap-anywhere dismisses (friendlier on touch than a tight X target).
+- **SearchBar focus halo (secondary 6).** Existing focus-within rule had a crisp 4px ring (the WCAG 2.4.7 floor). Added an outer 24px blurred indigo glow at 10% alpha so the bar reads as gently illuminated while focused, then fades on blur via the existing `.2s box-shadow` transition. Inner ring untouched so the accessibility floor is preserved; the halo is a delight layer above it.
+- **Intent-hue curve (secondary 7).** `body { transition: --ts-intent-hue 800ms ease }` used CSS default ease (slight overshoot feel). Swapped to the app's standard `cubic-bezier(0.32, 0.72, 0, 1)` — same ease as AnimatedCard layout + modeVariants, so the hue ramp moves with the same rhythm as everything else. Re-confirmed the chaining concern from the prompt isn't actually a risk: hue is set only on `handleSearch` (submit), not per-keystroke, and CSS interrupts in-flight transitions cleanly when re-targeted.
+- **No-description placeholder (if-time 10).** Cards with no upstream description (obscure GitHub repos, AUR packages, some HF models) used to render empty space where the 2-line `.ts-desc` block would sit, breaking row alignment. Now ships a faint italic `"No description provided."` placeholder via a new `.ts-desc-empty` modifier (italic, slate-faint). Same 2-line clamp + min-height as the real description, so rows align. `aria-hidden` because the absence isn't useful to screen readers.
+
+**Skipped this iteration:**
+- **Bundle size audit (if-time 8)** — quick scan: all 12 lucide imports are named (tree-shaking works); no namespace imports of icon libraries; Radix is namespace-imported but those are individual primitives per file, not the whole umbrella. 87.4 kB page bundle is on-budget for the feature set; nothing crying out for trimming.
+- **Design-token README (if-time 9)** — judged lower-impact than the polish work above. Tokens.css is already comment-rich (gradient/surface/accent/text/radius/shadow blocks all annotated). Future contributors have the in-line context. Defer.
+
+**Test count:** 47 (unchanged — no new test surface; all polish-class changes).
+
+**Files touched:**
+- `frontend/src/components/SourceFilter.tsx` (44×44 toggle)
+- `frontend/src/components/network/NetworkErrorMessage.tsx` (narrow clamp)
+- `frontend/src/components/card/CardActions.tsx` (openLabel prop)
+- `frontend/src/components/card/helpers.ts` (openLabelForSource, popularityForProject)
+- `frontend/src/components/UnifiedProjectCard.tsx` (wire openLabel, popularity, empty-desc)
+- `frontend/src/components/motion/AnimatedGrid.tsx` (per-card AnimatePresence)
+- `frontend/src/app/page.tsx` (motion.div card wrappers)
+- `frontend/src/app/layout.tsx` (toast options)
+- `frontend/src/app/globals.css` (focus halo, hue curve, .ts-desc-empty)
+
+**Still rough (hand off to iteration 12):**
+- **NetworkErrorTray right-edge auto-flip** — the new clamp prevents overflow at 320px but if the indicator itself sits very close to the right edge (e.g. last item in a wrap row that didn't break), the tray's `left-0` pin still puts most of the dropdown to the right of the trigger. A right-flip detection (measure available right-space at click time, switch to `right-0` when insufficient) would be the proper fix; the clamp is the safety net.
+- **`popularityForProject` is now in helpers** but tests don't exercise it. Could add a small unit test (one repo, one thread, one with no signal at all) — would also surface any future regressions in the glyph vocabulary.
+- **Source-aware open label coverage** — covered the heavy hitters but there's still a long tail. Flathub / fdroid → "Get app", openvsx → "Install extension", wordpress → "View plugin" might all read better than generic "Open". Diminishing returns past the threads + papers split landed here, but a future pass could nudge each.
+- **Per-card `motion.div` overhead** — the page-level wrapper became a motion.div, doubling the motion-component cost per card (motion.div wrapper + AnimatedCard's motion.div inside). Negligible at typical N=30 result sets but worth noting on huge sets. Could collapse the two by hoisting the focus-ring class onto AnimatedCard, but the current shape keeps concerns separated.
+- **Toast `closeButton: false`** is friendlier on touch but loses the explicit X for keyboard-only users on desktop. Sonner's built-in dismiss is also Esc-keyed. Worth re-checking when the keyboard-shortcut sweep is revisited.
+- **`.ts-desc-empty` placeholder text is hardcoded English** — when i18n eventually lands, this needs to live alongside the rest of the user-facing copy. Currently no i18n infrastructure to thread through.
+- **Filter-fade scale 0.96** on enter/exit is subtle; may want to tune to 0.94 if the 0.96 reads as too gentle on a fast filter toggle. Visual judgment call — left at 0.96 for now to match the feel of the existing card hover lift (which is also a small scale delta).
+- **Search bar focus halo** is OS-blue-ringed in addition under Safari/Firefox default outline — our halo is on top, but the OS ring may still flash through on the very first focus. No regression observed; flagged for cross-browser QA.
+- **Intent-hue curve** on a 120Hz iPad — the new ease-out is smoother than the default `ease`, but at 120Hz the 800ms duration may feel shorter than intended. No 120Hz device on hand to verify.
+- **Toast `backdrop-filter: blur(18px) saturate(140%)`** — Safari on older iOS (≤15) silently drops `saturate()` from compound backdrop-filter. The toast still looks fine (just the blur fires) but isn't quite as vibrant. No fallback authored.
+
 - **Per-category All/None button on touch** — the iter-8 toggle is now wrapped in the iter-7 zero-state fade (un-faded by iter-9 fix). Tap target is the small text "All"/"None" — at ~10px font + uppercase it might still be a small touch surface. Worth bumping to 36×36 hit area on touch in iter 11 if user testing surfaces complaints.
