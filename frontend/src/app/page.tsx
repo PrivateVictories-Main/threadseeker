@@ -903,7 +903,13 @@ export default function Home() {
                       });
                       const [primary, ...secondary] = actions;
                       const pillClass =
-                        "text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors inline-flex items-center justify-center gap-1";
+                        "text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3 sm:px-3.5 py-1.5 transition-colors inline-flex items-center justify-center gap-1";
+                      // Beyond the first 2 secondary pills, hide on narrow
+                      // mobile (≤sm) so the row stays one line on iPhone-SE
+                      // 320px width. Desktop still gets the full set. Power
+                      // users on phones still reach extras via the gradient
+                      // primary CTA above.
+                      const SECONDARY_MOBILE_VISIBLE = 2;
                       // Canonical primary-CTA look: extends the .btn-primary
                       // utility (which already wires --ts-accent-gradient),
                       // overriding only the shape/width so it reads as a
@@ -952,9 +958,16 @@ export default function Home() {
                           {/* Full set — visible sm+, with the primary duplicated
                               there as a ghost pill so the desktop row keeps its
                               meaning. On mobile the secondary actions still
-                              appear as smaller pills below the CTA. */}
+                              appear as smaller pills below the CTA, but capped
+                              at SECONDARY_MOBILE_VISIBLE so 320px-wide phones
+                              don't wrap to 2 lines. */}
                           {renderPill(primary, "hidden sm:inline-flex")}
-                          {secondary.map((a) => renderPill(a))}
+                          {secondary.map((a, i) =>
+                            renderPill(
+                              a,
+                              i >= SECONDARY_MOBILE_VISIBLE ? "hidden sm:inline-flex" : "",
+                            ),
+                          )}
                           <button
                             onClick={handleClear}
                             className="text-[12.5px] font-medium text-slate-500 hover:text-indigo-700 transition-colors px-3.5 py-1.5"

@@ -67,22 +67,27 @@ export function DirectJumps({ query }: Props) {
       {/* Desktop: stacked title + pill row. Mobile: single inline "Jump to
           <pkg> on: [npm] [PyPI]…" so the section doesn't claim two rows of
           vertical space on phones. */}
-      <div className="sm:hidden flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] text-slate-500">
-        <span className="uppercase tracking-[0.14em] font-semibold text-[10.5px] text-slate-400">
-          Jump to
+      <div className="sm:hidden flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-[12px] text-slate-500">
+        {/* iPhone-SE-friendly mobile layout — tighter horizontal gap (1.5
+            vs 2), the package name allowed to take its own row if needed
+            (basis-full on the prefix cluster), pills shrunk to 11.5px
+            with px-2 so 6 pills fit in two clean rows on 320px width. */}
+        <span className="inline-flex items-center gap-x-1.5 basis-full sm:basis-auto">
+          <span className="uppercase tracking-[0.14em] font-semibold text-[10.5px] text-slate-400">
+            Jump to
+          </span>
+          <span className="font-mono text-slate-700 truncate">{q}</span>
         </span>
-        <span className="font-mono text-slate-700">{q}</span>
-        <span className="text-slate-300">·</span>
         {hits.map((r) => (
           <a
             key={r.name}
             href={r.url(q)}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-2.5 py-1 transition-colors"
+            className="inline-flex items-center gap-1 text-[11.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-2 py-1 transition-colors"
           >
-            {/* Bumped 11px → 14px so emoji icons read as icons instead of
-                specks. leading-none keeps the pill height honest. */}
+            {/* 14px emoji icon — readable on phone, leading-none keeps
+                the pill height honest. */}
             <span className="text-[14px] leading-none">{r.icon}</span>
             <span>{r.name}</span>
           </a>
