@@ -5,7 +5,7 @@ import { SourceBadge } from "./card/SourceBadge";
 import { CardPills } from "./card/CardPills";
 import { CardActions, type CopyItem } from "./card/CardActions";
 import { AnimatedCard } from "./motion/AnimatedCard";
-import { motion, useAnimationControls } from "framer-motion";
+import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { bookmarkVariants } from "@/lib/motion";
 import { useBookmark } from "@/lib/bookmarks";
 import {
@@ -34,9 +34,13 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index }: Pr
   // quieter). Renders as an absolutely-positioned sibling ring that
   // fades 0 → 1 → 0 over ~600ms — does NOT touch the card's existing
   // glass box-shadow / hover-lift, so we don't fight the .ts-card:hover
-  // transform. Honors reduced-motion via the global MotionConfig
-  // provider (transitions auto-shorten under reducedMotion="user").
+  // transform. Under reduced-motion the animated 0→1→0 cycle would
+  // auto-collapse via the global MotionConfig provider, leaving no
+  // visible affordance — so we branch on `useReducedMotion` and play a
+  // static "hold-then-fade" instead so the user still gets a clear
+  // "you did it" signal.
   const pulseControls = useAnimationControls();
+  const reducedMotion = useReducedMotion();
 
   const popularity =
     project.stars > 0
@@ -119,15 +123,25 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index }: Pr
               const color = willBeBookmarked
                 ? "rgba(99, 102, 241, 0.7)"   // indigo-500/70
                 : "rgba(148, 163, 184, 0.55)"; // slate-400/55
-              pulseControls
-                .start({
-                  opacity: [0, 1, 0],
-                  borderColor: [color, color, color],
-                  transition: { duration: 0.6, ease: "easeOut" },
-                })
-                .catch(() => {
-                  /* component unmounted mid-animation */
-                });
+              if (reducedMotion) {
+                // Static "you did it" — snap on for ~1.5s, then snap off.
+                // No animated transition so prefers-reduced-motion users
+                // still get a clear signal without any moving pixels.
+                pulseControls.set({ opacity: 1, borderColor: color });
+                window.setTimeout(() => {
+                  pulseControls.set({ opacity: 0 });
+                }, 1500);
+              } else {
+                pulseControls
+                  .start({
+                    opacity: [0, 1, 0],
+                    borderColor: [color, color, color],
+                    transition: { duration: 0.6, ease: "easeOut" },
+                  })
+                  .catch(() => {
+                    /* component unmounted mid-animation */
+                  });
+              }
             }}
             aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
           >
