@@ -591,7 +591,7 @@ export default function Home() {
             >
               <div className="max-w-4xl mx-auto pt-16 sm:pt-24 lg:pt-28 pb-16">
                 <div className="text-center mb-12">
-                  <h1 className="text-balance text-[44px] sm:text-6xl lg:text-7xl font-semibold tracking-tight text-slate-900 mb-6 leading-[1.04]">
+                  <h1 className="text-balance text-[40px] xs:text-[44px] sm:text-6xl lg:text-7xl font-semibold tracking-tight text-slate-900 mb-6 leading-[1.04]">
                     Search open source{" "}
                     <span className="ts-hero-accent">everywhere</span>
                   </h1>

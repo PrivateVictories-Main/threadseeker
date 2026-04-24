@@ -8,6 +8,18 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+  	// Custom xs breakpoint at 400px sits between iPhone SE (320px) and
+  	// iPhone mini/standard (375–414px). Lets the hero h1 ship a tighter
+  	// 40px size for the very-narrow iPhone-SE band while bumping back
+  	// up to 44px on standard phone widths. Default sm: stays at 640px.
+  	screens: {
+  		xs: '400px',
+  		sm: '640px',
+  		md: '768px',
+  		lg: '1024px',
+  		xl: '1280px',
+  		'2xl': '1536px',
+  	},
   	extend: {
   		fontFamily: {
   			sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
