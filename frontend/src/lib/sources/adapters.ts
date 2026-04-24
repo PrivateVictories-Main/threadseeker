@@ -689,21 +689,33 @@ export async function searchHomebrew(query: string): Promise<SearchResult> {
   if (!data) return { projects: [], totalCount: 0, source: "homebrew" };
   const results = data.results || [];
   return {
-    projects: results.map((p: any) => ({
-      id: `homebrew-${p.kind}-${p.full_token}`,
-      source: "homebrew" as const,
-      name: p.name || p.full_token,
-      fullName: p.full_token,
-      description: p.desc
-        ? `${p.kind === "cask" ? "Cask" : "Formula"} • ${p.desc}`
-        : null,
-      url: p.homepage,
-      stars: 0,
-      language: null,
-      topics: [p.kind, p.tap].filter(Boolean),
-      author: { name: p.tap || "homebrew", avatar: "" },
-      updatedAt: p.updated || new Date().toISOString(),
-    })),
+    projects: results.map((p: any) => {
+      // Backend's `version` is the formula's `versions.stable` or the cask's
+      // top-level `version`. Surfacing it as `project.version` lights up the
+      // header version chip with parity to npm/pypi/crates/etc.
+      // The legacy `updated` field is *not* a timestamp — it mirrors
+      // `version` for back-compat but isn't usable as `updatedAt`. Until
+      // brew.sh exposes a real updated-at we leave updatedAt as "now"
+      // so the maintenance pill doesn't regress; it would otherwise
+      // misread the version string as a date.
+      const version: string | undefined = p.version || p.updated || undefined;
+      return {
+        id: `homebrew-${p.kind}-${p.full_token}`,
+        source: "homebrew" as const,
+        name: p.name || p.full_token,
+        fullName: p.full_token,
+        description: p.desc
+          ? `${p.kind === "cask" ? "Cask" : "Formula"} • ${p.desc}`
+          : null,
+        url: p.homepage,
+        stars: 0,
+        language: null,
+        topics: [p.kind, p.tap].filter(Boolean),
+        author: { name: p.tap || "homebrew", avatar: "" },
+        updatedAt: new Date().toISOString(),
+        version,
+      };
+    }),
     totalCount: results.length,
     source: "homebrew",
   };

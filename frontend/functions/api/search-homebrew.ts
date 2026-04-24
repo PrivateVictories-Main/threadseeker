@@ -11,6 +11,12 @@ interface BrewPackage {
   desc: string | null;
   homepage: string;
   tap: string;
+  // Latest stable version. Formulae expose `versions.stable` (e.g. "3.7.0"),
+  // casks expose top-level `version`. Used by the frontend adapter to set
+  // `project.version` for the card-header version chip.
+  version: string;
+  // Legacy field kept for adapter back-compat. Currently unused as a
+  // timestamp — homebrew doesn't expose updated-at on the index files.
   updated: string;
   languages: string[];
 }
@@ -41,6 +47,7 @@ export const onRequestPost: PagesFunction = async ({ request }) => {
     for (const f of formulas) {
       const hit = scoreMatch(q, f.name ?? "", f.desc ?? "");
       if (hit > 0) {
+        const stable = f.versions?.stable ?? "";
         scored.push({
           score: hit,
           pkg: {
@@ -50,7 +57,8 @@ export const onRequestPost: PagesFunction = async ({ request }) => {
             desc: f.desc ?? null,
             homepage: f.homepage ?? `https://formulae.brew.sh/formula/${f.name}`,
             tap: f.tap ?? "homebrew/core",
-            updated: f.versions?.stable ?? "",
+            version: stable,
+            updated: stable, // legacy field — kept for back-compat
             languages: [],
           },
         });
@@ -59,6 +67,7 @@ export const onRequestPost: PagesFunction = async ({ request }) => {
     for (const c of casks) {
       const hit = scoreMatch(q, c.token ?? c.name?.[0] ?? "", c.desc ?? "");
       if (hit > 0) {
+        const ver = c.version ?? "";
         scored.push({
           score: hit,
           pkg: {
@@ -68,7 +77,8 @@ export const onRequestPost: PagesFunction = async ({ request }) => {
             desc: c.desc ?? null,
             homepage: c.homepage ?? `https://formulae.brew.sh/cask/${c.token}`,
             tap: c.tap ?? "homebrew/cask",
-            updated: c.version ?? "",
+            version: ver,
+            updated: ver, // legacy field — kept for back-compat
             languages: [],
           },
         });
