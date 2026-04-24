@@ -244,9 +244,16 @@ body > * {
 [data-result-card] {
   scroll-margin-top: 80px;
 }
-.ts-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--ts-shadow-hover);
+/* Gate the lift on real hover-capable pointers — on touch, :hover can
+   sticky-fire after a tap until the next scroll/tap, leaving the card
+   stuck in its lifted state for users on phones/tablets. The hover
+   media query confines the lift to mice/trackpads, where it's the
+   right affordance. */
+@media (hover: hover) {
+  .ts-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--ts-shadow-hover);
+  }
 }
 /* Sparse variant — description + topics both absent; shave ~80px of
    baseline space. Row alignment stays intact because the grid is
