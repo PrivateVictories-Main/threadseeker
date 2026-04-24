@@ -115,13 +115,15 @@ export default function RootLayout({
         className={`${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen`}
       >
         {children}
-        <Toaster 
+        <Toaster
           position="bottom-right"
           toastOptions={{
             style: {
-              background: "rgba(0, 0, 0, 0.9)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              color: "#fff",
+              background: "rgba(255, 255, 255, 0.92)",
+              border: "1px solid rgba(99, 102, 241, 0.22)",
+              color: "#0f172a",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
             },
           }}
         />
