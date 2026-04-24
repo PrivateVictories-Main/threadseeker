@@ -688,7 +688,11 @@ export default function Home() {
                               : ""
                           }`}
                         >
-                          <UnifiedProjectCard project={project} onToast={showToast} />
+                          <UnifiedProjectCard
+                            project={project}
+                            onToast={showToast}
+                            onTopicClick={(topic) => handleSearch(topic)}
+                          />
                         </div>
                       ))}
                     </AnimatedGrid>

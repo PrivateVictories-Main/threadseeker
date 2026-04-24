@@ -276,6 +276,15 @@ body {
 .topic-chip:active {
   transform: scale(0.97);
 }
+/* Interactive variant — refine-search on click. Button element needs explicit
+   font reset so it doesn't inherit the UA's small-sans default. */
+button.topic-chip-interactive {
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: inherit;
+}
 
 /* Source badge — small pill identifying which platform the hit came from.
    Color per source keeps the grid scannable at a glance. */

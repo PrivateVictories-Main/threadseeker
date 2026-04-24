@@ -19,9 +19,11 @@ import {
 interface Props {
   project: UnifiedProject;
   onToast?: (msg: string) => void;
+  /** Wired from the page to turn a topic chip click into a new search. */
+  onTopicClick?: (topic: string) => void;
 }
 
-export function UnifiedProjectCard({ project, onToast }: Props) {
+export function UnifiedProjectCard({ project, onToast, onTopicClick }: Props) {
   const { isBookmarked, toggle } = useBookmark(project);
   const bookmarkControls = useAnimationControls();
 
@@ -106,11 +108,23 @@ export function UnifiedProjectCard({ project, onToast }: Props) {
 
         {topics.length > 0 && (
           <div className="ts-topics">
-            {topics.map((t) => (
-              <span key={t} className="topic-chip">
-                {t}
-              </span>
-            ))}
+            {topics.map((t) =>
+              onTopicClick ? (
+                <button
+                  key={t}
+                  type="button"
+                  className="topic-chip topic-chip-interactive"
+                  onClick={() => onTopicClick(t)}
+                  title={`Search for ${t}`}
+                >
+                  {t}
+                </button>
+              ) : (
+                <span key={t} className="topic-chip">
+                  {t}
+                </span>
+              ),
+            )}
           </div>
         )}
 
