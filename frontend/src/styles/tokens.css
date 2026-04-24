@@ -1,6 +1,11 @@
 /* frontend/src/styles/tokens.css */
 :root {
-  --ts-bg-gradient: linear-gradient(135deg, #fde6ff 0%, #e0e7ff 45%, #d9f9ff 100%);
+  --ts-bg-gradient: linear-gradient(
+    135deg,
+    hsl(var(--ts-intent-hue), 100%, 95%) 0%,
+    hsl(var(--ts-intent-hue), 70%, 90%) 45%,
+    hsl(calc(var(--ts-intent-hue) + 40), 90%, 93%) 100%
+  );
 
   --ts-surface: rgba(255, 255, 255, 0.65);
   --ts-surface-strong: rgba(255, 255, 255, 0.85);
@@ -26,4 +31,10 @@
 
   /* Intent-tint slot (lerped in JS via inline style) */
   --ts-intent-hue: 280; /* violet default; how_to→110 sage, model_search→35 amber, troubleshooting→350 rose */
+}
+
+@property --ts-intent-hue {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 280;
 }

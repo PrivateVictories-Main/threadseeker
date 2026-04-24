@@ -247,6 +247,14 @@ export default function Home() {
         // accept boolean OR syntax (github/gitlab/codeberg), expand the query
         // to include synonym terms; everything else uses the raw query.
         const expansion = expandQuery(freeText);
+        const hueByIntent: Record<string, number> = {
+          project_search: 280, how_to: 110, recommendation: 200,
+          comparison: 260, troubleshooting: 350, model_search: 35,
+          general: 280,
+        };
+        if (typeof document !== "undefined") {
+          document.documentElement.style.setProperty("--ts-intent-hue", String(hueByIntent[expansion.intent] ?? 280));
+        }
         const overrides: Partial<Record<SourceType, string>> = {};
         const orExpanded = buildSearchQuery(freeText, expansion, { supportsOr: true });
         if (orExpanded !== freeText) {
