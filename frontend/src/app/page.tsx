@@ -762,8 +762,20 @@ export default function Home() {
                       </span>
                     )}
                     {!isLoading && searchDurationMs !== null && (
+                      // Sub-second feels clinical with .toFixed(2) ("0.42s"
+                      // reads as ".42s"); >=1s is the "slow enough to
+                      // notice" band where one decimal is enough; >=2s the
+                      // user is already counting in their head, no decimal
+                      // needed. ms-only branch (<1000ms) drops the fraction
+                      // because at that scale the noise of the 100ms
+                      // setSearchDurationMs round-trip already wipes
+                      // sub-decimal precision.
                       <span className="text-slate-500">
-                        {(searchDurationMs / 1000).toFixed(2)}s
+                        {searchDurationMs < 1000
+                          ? `${searchDurationMs}ms`
+                          : searchDurationMs < 2000
+                            ? `${(searchDurationMs / 1000).toFixed(1)}s`
+                            : `${Math.round(searchDurationMs / 1000)}s`}
                       </span>
                     )}
                   </div>
