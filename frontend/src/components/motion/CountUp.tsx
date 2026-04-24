@@ -1,8 +1,10 @@
 "use client";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate, useReducedMotion } from "framer-motion";
 import { useEffect } from "react";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
 
+// Framer's `useReducedMotion` honors the global <MotionConfig reducedMotion="user">
+// provider; returns boolean | null (null means "still resolving") which we
+// treat as "not reduced" so the count animates by default.
 export function CountUp({ value, duration = 0.3 }: { value: number; duration?: number }) {
   const reduced = useReducedMotion();
   const mv = useMotionValue(0);
