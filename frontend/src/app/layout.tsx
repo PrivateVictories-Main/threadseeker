@@ -123,10 +123,14 @@ export default function RootLayout({
           // visibly stacks instead of clobbering the previous one.
           // Sonner default is 3 — a touch tight for our flow.
           visibleToasts={4}
-          // Closing on click is more forgiving than the small X target
-          // on a touch surface — tap-anywhere dismisses without
-          // requiring tight-target accuracy.
-          closeButton={false}
+          // closeButton enabled so desktop keyboard users have an
+          // explicit X target (Esc dismisses too, but the X is
+          // discoverable). On touch widths the button is hidden via
+          // CSS (`@media (max-width: 767px)` → `display: none`) so
+          // the friendly tap-anywhere dismiss still reigns there.
+          // Styling lives in globals.css under `.toaster
+          // [data-close-button]`.
+          closeButton={true}
           toastOptions={{
             // 3.2s default duration. Sonner's default is 4s; trimmed
             // because our toasts are short ("Copied: ...", "Saved

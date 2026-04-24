@@ -694,6 +694,36 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   z-index: 100;
 }
 
+/* Sonner close-button: keep an explicit X for desktop keyboard users
+   (Esc still dismisses, but the X is discoverable for mouse users)
+   while hiding the small target below the `md` breakpoint where
+   tap-anywhere dismiss is more forgiving than chasing a 14×14 X. The
+   resting state is a near-invisible ghost that only paints once the
+   pointer enters the toast — feels light at the toast border instead
+   of a heavy chrome chip. */
+.toaster [data-close-button] {
+  background: rgba(255, 255, 255, 0.7) !important;
+  border: 1px solid rgba(99, 102, 241, 0.18) !important;
+  color: #475569 !important;
+  width: 18px !important;
+  height: 18px !important;
+  opacity: 0;
+  transform: translate(-2px, 2px);
+  transition: opacity .18s ease, color .18s ease, background .18s ease;
+}
+.toaster [data-sonner-toast]:hover [data-close-button],
+.toaster [data-close-button]:focus-visible {
+  opacity: 1;
+}
+.toaster [data-close-button]:hover {
+  color: #0f172a !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+@media (max-width: 767px) {
+  /* Touch widths — friendly tap-anywhere wins over a tight X target. */
+  .toaster [data-close-button] { display: none !important; }
+}
+
 /* Print stylesheet — strips the gradient/glass UI for a clean
    white-paper export. The use case is rare (browser print, save-as-PDF
    for sharing a result list with colleagues) but having it makes
