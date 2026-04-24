@@ -27,6 +27,14 @@ interface Props {
 export function UnifiedProjectCard({ project, onToast, onTopicClick }: Props) {
   const { isBookmarked, toggle } = useBookmark(project);
   const bookmarkControls = useAnimationControls();
+  // Per-card pulse-ring overlay triggered after a bookmark add/remove.
+  // Indigo on add (delight), neutral slate on remove (acknowledged but
+  // quieter). Renders as an absolutely-positioned sibling ring that
+  // fades 0 → 1 → 0 over ~600ms — does NOT touch the card's existing
+  // glass box-shadow / hover-lift, so we don't fight the .ts-card:hover
+  // transform. Honors reduced-motion via the global MotionConfig
+  // provider (transitions auto-shorten under reducedMotion="user").
+  const pulseControls = useAnimationControls();
 
   const popularity =
     project.stars > 0
@@ -80,6 +88,16 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick }: Props) {
   return (
     <AnimatedCard layoutId={project.id}>
       <article className={`ts-card glass${isSparse ? " ts-card-sparse" : ""}`}>
+        {/* Bookmark-pulse ring — absolutely positioned overlay so it
+            fades over the card without disturbing the existing glass
+            box-shadow or hover-lift. borderColor is animated to indigo
+            on add and slate on remove. */}
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-[18px] border-[2px] border-transparent"
+          initial={{ opacity: 0 }}
+          animate={pulseControls}
+        />
         <div className="ts-top">
           <SourceBadge source={project.source} />
           <motion.button
@@ -87,10 +105,27 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick }: Props) {
             variants={bookmarkVariants}
             animate={bookmarkControls}
             onClick={() => {
+              // Determine the post-toggle state from the current one —
+              // useBookmark is sync, but reading the pre-toggle isBookmarked
+              // + flipping gives us the correct after-state without an
+              // extra render.
+              const willBeBookmarked = !isBookmarked;
               toggle();
               bookmarkControls
                 .start("tapped")
                 .then(() => bookmarkControls.start("rest"));
+              const color = willBeBookmarked
+                ? "rgba(99, 102, 241, 0.7)"   // indigo-500/70
+                : "rgba(148, 163, 184, 0.55)"; // slate-400/55
+              pulseControls
+                .start({
+                  opacity: [0, 1, 0],
+                  borderColor: [color, color, color],
+                  transition: { duration: 0.6, ease: "easeOut" },
+                })
+                .catch(() => {
+                  /* component unmounted mid-animation */
+                });
             }}
             aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
           >

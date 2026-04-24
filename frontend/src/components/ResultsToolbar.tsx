@@ -65,16 +65,36 @@ export function ResultsToolbar({
   const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
 
-  // Close sort dropdown on outside-click.
+  // Close sort dropdown on outside-click OR Esc — keyboard users get
+  // the same dismiss affordance as mouse users so the dropdown isn't a
+  // dead-end once focus enters it.
   useEffect(() => {
     if (!sortOpen) return;
     const onDown = (e: MouseEvent) => {
       if (!sortRef.current) return;
       if (!sortRef.current.contains(e.target as Node)) setSortOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSortOpen(false);
+    };
     window.addEventListener("mousedown", onDown);
-    return () => window.removeEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
   }, [sortOpen]);
+
+  // Filter dropdown is inline-expansion so outside-click is fine without
+  // a handler, but Esc-to-collapse keeps keyboard parity with sort.
+  useEffect(() => {
+    if (!filterOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFilterOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [filterOpen]);
 
   const handleExport = async (kind: "md" | "json") => {
     const payload =
