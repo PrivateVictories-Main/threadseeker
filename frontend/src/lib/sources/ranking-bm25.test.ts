@@ -15,10 +15,10 @@ function mk(p: Partial<UnifiedProject>): UnifiedProject {
     downloads: p.downloads,
     language: p.language ?? null,
     topics: p.topics ?? [],
-    license: p.license ?? null,
+    license: p.license,
     updatedAt: p.updatedAt ?? new Date().toISOString(),
-    avatarUrl: p.avatarUrl ?? null,
-  } as UnifiedProject;
+    author: p.author ?? { name: "owner", avatar: "" },
+  };
 }
 
 describe("rankCorpus", () => {
