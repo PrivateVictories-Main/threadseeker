@@ -584,11 +584,7 @@ export default function Home() {
                           : ""
                       }`}
                     >
-                      <UnifiedProjectCard
-                        project={project}
-                        query={query}
-                        onTopicClick={(t) => handleSearch(t)}
-                      />
+                      <UnifiedProjectCard project={project} />
                     </div>
                   ))}
                 </div>

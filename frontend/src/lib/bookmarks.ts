@@ -2,6 +2,7 @@
 // We store the full UnifiedProject so the landing-page "Saved" section can
 // render without a network round-trip. Capped at MAX to avoid runaway growth.
 
+import { useCallback, useEffect, useState } from "react";
 import type { UnifiedProject } from "./sources";
 
 const KEY = "threadseeker:bookmarks:v1";
@@ -73,4 +74,32 @@ export function onBookmarksChanged(handler: () => void): () => void {
     if (e.key === KEY) handler();
   });
   return () => window.removeEventListener(EVENT, sync);
+}
+
+/**
+ * Reactive bookmark state for a single project. Subscribes to bookmark-change
+ * events so every card on the page stays in sync when one is toggled.
+ *
+ * Takes the full project (not just the id) because `addBookmark` stores the
+ * whole record — toggle-by-id alone can't distinguish "bookmark new" from
+ * "remove existing".
+ */
+export function useBookmark(project: UnifiedProject): {
+  isBookmarked: boolean;
+  toggle: () => void;
+} {
+  const [bookmarked, setBookmarked] = useState(false);
+
+  useEffect(() => {
+    setBookmarked(isBookmarked(project.id));
+    return onBookmarksChanged(() => setBookmarked(isBookmarked(project.id)));
+  }, [project.id]);
+
+  const toggle = useCallback(() => {
+    toggleBookmark(project);
+    emitBookmarksChanged();
+    setBookmarked(isBookmarked(project.id));
+  }, [project]);
+
+  return { isBookmarked: bookmarked, toggle };
 }
