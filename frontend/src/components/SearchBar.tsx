@@ -3,7 +3,6 @@
 import { useState, FormEvent, useEffect, useRef } from "react";
 import { Search, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { springSoft } from "@/lib/motion";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;

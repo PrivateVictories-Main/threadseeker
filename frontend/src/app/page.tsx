@@ -15,7 +15,7 @@ import { NetworkErrorMessage, NetworkErrorTray } from "@/components/network/Netw
 import { AnimatedGrid } from "@/components/motion/AnimatedGrid";
 import { Toast } from "@/components/motion/Toast";
 import { CountUp } from "@/components/motion/CountUp";
-import { modeVariants, springSoft } from "@/lib/motion";
+import { modeVariants } from "@/lib/motion";
 import {
   searchAllSources,
   UnifiedProject,
@@ -30,7 +30,7 @@ import {
 } from "@/lib/sources";
 import { parseQuery, applyOperators, describeOperators } from "@/lib/query-parser";
 import { toast } from "sonner";
-import { Search, ArrowRight, Clock, X, SearchX, Github } from "lucide-react";
+import { ArrowRight, Clock, X, SearchX, Github } from "lucide-react";
 
 const HISTORY_KEY = "threadseeker:history:v1";
 const HISTORY_MAX = 8;
@@ -165,7 +165,13 @@ export default function Home() {
   const [history, setHistory] = useState<string[]>([]);
   const [searchDurationMs, setSearchDurationMs] = useState<number | null>(null);
   const [focusedIdx, setFocusedIdx] = useState<number>(-1);
-  const [toast, setToast] = useState<string | null>(null);
+  // Local lightweight "Copied: …" toast (separate channel from sonner's
+  // `toast.info` / `toast.error` calls). Renamed from `toast` to
+  // `toastMessage` because the bare `toast` name shadowed the imported
+  // sonner singleton inside this component scope — calls like
+  // `toast.info(...)` below would resolve to the state value (null) and
+  // throw a TypeError at runtime instead of dispatching a sonner toast.
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [sourceFilterOpen, setSourceFilterOpen] = useState(false);
   const initialLoadDone = useRef(false);
   const searchRunIdRef = useRef(0);
@@ -435,8 +441,8 @@ export default function Home() {
   }, [query, selectedSources, hasSearched, sortMode, activeSourceFilter]);
 
   const showToast = useCallback((msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 1500);
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 1500);
   }, []);
 
   const handleSourceToggle = (source: SourceType) => {
@@ -1175,7 +1181,7 @@ export default function Home() {
           </div>
         </div>
       </footer>
-      <Toast message={toast} />
+      <Toast message={toastMessage} />
       <ShortcutHelpButton visible={mode === "results"} />
     </div>
   );
