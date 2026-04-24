@@ -180,3 +180,21 @@ body {
   color: var(--ts-text-subtle);
   margin: 0 0 12px;
 }
+
+.shortcut-modal {
+  padding: 24px 28px;
+  max-width: 480px;
+  box-shadow: var(--ts-shadow-hover);
+}
+
+.skeleton .shimmer {
+  background: linear-gradient(90deg, rgba(200,200,200,0.2), rgba(240,240,240,0.5), rgba(200,200,200,0.2));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: var(--ts-radius-md);
+  height: 14px;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.skeleton .shimmer-title { width: 60%; height: 20px; }
+.skeleton .shimmer-line  { width: 100%; }
+.skeleton .shimmer-short { width: 40%; }

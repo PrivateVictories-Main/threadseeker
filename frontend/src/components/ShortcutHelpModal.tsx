@@ -41,7 +41,7 @@ export function ShortcutHelpModal() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-xl border border-slate-800/60 bg-slate-950 p-5 shadow-2xl"
+        className="glass-strong shortcut-modal w-full"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-medium text-slate-200">Keyboard shortcuts</h2>
