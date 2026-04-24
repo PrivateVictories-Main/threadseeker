@@ -39,3 +39,6 @@ coverage/
 *.seed
 *.pid.lock
 .cache/
+
+# Superpowers brainstorm session files
+.superpowers/
