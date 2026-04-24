@@ -558,3 +558,55 @@ Already shipped: palette fix, card redesign, search-as-you-type, dark-class purg
 - **Critical-eye `searchDurationMs` precision.** Sticky bar shows `(searchDurationMs / 1000).toFixed(2)` — always 2 decimals. For a 0.42s query reads as ".42s" (slightly clinical). Could `.toFixed(1)` for sub-second + `.toFixed(2)` past 1.0s. Minor.
 - **Iter-11's `closeButton: false` comment in `Toaster` toastOptions** has been replaced — but the iter-11 inline comment stayed accurate at write-time. Future readers should see the iter-12 enable comment instead. Verified the comment now reflects current behavior.
 - **Bundle 87.5 → 88.0 kB** — within budget but noted for the trend. The 28 taglines are static strings; if they ever need i18n threading the translation infrastructure will tip the bundle further. Defer until i18n ships.
+
+### Iteration 13 — 2026-04-23 — critical review pass + iter-12 hand-off drain
+
+**Pivot from iter 1-12.** This iteration was instructed as "look hard, ship if there's something real, otherwise be honest." Walked the 11 main UI files end-to-end as if seeing them for the first time. The review surfaced one real bug + ~9 small consistency gaps that 12 iterations of additions had left behind. All shipped.
+
+**Commits:**
+- a4dd051 — Polish: fix toast variable shadow + drop dead imports
+- b8e73e3 — Polish: searchDurationMs precision + ShortcutHelpModal backdrop motion
+- 41a6b2d — Polish: openLabelForSource AUR + NuGet, Codeberg tagline copyedit
+- 3cef7c6 — Polish: aria-hidden sweep on decorative icons across home/trending/saved
+
+**Critical review findings:**
+
+1. **`toast` variable shadow bug (real, latent crash).** `page.tsx` line 32 imports `{ toast } from "sonner"`; line 168 declared `const [toast, setToast] = useState<string | null>(null)`. Inside the component scope the local state shadows the import — calls like `toast.info("No results found...")` and `toast.error("Search failed...")` from inside `handleSearch` resolve against the state value (null at first call) and would throw `TypeError: Cannot read property 'info' of null` at runtime. Fixed by renaming to `toastMessage` / `setToastMessage`. Untriggered to date because the empty-state and search-failed branches have only fired in the dev workflow when sonner-imported `toast` was reachable; under normal operation this would crash on the first failed search. Flag-and-fix.
+2. **Dead imports.** `springSoft` from `@/lib/motion` was imported into both `page.tsx` and `SearchBar.tsx` but never referenced — leftover from earlier iterations that used it inline. `Search` from `lucide-react` was imported into `page.tsx` but never rendered (the SearchBar component renders its own Search icon internally). Three dead imports total; tree-shaking already drops them at build, but the source-level noise still has a cost.
+3. **`ShortcutHelpModal` AnimatePresence direct-child fragility (iter-12 hand-off).** The backdrop wrapper was a plain `<div>` — only the inner modal `motion.div` had a tracked exit. Backdrop snapped away while the modal scaled out, producing a momentary "naked" modal during dismissal. Promoted backdrop to `motion.div` with its own opacity in/out (0.18s ease-out) so the dim layer fades alongside the modal scale-out.
+4. **`searchDurationMs` precision (iter-12 hand-off).** Sticky bar showed `(ms/1000).toFixed(2)` regardless of magnitude. For a 420ms query this read `.42s` — clinical; for a 3,247ms query it read `3.25s` — pseudo-precise (the user is already counting in their head past 2 seconds). Replaced with magnitude-adaptive: `<1s → "642ms"`, `1-2s → "1.4s"`, `>=2s → "3s"`.
+5. **Aria-hidden coverage gaps on decorative icons.** Iter-10 swept ResultsToolbar / SearchBar / ShortcutHelpModal but left ~9 lucide icons across `page.tsx` (Try-row arrow, Recent Clock + clear-X, Recent-pill arrow, "See all" / "More from" arrows, "Search GitHub directly" arrow, mobile primary-CTA arrow), `TrendingSection` (Flame, RefreshCw, Star, ArrowUpRight), and `SavedSection` (BookmarkCheck) without `aria-hidden`. Each sits beside text that already names the affordance, so the icon is decorative. Marked `aria-hidden` for screen-reader read-order parity.
+6. **`openLabelForSource` AUR + NuGet (iter-12 hand-off).** Both fell through to generic "Open". Now read "View package" — fits the package-registry vocabulary; avoids the prescriptive "Install via AUR" (assumes Arch + PKGBUILD clone).
+7. **Codeberg tagline copyedit (iter-12 hand-off).** Was "Non-profit Forgejo-hosted repos" — "Forgejo" is opaque to most users (it's the upstream forge software, an internal-implementation detail). Now reads "Non-profit, community-run GitHub alternative" — a curious developer can parse without prior context. Other 27 taglines re-walked; rest passed the legibility bar.
+
+**Skipped this iteration (with reason):**
+- **Per-card `motion.div` overhead** — already addressed by iter 12's hoist (focus-ring + filter exit collapsed into AnimatedCard). Re-confirmed only one motion node per card.
+- **AnimatePresence direct-child sentinel for `AnimatedGrid`** — re-walked. Outer Presence's direct child is `motion.div` (the keyed grid wrapper); inner Presence's direct children are `<UnifiedProjectCard>`, which is a function component but its root is `<AnimatedCard>` whose root is `motion.div`. This is the standard framer pattern and works in tests. The hand-off note about "lint rule for direct-motion path" remains a process safeguard, not an immediate fix.
+- **`ShortcutHelpButton`'s AnimatePresence** — already wraps `motion.button` directly. No fix needed.
+- **Bundle audit** — page bundle 88.0 → 88.1 kB after iter-13 changes. Within budget; the new opacity-only motion variants on the modal backdrop and the magnitude-conditional duration string add ~100 bytes total.
+
+**Test count:** 59 (was 58, +1 — added `aur` / `nuget` assertion to the openLabelForSource test).
+
+**Build:** clean. Page bundle 88.1 kB (was 88.0 kB; +0.1 kB).
+
+**Files touched:**
+- `frontend/src/app/page.tsx` (toast rename, dead-import drop, duration precision, aria-hidden sweep)
+- `frontend/src/components/SearchBar.tsx` (dead-import drop)
+- `frontend/src/components/ShortcutHelpModal.tsx` (motion.div backdrop)
+- `frontend/src/components/card/helpers.ts` (aur / nuget labels)
+- `frontend/src/components/card/helpers.test.ts` (aur / nuget assertion)
+- `frontend/src/lib/sources/registry.ts` (Codeberg tagline copyedit)
+- `frontend/src/components/TrendingSection.tsx` (aria-hidden on Flame / RefreshCw / Star / ArrowUpRight)
+- `frontend/src/components/SavedSection.tsx` (aria-hidden on BookmarkCheck)
+
+**Still rough (hand off to iteration 14):**
+- **Pre-existing TS errors in `frontend/src/lib/sources/ranking-bm25.test.ts`** — two type errors (missing `author` on the cast object, `avatarUrl` not on the partial). Predates iter-13 (last touched in commit 2f8a5b5 — "M1: implement BM25 ranker"). Tests still pass at runtime (vitest doesn't typecheck) and `npm run build` is clean (Next.js' build skips test files). But `tsc --noEmit` from the frontend dir flags them. Worth a 5-minute fix in iter 14 just to keep the typecheck green.
+- **Toast close-button cross-browser QA** (iter-12 hand-off, untouched). Sonner's emitted `[data-close-button]` selector still drives our ghost styling. Manual smoke recommended next time the dev server is up.
+- **Source-tagline tooltip on touch** (iter-12 hand-off, untouched). `title=` is desktop-only; long-press behavior is browser-dependent on touch. A tap-and-hold popover or `(?)` icon on the genuinely opaque labels (JSR, AUR, openvsx) would fill the gap. Adds JS over a currently zero-cost browser-native pattern. Defer until a touch user reports confusion.
+- **Per-card motion-dedup may break framer FLIP edge cases** (iter-12 hand-off, structural). Standard pattern; flagged for completeness only — no observed regression.
+- **`cardVariants.exit` scale 0.94 vs hover scale 1.0** (iter-12 hand-off). Visual judgment call at 60Hz; high confidence, defer cross-device QA.
+- **Decorative slate-400 uppercase tracking labels** below the WCAG 4.5:1 floor on a non-white surface still flagged from iter-10. Decorative-class with tracking aiding legibility; conscious decision to leave alone.
+- **DockerHub version chip** still off (iter-9 onwards). Latency cost outweighs polish unless explicitly requested.
+- **Aria-live region verbosity** (iter-8 onwards). Real screen-reader QA could decide to trim or keep.
+- **Print stylesheet** still hasn't been visually verified on a printout (iter-10 onwards). Coded blind from CSS rules.
+- **Iter-13 review found no remaining "feels off" motion / no className-soup that's worth extracting / no leftover dark-theme remnants.** The shadcn HSL `--background` / `--foreground` / etc. tokens at `globals.css:8-30` are valid light-theme triplets, not dark-mode leftovers. The ts-source-* color list (`globals.css:465-492`) is a long but consistent enumeration — not soup; each color is per-source-deliberate. Tokens.css is comment-clean. globals.css is comment-rich and the rules are grouped by concern (glass / pills / buttons / card / source-badge / search-bar / sticky-progress / hero / print). Iter 13's remaining time was spent on the legitimate gaps surfaced above.
