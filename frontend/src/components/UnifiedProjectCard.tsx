@@ -49,9 +49,14 @@ export function UnifiedProjectCard({ project, onToast }: Props) {
       ? project.fullName
       : "";
 
+  // Sparse cards (no description AND no topics) get a lower min-height so a
+  // row of them doesn't waste vertical space. auto-rows-fr still aligns all
+  // cards in a row to the tallest, so grid geometry stays correct.
+  const isSparse = !project.description && topics.length === 0;
+
   return (
     <AnimatedCard layoutId={project.id}>
-      <article className="ts-card glass">
+      <article className={`ts-card glass${isSparse ? " ts-card-sparse" : ""}`}>
         <div className="ts-top">
           <SourceBadge source={project.source} />
           <motion.button
@@ -89,7 +94,9 @@ export function UnifiedProjectCard({ project, onToast }: Props) {
           </h3>
         </div>
 
-        <p className="ts-desc">{project.description ?? ""}</p>
+        {project.description && (
+          <p className="ts-desc">{project.description}</p>
+        )}
 
         {project.updatedAt && (
           <p className="ts-caption">

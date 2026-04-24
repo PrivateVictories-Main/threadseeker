@@ -190,6 +190,12 @@ body {
   transform: translateY(-4px);
   box-shadow: var(--ts-shadow-hover);
 }
+/* Sparse variant — description + topics both absent; shave ~80px of
+   baseline space. Row alignment stays intact because the grid is
+   auto-rows-fr and stretches every card to the tallest sibling. */
+.ts-card.ts-card-sparse {
+  min-height: 260px;
+}
 
 .ts-top {
   display: flex; align-items: center; gap: 10px;
