@@ -444,13 +444,13 @@ export default function Home() {
               variants={modeVariants}
               className="px-4 sm:px-6"
             >
-              <div className="max-w-4xl mx-auto pt-20 sm:pt-28 pb-10">
-                <div className="text-center mb-10">
-                  <h1 className="text-balance text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-slate-900 mb-5 leading-[1.05]">
+              <div className="max-w-4xl mx-auto pt-16 sm:pt-24 lg:pt-28 pb-16">
+                <div className="text-center mb-12">
+                  <h1 className="text-balance text-[44px] sm:text-6xl lg:text-7xl font-semibold tracking-tight text-slate-900 mb-6 leading-[1.04]">
                     Search open source{" "}
                     <span className="ts-hero-accent">everywhere</span>
                   </h1>
-                  <p className="text-[17px] text-slate-500 max-w-xl mx-auto leading-relaxed">
+                  <p className="text-[16px] sm:text-[17px] text-slate-500 max-w-xl mx-auto leading-relaxed">
                     One query, {activeSources} platforms — repositories,
                     packages, models, and community threads.
                   </p>
@@ -468,25 +468,25 @@ export default function Home() {
                   }}
                 />
 
-                {/* Try row */}
-                <div className="mt-5 flex flex-wrap justify-center gap-2">
-                  <span className="text-[12px] text-slate-400 uppercase tracking-[0.14em] font-semibold mr-1 self-center">
+                {/* Try row — matches Recent pill rhythm */}
+                <div className="mt-6 flex flex-wrap justify-center items-center gap-2">
+                  <span className="text-[11px] text-slate-400 uppercase tracking-[0.14em] font-semibold mr-1">
                     Try
                   </span>
                   {EXAMPLE_QUERIES.map((eq) => (
                     <button
                       key={eq}
                       onClick={() => handleSearch(eq)}
-                      className="group inline-flex items-center gap-1.5 text-[12.5px] text-slate-600 hover:text-indigo-700 bg-white/70 hover:bg-white border border-indigo-200/80 hover:border-indigo-300 rounded-full px-3 py-1 transition-all"
+                      className="group inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-600 hover:text-indigo-700 bg-white/70 hover:bg-white border border-indigo-200/80 hover:border-indigo-300 rounded-full px-3 py-1.5 transition-colors"
                     >
                       <span>{eq}</span>
-                      <ArrowRight className="w-3 h-3 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                      <ArrowRight className="w-3 h-3 text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                   ))}
                 </div>
 
                 {/* Source filter — restrained, under a small disclosure row */}
-                <div className="mt-6 flex flex-col items-center gap-2">
+                <div className="mt-8 flex flex-col items-center gap-2">
                   <button
                     onClick={() => setSourceFilterOpen((v) => !v)}
                     className="text-[11px] uppercase tracking-[0.14em] text-slate-400 hover:text-indigo-600 font-semibold transition-colors"
@@ -507,8 +507,8 @@ export default function Home() {
 
                 {/* Recent */}
                 {history.length > 0 && (
-                  <div className="mt-10">
-                    <div className="flex items-center justify-center gap-1.5 mb-3 text-[11px] uppercase tracking-[0.14em] text-slate-400 font-semibold">
+                  <div className="mt-12">
+                    <div className="flex items-center justify-center gap-1.5 mb-4 text-[11px] uppercase tracking-[0.14em] text-slate-400 font-semibold">
                       <Clock className="w-3 h-3" />
                       Recent
                       <button
@@ -552,8 +552,8 @@ export default function Home() {
             >
               {/* Sticky glass header with compact SearchBar + live readout */}
               <div className="sticky top-0 z-20 glass-sticky">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-4">
-                  <div className="flex-1 max-w-xl">
+                <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
+                  <div className="flex-1 min-w-0 sm:max-w-xl">
                     <SearchBar
                       onSearch={handleSearch}
                       isLoading={isLoading}
@@ -586,7 +586,7 @@ export default function Home() {
                   </div>
                   <button
                     onClick={handleClear}
-                    className="text-[12.5px] text-slate-500 hover:text-indigo-700 font-medium transition-colors"
+                    className="text-[12.5px] text-slate-500 hover:text-indigo-700 font-medium transition-colors px-2 py-1.5 rounded-md hover:bg-white/60 flex-shrink-0"
                     title="Clear search and return home"
                   >
                     Clear
@@ -600,7 +600,7 @@ export default function Home() {
                 )}
               </div>
 
-              <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 w-full">
+              <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 w-full">
                 {isLoading && resultCount === 0 ? (
                   <div className="space-y-5">
                     <div className="flex items-center gap-2 text-[13px] text-slate-500">
@@ -622,7 +622,7 @@ export default function Home() {
                         )}
                       </span>
                     </div>
-                    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
+                    <div className="grid gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
                       {Array.from({ length: 9 }).map((_, i) => (
                         <CardSkeleton key={i} />
                       ))}
@@ -674,7 +674,7 @@ export default function Home() {
                     <AnimatedGrid
                       ref={resultsGridRef}
                       keyed={query || parsedQuery.freeText}
-                      className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
+                      className="grid gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
                     >
                       {view.map((project, idx) => (
                         <div
@@ -826,7 +826,7 @@ export default function Home() {
       </main>
 
       <footer className="mt-auto border-t border-indigo-100/70">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-[12px] text-slate-500">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-[12px] text-slate-500">
           <div>
             ThreadSeeker — unified search across {ALL_SOURCES.length} open-source
             platforms · no paid APIs · no tracking
