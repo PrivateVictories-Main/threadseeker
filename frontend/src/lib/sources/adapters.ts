@@ -625,6 +625,14 @@ export async function searchDockerHub(query: string): Promise<SearchResult> {
         const [owner, name] = repoName.includes("/")
           ? repoName.split("/", 2)
           : ["library", repoName];
+        // DockerHub's /v2/search/repositories/ surfaces last_updated for
+        // every repo as an ISO timestamp — surface it directly. Mirror
+        // the homebrew approach: when it's missing, fall back to ""
+        // rather than `new Date().toISOString()` so the card caption
+        // suppresses cleanly instead of lying with "just now". Latest
+        // tag / digest is NOT in the search response — would require a
+        // per-result /tags call (latency cost), so version chip stays
+        // off for dockerhub until a feature-flagged opt-in lands.
         return {
           id: `dockerhub-${repoName}`,
           source: "dockerhub" as const,
@@ -637,7 +645,7 @@ export async function searchDockerHub(query: string): Promise<SearchResult> {
           language: null,
           topics: [],
           author: { name: owner, avatar: "" },
-          updatedAt: r.last_updated || new Date().toISOString(),
+          updatedAt: r.last_updated || "",
         };
       }),
       totalCount: results.length,
