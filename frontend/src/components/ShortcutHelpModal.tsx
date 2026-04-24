@@ -38,7 +38,7 @@ export function ShortcutHelpModal() {
     <AnimatePresence>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-950/40 backdrop-blur-sm"
           onClick={() => setOpen(false)}
         >
           <motion.div
@@ -50,24 +50,24 @@ export function ShortcutHelpModal() {
             exit="exit"
           >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-medium text-slate-200">Keyboard shortcuts</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Keyboard shortcuts</h2>
               <button
                 onClick={() => setOpen(false)}
-                className="p-1 text-slate-500 hover:text-slate-200 transition-colors"
+                className="p-1 text-slate-500 hover:text-slate-900 transition-colors"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {SHORTCUTS.map((s) => (
                 <div key={s.label} className="flex items-center justify-between gap-4">
-                  <span className="text-xs text-slate-400">{s.label}</span>
+                  <span className="text-[13px] text-slate-700">{s.label}</span>
                   <span className="flex items-center gap-1">
                     {s.keys.map((k, i) => (
                       <kbd
                         key={i}
-                        className="px-1.5 py-0.5 rounded border border-slate-700 bg-slate-900 text-slate-300 text-[11px] font-mono"
+                        className="px-2 py-0.5 rounded border border-indigo-200 bg-white text-slate-700 text-[11px] font-mono shadow-sm"
                       >
                         {k}
                       </kbd>

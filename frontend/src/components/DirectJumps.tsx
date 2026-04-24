@@ -74,11 +74,11 @@ export function DirectJumps({ query }: Props) {
             href={r.url(q)}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[11px] text-slate-300 hover:text-slate-100 bg-slate-900/60 hover:bg-slate-800/70 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-2.5 py-1 transition-colors"
+            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3 py-1.5 transition-colors"
           >
             <span>{r.icon}</span>
             <span>{r.name}</span>
-            <ArrowUpRight className="w-3 h-3 text-slate-600" />
+            <ArrowUpRight className="w-3 h-3 text-slate-400" />
           </a>
         ))}
       </div>

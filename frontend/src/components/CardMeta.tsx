@@ -34,16 +34,16 @@ function maintenanceBucket(updatedAt: string): {
 }
 
 const LICENSE_STYLES: Record<string, string> = {
-  permissive: "text-emerald-400/80 bg-emerald-500/10 border-emerald-500/20",
-  "weak-copyleft": "text-amber-400/80 bg-amber-500/10 border-amber-500/20",
-  "strong-copyleft": "text-orange-400/80 bg-orange-500/10 border-orange-500/20",
-  other: "text-slate-400/80 bg-slate-500/10 border-slate-500/20",
+  permissive: "text-emerald-700 bg-emerald-100/70 border-emerald-300",
+  "weak-copyleft": "text-amber-700 bg-amber-100/70 border-amber-300",
+  "strong-copyleft": "text-orange-700 bg-orange-100/70 border-orange-300",
+  other: "text-slate-600 bg-slate-100 border-slate-300",
 };
 
 const MAINT_STYLES: Record<string, string> = {
-  active: "text-emerald-400/80 bg-emerald-500/10 border-emerald-500/20",
-  stale: "text-amber-400/80 bg-amber-500/10 border-amber-500/20",
-  abandoned: "text-rose-400/80 bg-rose-500/10 border-rose-500/20",
+  active: "text-emerald-700 bg-emerald-100/70 border-emerald-300",
+  stale: "text-amber-700 bg-amber-100/70 border-amber-300",
+  abandoned: "text-rose-700 bg-rose-100/70 border-rose-300",
 };
 
 export function CardMeta({ project }: { project: UnifiedProject }) {
@@ -58,7 +58,7 @@ export function CardMeta({ project }: { project: UnifiedProject }) {
     <div className="px-4 pb-3 flex items-center gap-1.5 flex-wrap text-[10px]">
       {version && (
         <span
-          className="inline-flex items-center rounded border border-slate-700/40 bg-slate-900/50 px-1.5 py-[1px] font-mono text-slate-400"
+          className="inline-flex items-center rounded border border-indigo-200 bg-white/80 px-1.5 py-[1px] font-mono text-slate-600"
           title="Latest published version"
         >
           v{version.replace(/^v/, "")}

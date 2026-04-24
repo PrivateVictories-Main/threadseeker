@@ -35,9 +35,9 @@ export function SourceFilter({
                 key={source}
                 onClick={() => onToggle(source)}
                 data-active={String(active)}
-                className="filter-pill pill text-xs flex items-center gap-1"
+                className="filter-pill pill text-[12px] flex items-center gap-1.5"
               >
-                <span className="text-[11px]">{config.icon}</span>
+                <span className="text-[12px]">{config.icon}</span>
                 <span>{config.name}</span>
               </button>
             );

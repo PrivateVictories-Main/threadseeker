@@ -19,32 +19,32 @@ export default function AppError({
   }, [error]);
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-10 bg-black text-slate-200">
-      <div className="max-w-md w-full space-y-4 rounded-xl border border-slate-800/60 bg-slate-950/50 p-6">
-        <div className="flex items-center gap-2 text-amber-400">
+    <main className="min-h-screen flex items-center justify-center px-6 py-10 text-slate-800">
+      <div className="max-w-md w-full space-y-4 rounded-xl border border-indigo-200 bg-white/85 backdrop-blur-md p-6 shadow-lg">
+        <div className="flex items-center gap-2 text-amber-700">
           <AlertTriangle className="w-5 h-5" />
-          <h1 className="text-sm font-medium">Something broke on our side.</h1>
+          <h1 className="text-base font-semibold">Something broke on our side.</h1>
         </div>
-        <p className="text-xs text-slate-400 leading-relaxed">
+        <p className="text-sm text-slate-600 leading-relaxed">
           ThreadSeeker ran into an unexpected error. Your search query is still
           in the URL bar, so you can try again.
         </p>
         {error.digest && (
-          <p className="text-[10px] text-slate-600 font-mono break-all">
+          <p className="text-[10px] text-slate-500 font-mono break-all">
             digest: {error.digest}
           </p>
         )}
         <div className="flex items-center gap-2">
           <button
             onClick={reset}
-            className="flex items-center gap-2 text-xs text-slate-200 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-lg px-3 py-2 transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-white bg-gradient-to-br from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 border border-transparent rounded-lg px-3.5 py-2 transition-colors shadow-sm"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Try again
           </button>
           <a
             href="/"
-            className="text-xs text-slate-500 hover:text-slate-300 px-3 py-2"
+            className="text-sm text-slate-600 hover:text-indigo-700 px-3 py-2 font-medium"
           >
             Go home
           </a>

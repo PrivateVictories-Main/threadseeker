@@ -398,7 +398,7 @@ export default function Home() {
     <div className="min-h-screen">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-md focus:bg-slate-100 focus:px-3 focus:py-1.5 focus:text-xs focus:text-slate-900 focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-md focus:bg-white focus:px-3 focus:py-1.5 focus:text-xs focus:text-slate-900 focus:shadow-lg focus:border focus:border-indigo-300"
       >
         Skip to main content
       </a>
@@ -410,14 +410,14 @@ export default function Home() {
       <ShortcutHelpModal />
       <main id="main-content">
       {/* Search hero */}
-      <section className="border-b border-slate-800/40">
+      <section className="border-b border-indigo-100/70">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-20 pb-8">
           {/* Heading */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-100 mb-2">
-              Search open source everywhere
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 mb-3">
+              Search open source <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">everywhere</span>
             </h1>
-            <p className="text-sm text-slate-500 max-w-lg mx-auto">
+            <p className="text-base text-slate-600 max-w-lg mx-auto">
               One query across {activeSources} platforms — repos, packages,
               models, and community threads.
             </p>
@@ -450,7 +450,7 @@ export default function Home() {
           {/* Recent searches — from local storage */}
           {!hasSearched && !isLoading && history.length > 0 && (
             <div className="mt-6">
-              <div className="flex items-center justify-center gap-2 mb-2 text-[10px] uppercase tracking-wide text-slate-600">
+              <div className="flex items-center justify-center gap-2 mb-2 text-[11px] uppercase tracking-wide text-slate-500 font-semibold">
                 <Clock className="w-3 h-3" />
                 Recent
                 <button
@@ -458,7 +458,7 @@ export default function Home() {
                     setHistory([]);
                     saveHistory([]);
                   }}
-                  className="ml-1 text-slate-700 hover:text-slate-500 transition-colors"
+                  className="ml-1 text-slate-400 hover:text-slate-700 transition-colors"
                   title="Clear history"
                 >
                   <X className="w-3 h-3" />
@@ -469,7 +469,7 @@ export default function Home() {
                   <button
                     key={h}
                     onClick={() => handleSearch(h)}
-                    className="group flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 bg-slate-900/60 hover:bg-slate-800/70 border border-slate-800/60 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-all"
+                    className="group flex items-center gap-1.5 text-[13px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-all"
                   >
                     <span>{h}</span>
                     <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -491,7 +491,7 @@ export default function Home() {
           {!hasSearched && !isLoading && (
             <div className="mt-6">
               {history.length > 0 && (
-                <div className="flex items-center justify-center mb-2 text-[10px] uppercase tracking-wide text-slate-600">
+                <div className="flex items-center justify-center mb-2 text-[11px] uppercase tracking-wide text-slate-500 font-semibold">
                   Try
                 </div>
               )}
@@ -500,7 +500,7 @@ export default function Home() {
                   <button
                     key={eq}
                     onClick={() => handleSearch(eq)}
-                    className="group flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/50 rounded-full px-3 py-1.5 transition-all"
+                    className="group flex items-center gap-1.5 text-[13px] text-slate-600 hover:text-indigo-700 bg-white/70 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-all"
                   >
                     <span>{eq}</span>
                     <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -516,9 +516,9 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {isLoading && resultCount === 0 ? (
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm text-slate-500">
+            <div className="flex items-center gap-2 text-sm text-slate-600">
               <span>Searching {activeSources} sources</span>
-              <span className="inline-flex items-center gap-1 text-slate-400">
+              <span className="inline-flex items-center gap-1 text-slate-500">
                 {pendingSourceList.slice(0, 10).map((src) => (
                   <span
                     key={src}
@@ -529,7 +529,7 @@ export default function Home() {
                   </span>
                 ))}
                 {pendingSourceList.length > 10 && (
-                  <span className="text-slate-600">
+                  <span className="text-slate-400">
                     +{pendingSourceList.length - 10}
                   </span>
                 )}
@@ -556,28 +556,28 @@ export default function Home() {
                   activeSource={activeSourceFilter}
                   onSourceClick={setActiveSourceFilter}
                 />
-                <p className="text-sm text-slate-500">
-                  {view.length} {view.length === 1 ? "result" : "results"}
+                <p className="text-sm text-slate-600">
+                  <span className="font-semibold text-slate-800">{view.length}</span> {view.length === 1 ? "result" : "results"}
                   {activeSourceFilter && (
-                    <span className="text-slate-600">
+                    <span className="text-slate-500">
                       {" "}
-                      from <span className="text-slate-400">{activeSourceFilter}</span>
+                      from <span className="text-indigo-700 font-medium">{activeSourceFilter}</span>
                     </span>
                   )}
                   {parsedQuery.freeText && (
-                    <span className="text-slate-600">
+                    <span className="text-slate-500">
                       {" "}
-                      for <span className="text-slate-400">{parsedQuery.freeText}</span>
+                      for <span className="text-indigo-700 font-medium">{parsedQuery.freeText}</span>
                     </span>
                   )}
                   {opSummary && (
-                    <span className="text-slate-600">
+                    <span className="text-slate-500">
                       {" · "}
-                      <span className="text-slate-400 font-mono text-xs">{opSummary}</span>
+                      <span className="text-slate-700 font-mono text-xs">{opSummary}</span>
                     </span>
                   )}
                   {!isLoading && searchDurationMs !== null && (
-                    <span className="text-slate-700">
+                    <span className="text-slate-400">
                       {" · "}
                       {(searchDurationMs / 1000).toFixed(2)}s
                     </span>
@@ -586,7 +586,7 @@ export default function Home() {
                     <span className="ml-2 inline-flex items-center gap-1.5 text-xs text-slate-500">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       still searching
-                      <span className="inline-flex items-center gap-1 text-slate-400">
+                      <span className="inline-flex items-center gap-1 text-slate-500">
                         {pendingSourceList.slice(0, 6).map((src) => (
                           <span
                             key={src}
@@ -597,7 +597,7 @@ export default function Home() {
                           </span>
                         ))}
                         {pendingSourceList.length > 6 && (
-                          <span className="text-slate-600">
+                          <span className="text-slate-400">
                             +{pendingSourceList.length - 6}
                           </span>
                         )}
@@ -635,7 +635,7 @@ export default function Home() {
                       href={getSourceSearchUrl(activeSourceFilter, query) || "#"}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-200 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
                     >
                       <span>{getSourceConfig(activeSourceFilter).icon}</span>
                       <span>
@@ -661,8 +661,8 @@ export default function Home() {
                     .filter((s) => getSourceSearchUrl(s, parsedQuery.freeText));
                   if (top.length === 0) return null;
                   return (
-                    <div className="pt-4 border-t border-slate-900/60 mt-2">
-                      <div className="text-center text-[10px] uppercase tracking-wide text-slate-600 mb-2">
+                    <div className="pt-4 border-t border-indigo-100 mt-2">
+                      <div className="text-center text-[11px] uppercase tracking-wide text-slate-500 font-semibold mb-2">
                         More from
                       </div>
                       <div className="flex flex-wrap justify-center gap-2">
@@ -672,7 +672,7 @@ export default function Home() {
                             href={getSourceSearchUrl(src, parsedQuery.freeText) || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-200 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-colors"
+                            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
                           >
                             <span>{getSourceConfig(src).icon}</span>
                             <span>{getSourceConfig(src).name}</span>
@@ -688,9 +688,9 @@ export default function Home() {
           })()
         ) : hasSearched ? (
           <div className="text-center py-20">
-            <Search className="w-8 h-8 text-slate-700 mx-auto mb-3" />
-            <p className="text-sm text-slate-400">No results found</p>
-            <p className="text-xs text-slate-600 mt-1">
+            <Search className="w-8 h-8 text-indigo-400 mx-auto mb-3" />
+            <p className="text-sm font-medium text-slate-700">No results found</p>
+            <p className="text-xs text-slate-500 mt-1">
               Try different keywords or enable more sources
             </p>
             {/* Actionable suggestions when no results. Priority:
@@ -701,7 +701,7 @@ export default function Home() {
               {describeOperators(parsedQuery) && (
                 <button
                   onClick={() => handleSearch(parsedQuery.freeText || query)}
-                  className="text-xs text-slate-400 hover:text-slate-100 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-colors"
+                  className="text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
                 >
                   Drop filters: <span className="font-mono text-slate-500">{describeOperators(parsedQuery)}</span>
                 </button>
@@ -712,7 +712,7 @@ export default function Home() {
                     setSelectedSources(ALL_SOURCES);
                     handleSearch(query);
                   }}
-                  className="text-xs text-slate-400 hover:text-slate-100 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-colors"
+                  className="text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
                 >
                   Search all {ALL_SOURCES.length} sources
                 </button>
@@ -729,7 +729,7 @@ export default function Home() {
                     const next = tokens.filter((t) => t !== victim).join(" ");
                     if (next.trim()) handleSearch(next);
                   }}
-                  className="text-xs text-slate-400 hover:text-slate-100 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-colors"
+                  className="text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
                 >
                   Try broader: drop one term
                 </button>
@@ -738,7 +738,7 @@ export default function Home() {
                 href={`https://github.com/search?q=${encodeURIComponent(parsedQuery.freeText || query)}&type=repositories`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-slate-500 hover:text-slate-200 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-full px-3 py-1.5 transition-colors inline-flex items-center gap-1"
+                className="text-[12px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors inline-flex items-center gap-1"
               >
                 Search GitHub directly <ArrowRight className="w-3 h-3" />
               </a>
@@ -746,8 +746,8 @@ export default function Home() {
           </div>
         ) : (
           <div className="text-center py-20">
-            <Globe className="w-8 h-8 text-slate-700 mx-auto mb-3" />
-            <p className="text-sm text-slate-500">
+            <Globe className="w-8 h-8 text-indigo-400 mx-auto mb-3" />
+            <p className="text-sm text-slate-600">
               Search across GitHub, npm, PyPI, Hugging Face, Docker Hub,
               conda-forge, AUR, and {ALL_SOURCES.length - 7} more
             </p>
@@ -756,8 +756,8 @@ export default function Home() {
       </section>
       </main>
 
-      <footer className="mt-auto border-t border-slate-800/40 mt-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-600">
+      <footer className="mt-auto border-t border-indigo-100 mt-12">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-[12px] text-slate-500">
           <div>
             ThreadSeeker — unified search across {ALL_SOURCES.length} open-source
             platforms · no paid APIs · no tracking
@@ -767,13 +767,13 @@ export default function Home() {
               href="https://github.com/PrivateVictories-Main/threadseeker"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-slate-400 transition-colors"
+              className="hover:text-indigo-700 transition-colors font-medium"
             >
               GitHub
             </a>
-            <span className="text-slate-800">·</span>
+            <span className="text-slate-300">·</span>
             <span>
-              Press <kbd className="px-1 py-0.5 rounded border border-slate-800 text-slate-500">?</kbd> for shortcuts
+              Press <kbd className="px-1.5 py-0.5 rounded border border-indigo-200 bg-white text-slate-700 font-mono text-[11px]">?</kbd> for shortcuts
             </span>
           </div>
         </div>

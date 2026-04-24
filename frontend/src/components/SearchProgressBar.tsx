@@ -18,11 +18,11 @@ export function SearchProgressBar({ total, remaining, active }: Props) {
   return (
     <>
       <div
-        className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-slate-900/40 pointer-events-none"
+        className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-indigo-100 pointer-events-none"
         aria-hidden
       >
         <div
-          className="h-full bg-gradient-to-r from-amber-500 via-amber-300 to-emerald-400 transition-[width] duration-300 ease-out"
+          className="h-full bg-gradient-to-r from-indigo-500 via-violet-400 to-sky-400 transition-[width] duration-300 ease-out"
           style={{ width: `${pct}%` }}
         />
       </div>

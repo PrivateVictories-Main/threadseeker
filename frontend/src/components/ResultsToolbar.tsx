@@ -110,10 +110,10 @@ export function ResultsToolbar({
         <motion.button
           onClick={() => onSourceClick(null)}
           data-active={String(activeSource === null)}
-          className="filter-pill pill text-[11px]"
+          className="filter-pill pill text-[12px]"
           animate={{
             backgroundColor:
-              activeSource === null ? "#7c3aed" : "rgba(255,255,255,0.85)",
+              activeSource === null ? "#6366f1" : "rgba(255,255,255,0.92)",
             color: activeSource === null ? "#ffffff" : undefined,
           }}
           transition={springSnappy}
@@ -128,9 +128,9 @@ export function ResultsToolbar({
               key={source}
               onClick={() => onSourceClick(active ? null : source)}
               data-active={String(active)}
-              className="filter-pill pill text-[11px] flex items-center gap-1.5"
+              className="filter-pill pill text-[12px] flex items-center gap-1.5"
               animate={{
-                backgroundColor: active ? "#7c3aed" : "rgba(255,255,255,0.85)",
+                backgroundColor: active ? "#6366f1" : "rgba(255,255,255,0.92)",
                 color: active ? "#ffffff" : undefined,
               }}
               transition={springSnappy}
@@ -147,54 +147,54 @@ export function ResultsToolbar({
         <div className="flex items-center gap-1">
           <button
             onClick={() => handleExport("md")}
-            className="btn text-[11px]"
+            className="btn text-[12px]"
             title="Copy results as Markdown"
           >
             {exportedAs === "md" ? (
-              <Check className="w-3 h-3 text-emerald-400" />
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
             ) : (
-              <Download className="w-3 h-3" />
+              <Download className="w-3.5 h-3.5" />
             )}
             <span>MD</span>
           </button>
           <button
             onClick={() => handleExport("json")}
-            className="btn text-[11px]"
+            className="btn text-[12px]"
             title="Copy results as JSON"
           >
             {exportedAs === "json" ? (
-              <Check className="w-3 h-3 text-emerald-400" />
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
             ) : (
-              <Download className="w-3 h-3" />
+              <Download className="w-3.5 h-3.5" />
             )}
             <span>JSON</span>
           </button>
         </div>
         <button
           onClick={handleShare}
-          className="btn text-[11px]"
+          className="btn text-[12px]"
           title="Copy link to these results"
         >
           {copied ? (
             <>
-              <Check className="w-3 h-3 text-emerald-400" />
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
               <span>Copied</span>
             </>
           ) : (
             <>
-              <Link2 className="w-3 h-3" />
+              <Link2 className="w-3.5 h-3.5" />
               <span>Share</span>
             </>
           )}
         </button>
-        <ArrowDownWideNarrow className="w-3 h-3 text-slate-600" />
+        <ArrowDownWideNarrow className="w-3.5 h-3.5 text-slate-500" />
         <select
           value={sortMode}
           onChange={(e) => onSortChange(e.target.value as SortMode)}
-          className="text-[11px] bg-slate-900/40 border border-slate-800/50 rounded-md px-2 py-1 text-slate-400 hover:text-slate-200 focus:outline-none focus:border-slate-700"
+          className="text-[12px] bg-white/80 border border-indigo-200 rounded-md px-2.5 py-1.5 text-slate-700 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 font-medium"
         >
           {SORT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value} className="bg-slate-900">
+            <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
           ))}

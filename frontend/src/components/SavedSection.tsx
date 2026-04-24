@@ -28,7 +28,7 @@ export function SavedSection() {
   return (
     <div className="glass section-container mt-6">
       <h2 className="section-title flex items-center justify-center gap-2">
-        <BookmarkCheck className="w-3 h-3 text-amber-400/70" />
+        <BookmarkCheck className="w-3.5 h-3.5 text-rose-500" />
         Saved · {items.length}
       </h2>
       <div className="flex flex-wrap justify-center gap-2 max-w-3xl mx-auto">
@@ -37,16 +37,16 @@ export function SavedSection() {
           return (
             <div
               key={b.id}
-              className="group inline-flex items-center gap-1.5 rounded-full border border-slate-800/60 bg-slate-900/50 hover:border-slate-700/70 pl-2 pr-1 py-1 transition-colors"
+              className="group inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/80 hover:border-indigo-400 hover:bg-white pl-3 pr-1.5 py-1.5 transition-colors"
             >
               <a
                 href={b.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-slate-100"
+                className="flex items-center gap-1.5 text-[12px] font-medium text-slate-700 hover:text-indigo-700"
                 title={b.description ?? b.fullName}
               >
-                <span className="text-[11px]">{cfg.icon}</span>
+                <span className="text-[12px]">{cfg.icon}</span>
                 <span className="max-w-[180px] truncate">{b.name}</span>
               </a>
               <button
@@ -54,11 +54,11 @@ export function SavedSection() {
                   removeBookmark(b.id);
                   emitBookmarksChanged();
                 }}
-                className="p-0.5 text-slate-600 hover:text-slate-300 transition-colors"
+                className="p-0.5 text-slate-400 hover:text-rose-600 transition-colors"
                 aria-label={`Remove ${b.name} from saved`}
                 title="Remove"
               >
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           );
