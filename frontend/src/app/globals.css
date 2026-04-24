@@ -307,14 +307,22 @@ body > * {
 }
 .ts-title .ts-title-main {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  flex: 0 1 auto;
+  /* Take available row width — pushes the version chip flush right and
+     lets short names anchor cleanly to the left edge instead of leaving a
+     bare empty tail. Long names still truncate first because of overflow:
+     hidden + ellipsis. */
+  flex: 1 1 auto;
   min-width: 0;
 }
 .ts-title .ts-title-main-row {
-  display: inline-flex;
+  display: flex;
   align-items: baseline;
   gap: 8px;
   min-width: 0;
+  /* Full row width so flex: 1 on the name span actually has space to
+     consume; without this the row would shrink to content and re-create
+     the orphaned-chip look. */
+  width: 100%;
 }
 .ts-title .ts-title-sub {
   font-size: 12.5px; font-weight: 500;
