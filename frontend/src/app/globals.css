@@ -85,6 +85,47 @@ body {
   background-attachment: fixed;
   color: var(--ts-text);
   min-height: 100vh;
+  position: relative;
+}
+
+/* Atmospheric depth layer — two soft radial spots that float over the flat
+   linear gradient. Indigo top-left, violet bottom-right. Pointer-events
+   none + z-index 0 + fixed positioning means they sit beneath every
+   surface but cost nothing in interaction. Opacity stays low (≤22% color
+   stops) so the layer reads as ambient light, not a competing shape. If
+   you can clearly see the spots, it's too strong.
+
+   The spots track a vh/vw viewport so they don't slide as the page
+   scrolls — they stay anchored to the user's visible window the way a
+   real soft light source would. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(
+      ellipse 70vw 60vh at 12% 8%,
+      hsla(var(--ts-intent-hue), 80%, 78%, 0.22) 0%,
+      hsla(var(--ts-intent-hue), 80%, 78%, 0.10) 35%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 65vw 55vh at 92% 95%,
+      hsla(calc(var(--ts-intent-hue) + 30), 75%, 78%, 0.18) 0%,
+      hsla(calc(var(--ts-intent-hue) + 30), 75%, 78%, 0.08) 38%,
+      transparent 72%
+    );
+  /* Soft transition when --ts-intent-hue shifts on a new query, matching
+     the body background's own transition cadence. */
+  transition: background 800ms ease;
+}
+
+/* Make sure children sit above the depth layer. */
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Glass surface */
