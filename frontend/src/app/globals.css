@@ -633,7 +633,15 @@ button.topic-chip-interactive {
 .skeleton .shimmer-pill  { width: 64px; height: 22px; border-radius: var(--ts-radius-full); }
 .shimmer-static { animation: none; background: rgba(99,102,241,0.12); }
 
-body { transition: --ts-intent-hue 800ms ease; }
+/* Intent-hue transition: 800ms is long enough to feel atmospheric (not
+   a jump-cut) but short enough that rapid query changes settle within
+   a half-search cycle. Curve matches the app's standard ease-out
+   `[0.32, 0.72, 0, 1]` (used on AnimatedCard layout and modeVariants)
+   so the hue ramp moves with the same rhythm as everything else.
+   When the property is set in quick succession, CSS interrupts the
+   in-flight transition and re-targets — no chaining queue, the visual
+   stays smooth. */
+body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
 
 /* Motion-driven focus pulse. SearchBar mounts a <motion.span> on focus;
    this just sets the radial-glow aesthetic, framer-motion owns the animation
