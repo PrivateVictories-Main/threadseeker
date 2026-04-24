@@ -63,3 +63,9 @@ describe("expandQuery", () => {
     expect(expandQuery("how to deploy next.js").intent).toBe("how_to");
   });
 });
+
+describe("SYNONYMS coverage", () => {
+  it("has at least 45 concept entries", () => {
+    expect(SYNONYMS.length).toBeGreaterThanOrEqual(45);
+  });
+});
