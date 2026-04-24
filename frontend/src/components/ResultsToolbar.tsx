@@ -95,7 +95,7 @@ export function ResultsToolbar({
     try {
       await navigator.clipboard.writeText(payload);
       setExportedAs(kind);
-      setTimeout(() => setExportedAs(null), 1600);
+      setTimeout(() => setExportedAs(null), 900);
       toast.success(`Copied ${projects.length} results as ${kind.toUpperCase()}`);
     } catch {
       toast.error("Clipboard unavailable");
@@ -111,7 +111,7 @@ export function ResultsToolbar({
       }
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
+      setTimeout(() => setCopied(false), 900);
     } catch {
       /* user cancelled or clipboard unavailable */
     }
@@ -199,10 +199,17 @@ export function ResultsToolbar({
             </AnimatePresence>
           </div>
           <div className="hidden sm:block w-px h-5 bg-indigo-100" aria-hidden />
-          <button
+          <motion.button
             onClick={() => handleExport("md")}
             className="btn btn-ghost text-[12.5px] h-8 px-3"
             title="Copy results as Markdown"
+            animate={{
+              backgroundColor:
+                exportedAs === "md" ? "rgba(236, 253, 245, 1)" : "rgba(255, 255, 255, 0)",
+              borderColor:
+                exportedAs === "md" ? "rgba(16, 185, 129, 0.35)" : "rgba(99, 102, 241, 0.14)",
+            }}
+            transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
           >
             {exportedAs === "md" ? (
               <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -210,11 +217,18 @@ export function ResultsToolbar({
               <Download className="w-3.5 h-3.5" />
             )}
             <span>MD</span>
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             onClick={() => handleExport("json")}
             className="btn btn-ghost text-[12.5px] h-8 px-3"
             title="Copy results as JSON"
+            animate={{
+              backgroundColor:
+                exportedAs === "json" ? "rgba(236, 253, 245, 1)" : "rgba(255, 255, 255, 0)",
+              borderColor:
+                exportedAs === "json" ? "rgba(16, 185, 129, 0.35)" : "rgba(99, 102, 241, 0.14)",
+            }}
+            transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
           >
             {exportedAs === "json" ? (
               <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -222,11 +236,18 @@ export function ResultsToolbar({
               <Download className="w-3.5 h-3.5" />
             )}
             <span>JSON</span>
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             onClick={handleShare}
             className="btn btn-ghost text-[12.5px] h-8 px-3"
             title="Copy link to these results"
+            animate={{
+              backgroundColor:
+                copied ? "rgba(236, 253, 245, 1)" : "rgba(255, 255, 255, 0)",
+              borderColor:
+                copied ? "rgba(16, 185, 129, 0.35)" : "rgba(99, 102, 241, 0.14)",
+            }}
+            transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
           >
             {copied ? (
               <>
@@ -239,7 +260,7 @@ export function ResultsToolbar({
                 <span>Share</span>
               </>
             )}
-          </button>
+          </motion.button>
         </div>
       </div>
 
