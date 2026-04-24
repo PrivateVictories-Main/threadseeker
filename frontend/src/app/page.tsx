@@ -445,6 +445,21 @@ export default function Home() {
   const activeSources = selectedSources.length;
   const resultCount = projects.length;
 
+  // Community sources whose unified cards land in the 260px sparse shell
+  // (no description / no topics). When the user has narrowed to ONLY
+  // these, the loading skeletons should match the shorter geometry so
+  // the grid doesn't visually pop from 340px → 260px on data-in.
+  const SPARSE_SOURCES: ReadonlySet<SourceType> = new Set([
+    "hackernews",
+    "reddit",
+    "lobsters",
+    "stackoverflow",
+    "devto",
+  ]);
+  const skeletonsShouldBeSparse =
+    selectedSources.length > 0 &&
+    selectedSources.every((s) => SPARSE_SOURCES.has(s));
+
   // Sort-friendly view (applied before operator post-filter).
   const sortedView = mode === "results" ? applyResultsView(projects, sortMode, activeSourceFilter) : projects;
   const view = applyOperators(sortedView, parsedQuery);
@@ -675,7 +690,7 @@ export default function Home() {
                     </div>
                     <div className="grid gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
                       {Array.from({ length: 9 }).map((_, i) => (
-                        <CardSkeleton key={i} />
+                        <CardSkeleton key={i} sparse={skeletonsShouldBeSparse} />
                       ))}
                     </div>
                   </div>
