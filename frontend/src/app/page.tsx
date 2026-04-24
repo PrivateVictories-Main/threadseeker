@@ -499,6 +499,33 @@ export default function Home() {
     ? Math.min(100, Math.max(4, ((selectedSources.length - pendingSources) / Math.max(1, selectedSources.length)) * 100))
     : 0;
 
+  // Screen-reader live announcement. Updates as the search progresses
+  // (loading → results) so non-visual users get the same "your query
+  // returned N results across M sources" affordance that sighted users
+  // read off the toolbar count line. Polite so it doesn't interrupt
+  // ongoing speech.
+  const liveAnnouncement = (() => {
+    if (!hasSearched) return "";
+    if (isLoading) {
+      const targetCount = lastSearchedCount || selectedSources.length;
+      return `Searching ${targetCount} ${targetCount === 1 ? "source" : "sources"}.`;
+    }
+    if (lastSearchedCount > 0 && failedSources.length === lastSearchedCount) {
+      return `Couldn't reach any sources. Retry available.`;
+    }
+    const term = (parsedQuery.freeText || query).trim();
+    const count = projects.length;
+    const sourceWord = lastSearchedCount === 1 ? "source" : "sources";
+    const failedNote =
+      failedSources.length > 0
+        ? `, ${failedSources.length} ${failedSources.length === 1 ? "source" : "sources"} unavailable`
+        : "";
+    if (count === 0) {
+      return `No results found${term ? ` for ${term}` : ""}${failedNote}.`;
+    }
+    return `${count} ${count === 1 ? "result" : "results"}${term ? ` for ${term}` : ""} across ${lastSearchedCount} ${sourceWord}${failedNote}.`;
+  })();
+
   return (
     <div className="min-h-screen flex flex-col">
       <a
@@ -507,6 +534,12 @@ export default function Home() {
       >
         Skip to main content
       </a>
+      {/* Visually-hidden live region. Screen readers will announce as
+          search status / result counts change. role=status + aria-live=
+          polite so it doesn't interrupt currently-speaking content. */}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {liveAnnouncement}
+      </div>
       <ShortcutHelpModal />
       <main id="main-content" className="flex-1">
         <AnimatePresence mode="wait" initial={false}>
