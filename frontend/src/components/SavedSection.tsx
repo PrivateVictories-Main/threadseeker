@@ -15,6 +15,8 @@ import {
 import { getSourceConfig } from "@/lib/sources";
 import { BookmarkCheck, X } from "lucide-react";
 
+const SHELF_LIMIT = 8;
+
 export function SavedSection() {
   const [items, setItems] = useState<StoredBookmark[]>([]);
 
@@ -25,36 +27,76 @@ export function SavedSection() {
 
   if (items.length === 0) return null;
 
+  const shelf = items.slice(0, SHELF_LIMIT);
+  const overflow = items.length - shelf.length;
+
+  const clearAll = () => {
+    // Remove all bookmarks by clearing the localStorage key via the API.
+    for (const b of items) removeBookmark(b.id);
+    emitBookmarksChanged();
+  };
+
   return (
     <div className="glass section-container mt-8">
-      <h2 className="section-title flex items-center justify-center gap-2">
-        <BookmarkCheck className="w-3 h-3 text-rose-500" />
-        Saved · {items.length}
-      </h2>
-      <div className="flex flex-wrap justify-center gap-2 max-w-3xl mx-auto">
-        {items.slice(0, 6).map((b) => {
+      <div className="relative flex items-center justify-center mb-3">
+        <h2 className="section-title flex items-center gap-2 m-0">
+          <BookmarkCheck className="w-3 h-3 text-rose-500" />
+          Saved · {items.length}
+        </h2>
+        {/* Clear-all sits on the right, ghost-weight so it reads as an
+            affordance only once you notice it. */}
+        <button
+          onClick={clearAll}
+          className="absolute right-0 text-[10.5px] uppercase tracking-[0.12em] font-semibold text-slate-400 hover:text-rose-600 transition-colors"
+          aria-label="Remove all saved projects"
+          title="Clear all saved"
+        >
+          Clear all
+        </button>
+      </div>
+
+      {/* Library-shelf grid — 2 columns on phone so the shelf fills a row,
+          up to 4 on desktop. Each tile is a dense glass card: source icon,
+          project name, owner subline, and a hover-revealed remove button. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-w-3xl mx-auto">
+        {shelf.map((b) => {
           const cfg = getSourceConfig(b.source);
+          const owner = b.fullName.includes("/") ? b.fullName.split("/")[0] : "";
           return (
             <div
               key={b.id}
-              className="group inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/80 hover:border-indigo-400 hover:bg-white pl-3 pr-1.5 py-1.5 transition-colors"
+              className="group relative flex items-center gap-2 rounded-xl border border-indigo-100 bg-white/75 hover:bg-white hover:border-indigo-300 hover:shadow-sm px-2.5 py-2 transition-all"
             >
               <a
                 href={b.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-[12px] font-medium text-slate-700 hover:text-indigo-700"
+                className="flex items-center gap-2 min-w-0 flex-1"
                 title={b.description ?? b.fullName}
               >
-                <span className="text-[12px]">{cfg.icon}</span>
-                <span className="max-w-[180px] truncate">{b.name}</span>
+                <span
+                  className="flex items-center justify-center w-6 h-6 rounded-md bg-indigo-50 border border-indigo-100 text-[13px] flex-shrink-0"
+                  aria-hidden
+                >
+                  {cfg.icon}
+                </span>
+                <span className="flex flex-col min-w-0 flex-1">
+                  <span className="text-[12.5px] font-medium text-slate-800 group-hover:text-indigo-700 truncate">
+                    {b.name}
+                  </span>
+                  {owner && (
+                    <span className="text-[10.5px] text-slate-500 truncate">
+                      {owner}
+                    </span>
+                  )}
+                </span>
               </a>
               <button
                 onClick={() => {
                   removeBookmark(b.id);
                   emitBookmarksChanged();
                 }}
-                className="p-0.5 text-slate-400 hover:text-rose-600 transition-colors"
+                className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0"
                 aria-label={`Remove ${b.name} from saved`}
                 title="Remove"
               >
@@ -64,6 +106,12 @@ export function SavedSection() {
           );
         })}
       </div>
+
+      {overflow > 0 && (
+        <p className="text-center text-[11px] text-slate-400 mt-2.5">
+          +{overflow} more saved
+        </p>
+      )}
     </div>
   );
 }
