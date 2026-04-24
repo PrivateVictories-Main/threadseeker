@@ -670,6 +670,67 @@ body { transition: --ts-intent-hue 800ms ease; }
   z-index: 100;
 }
 
+/* Print stylesheet — strips the gradient/glass UI for a clean
+   white-paper export. The use case is rare (browser print, save-as-PDF
+   for sharing a result list with colleagues) but having it makes
+   screenshots/exports look professional rather than blowing out the
+   atmospheric layer onto paper as muddy gray boxes. */
+@media print {
+  body,
+  body::before {
+    background: white !important;
+    color: #000 !important;
+  }
+  body::before { display: none; }
+  /* Strip glass / blur — print engines render backdrop-filter as
+     opaque blocks. */
+  .glass,
+  .glass-strong,
+  .glass-sticky {
+    background: white !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-color: #e5e7eb !important;
+    box-shadow: none !important;
+  }
+  /* Hide UI chrome that doesn't belong in a printout. */
+  .ts-sticky-progress,
+  .ts-toast-motion,
+  .search-bar-pulse,
+  .sb-submit,
+  .ts-bookmark,
+  .ts-actions {
+    display: none !important;
+  }
+  /* Card grid → single column with hard page-break-avoid so individual
+     cards don't split across pages. */
+  .ts-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #d1d5db !important;
+    transform: none !important;
+  }
+  /* Pills + chips lose their tinted backgrounds (toner-heavy in
+     monochrome printouts) and read as outlined tags. */
+  .pill,
+  .topic-chip,
+  .ts-source,
+  .filter-pill {
+    background: white !important;
+    border: 1px solid #9ca3af !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+  }
+  /* Hero accent — gradient text doesn't print reliably; force solid. */
+  .ts-hero-accent {
+    background: none !important;
+    -webkit-text-fill-color: #1e1b4b !important;
+    color: #1e1b4b !important;
+    animation: none !important;
+  }
+}
+
 /* Hero headline — gradient accent word */
 .ts-hero-accent {
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #6366f1 100%);

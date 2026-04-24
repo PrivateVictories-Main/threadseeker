@@ -38,11 +38,18 @@ export const sheetVariants: Variants = {
 
 // Hero <-> Results mode crossfade. Hero collapses up and out; Results slides up
 // and in, both springy-soft so the transition reads as a single motion.
+//
+// Timing: with AnimatePresence mode="wait" hero must fully exit before
+// results enter, so the user-visible "blank moment" is heroExit duration
+// + however long resultsEnter takes to register pixels. Tightened heroExit
+// to 220ms (was 300ms) and shortened the y-translate from -40 to -24 so
+// the hero leaves more directly. Net feel: pressing Enter on the search
+// bar reads as ~250ms before results start filling in, not ~350ms.
 export const modeVariants: Variants = {
   heroEnter: { opacity: 0, y: 12 },
   heroShow:  { opacity: 1, y: 0, transition: springSoft },
-  heroExit:  { opacity: 0, y: -40, transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } },
-  resultsEnter: { opacity: 0, y: 20 },
+  heroExit:  { opacity: 0, y: -24, transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } },
+  resultsEnter: { opacity: 0, y: 16 },
   resultsShow:  { opacity: 1, y: 0, transition: springSoft },
-  resultsExit:  { opacity: 0, y: 12, transition: { duration: 0.22 } },
+  resultsExit:  { opacity: 0, y: 12, transition: { duration: 0.2 } },
 };
