@@ -11,6 +11,7 @@ interface SearchBarProps {
 export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -40,7 +41,7 @@ export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
       aria-label="Search open-source projects"
       className="relative max-w-2xl mx-auto"
     >
-      <div className="glass-strong search-bar-shell flex items-center transition-colors">
+      <div ref={shellRef} className="glass-strong search-bar-shell flex items-center transition-colors">
         <div className="pl-1">
           <Search className="w-4.5 h-4.5 text-slate-600" aria-hidden />
         </div>
@@ -49,6 +50,11 @@ export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => {
+            if (!shellRef.current) return;
+            shellRef.current.classList.add("pulse");
+            setTimeout(() => shellRef.current?.classList.remove("pulse"), 600);
+          }}
           placeholder="What are you looking for?  (press /)"
           aria-label="Search query"
           autoComplete="off"

@@ -200,3 +200,14 @@ body {
 .skeleton .shimmer-short { width: 40%; }
 
 body { transition: --ts-intent-hue 800ms ease; }
+
+.search-bar-shell:focus-within .search-placeholder {
+  transform: translateY(-10px);
+  opacity: 0.7;
+  transition: transform .25s ease, opacity .25s ease;
+}
+.search-bar-shell.pulse { animation: pulseRing 0.6s cubic-bezier(.4,0,.2,1) 1; }
+@keyframes pulseRing {
+  0% { box-shadow: 0 0 0 0 var(--ts-accent-soft); }
+  100% { box-shadow: 0 0 0 14px rgba(124,58,237,0); }
+}
