@@ -1,40 +1,45 @@
 /* frontend/src/styles/tokens.css */
 :root {
+  /* Gradient — real lavender -> indigo -> sky. NO pink/magenta. */
   --ts-bg-gradient: linear-gradient(
     135deg,
-    hsl(var(--ts-intent-hue), 100%, 95%) 0%,
-    hsl(var(--ts-intent-hue), 70%, 90%) 45%,
-    hsl(calc(var(--ts-intent-hue) + 40), 90%, 93%) 100%
+    hsl(var(--ts-intent-hue), 80%, 92%) 0%,
+    hsl(calc(var(--ts-intent-hue) + 15), 75%, 88%) 45%,
+    hsl(calc(var(--ts-intent-hue) + 35), 80%, 90%) 100%
   );
 
-  --ts-surface: rgba(255, 255, 255, 0.65);
-  --ts-surface-strong: rgba(255, 255, 255, 0.85);
-  --ts-border: rgba(255, 255, 255, 0.85);
+  /* Glass surfaces — more opaque so text on top is readable. */
+  --ts-surface: rgba(255, 255, 255, 0.78);
+  --ts-surface-strong: rgba(255, 255, 255, 0.92);
+  --ts-border: rgba(99, 102, 241, 0.22);
 
-  --ts-accent: #7c3aed;
-  --ts-accent-soft: rgba(124, 58, 237, 0.15);
-  --ts-accent-gradient: linear-gradient(135deg, #8b5cf6, #a78bfa);
+  /* Accent stays indigo-violet family but tuned away from magenta. */
+  --ts-accent: #6366f1;
+  --ts-accent-strong: #4f46e5;
+  --ts-accent-soft: rgba(99, 102, 241, 0.15);
+  --ts-accent-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
 
-  --ts-text: #1a1a2e;
-  --ts-text-muted: #4b5563;
-  --ts-text-subtle: #7c7396;
+  /* Text — explicit dark inks, high contrast on light surfaces. */
+  --ts-text: #0f172a;
+  --ts-text-muted: #334155;
+  --ts-text-subtle: #64748b;
 
-  --ts-radius-lg: 16px;
+  --ts-radius-lg: 18px;
   --ts-radius-md: 12px;
   --ts-radius-sm: 8px;
   --ts-radius-full: 999px;
 
-  --ts-shadow-rest: 0 8px 32px rgba(80, 50, 150, 0.10);
-  --ts-shadow-hover: 0 14px 40px rgba(80, 50, 150, 0.18);
+  --ts-shadow-rest: 0 8px 28px rgba(30, 27, 75, 0.10);
+  --ts-shadow-hover: 0 14px 40px rgba(30, 27, 75, 0.18);
 
-  --ts-blur: 24px;
+  --ts-blur: 20px;
 
-  /* Intent-tint slot (lerped in JS via inline style) */
-  --ts-intent-hue: 280; /* violet default; how_to→110 sage, model_search→35 amber, troubleshooting→350 rose */
+  /* Intent-tint defaults to 220 = INDIGO. Not 280 (pink territory). */
+  --ts-intent-hue: 220;
 }
 
 @property --ts-intent-hue {
   syntax: "<number>";
   inherits: true;
-  initial-value: 280;
+  initial-value: 220;
 }

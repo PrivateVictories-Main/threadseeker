@@ -251,12 +251,16 @@ export default function Home() {
         // to include synonym terms; everything else uses the raw query.
         const expansion = expandQuery(freeText);
         const hueByIntent: Record<string, number> = {
-          project_search: 280, how_to: 110, recommendation: 200,
-          comparison: 260, troubleshooting: 350, model_search: 35,
-          general: 280,
+          project_search: 220,        // indigo
+          how_to: 150,                // teal/sage
+          recommendation: 200,        // sky
+          comparison: 240,            // blue-violet
+          troubleshooting: 350,       // rose (stays warm-but-red, not pink)
+          model_search: 40,           // warm amber
+          general: 220,               // indigo default
         };
         if (typeof document !== "undefined") {
-          document.documentElement.style.setProperty("--ts-intent-hue", String(hueByIntent[expansion.intent] ?? 280));
+          document.documentElement.style.setProperty("--ts-intent-hue", String(hueByIntent[expansion.intent] ?? 220));
         }
         const overrides: Partial<Record<SourceType, string>> = {};
         const orExpanded = buildSearchQuery(freeText, expansion, { supportsOr: true });

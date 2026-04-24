@@ -51,8 +51,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
-  colorScheme: "dark",
+  themeColor: "#eef2ff",
+  colorScheme: "light",
   width: "device-width",
   initialScale: 1,
 };
@@ -63,7 +63,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         {/* Warm up DNS + TLS for every host we fetch directly from the browser.
             Saves ~50-150ms per source on the first query. */}
