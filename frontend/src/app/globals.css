@@ -198,6 +198,7 @@ body {
 .skeleton .shimmer-title { width: 60%; height: 20px; }
 .skeleton .shimmer-line  { width: 100%; }
 .skeleton .shimmer-short { width: 40%; }
+.shimmer-static { animation: none; background: rgba(200,200,200,0.3); }
 
 body { transition: --ts-intent-hue 800ms ease; }
 
