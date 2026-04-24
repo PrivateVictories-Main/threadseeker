@@ -22,9 +22,11 @@ interface Props {
   onToast?: (msg: string) => void;
   /** Wired from the page to turn a topic chip click into a new search. */
   onTopicClick?: (topic: string) => void;
+  /** Position in the result grid — drives subtle entry-direction variety. */
+  index?: number;
 }
 
-export function UnifiedProjectCard({ project, onToast, onTopicClick }: Props) {
+export function UnifiedProjectCard({ project, onToast, onTopicClick, index }: Props) {
   const { isBookmarked, toggle } = useBookmark(project);
   const bookmarkControls = useAnimationControls();
   // Per-card pulse-ring overlay triggered after a bookmark add/remove.
@@ -86,7 +88,7 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick }: Props) {
   const isSparse = !project.description && topics.length === 0;
 
   return (
-    <AnimatedCard layoutId={project.id}>
+    <AnimatedCard layoutId={project.id} index={index}>
       <article className={`ts-card glass${isSparse ? " ts-card-sparse" : ""}`}>
         {/* Bookmark-pulse ring — absolutely positioned overlay so it
             fades over the card without disturbing the existing glass

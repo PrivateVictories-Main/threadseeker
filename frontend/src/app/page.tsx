@@ -893,6 +893,7 @@ export default function Home() {
                         >
                           <UnifiedProjectCard
                             project={project}
+                            index={idx}
                             onToast={showToast}
                             onTopicClick={(topic) => handleSearch(topic)}
                           />

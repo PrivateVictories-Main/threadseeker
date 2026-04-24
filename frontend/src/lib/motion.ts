@@ -15,7 +15,11 @@ export const gridContainer: Variants = {
 
 export const cardVariants: Variants = {
   hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0, transition: springSoft },
+  // x: 0 in `visible` is required so per-card variations in the
+  // `initial` prop (see AnimatedCard's odd/even tilt) animate back to
+  // the same resting offset. Without it framer would only animate the
+  // declared keys.
+  visible: { opacity: 1, y: 0, x: 0, transition: springSoft },
   exit:    { opacity: 0, y: -8, scale: 0.98, transition: { duration: 0.18 } },
   hover:   { y: -4, transition: springSoft },
   tap:     { scale: 0.98, transition: { duration: 0.1 } },
