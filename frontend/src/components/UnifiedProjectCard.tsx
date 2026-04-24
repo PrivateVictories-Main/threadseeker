@@ -88,7 +88,13 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick }: Props) {
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="ts-avatar" aria-hidden />
+            // Plain colored circle fallback was identity-less. Rendering
+            // the first letter of the project name gives the fallback
+            // something to read as — matches GitHub/Gravatar default
+            // avatars without requiring a network call.
+            <div className="ts-avatar ts-avatar-fallback" aria-hidden>
+              {project.name.charAt(0).toUpperCase()}
+            </div>
           )}
           <h3 className="ts-title">
             <span className="ts-title-main">{project.name}</span>

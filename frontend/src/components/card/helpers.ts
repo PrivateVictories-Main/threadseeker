@@ -29,9 +29,10 @@ export function maintenanceState(updatedAt: string): MaintenanceState {
   return "abandoned";
 }
 
-// Short human-friendly relative-time formatter. Pure JS, no deps.
-// Examples: "just now", "3m ago", "2h ago", "5 days ago", "3 weeks ago",
-// "2 months ago", "4 years ago".
+// Human-friendly relative-time formatter. Pure JS, no deps. Uses the
+// same long-form unit vocabulary ("3 minutes ago", "2 hours ago")
+// across all buckets so nothing abbreviates half the scale and spells
+// out the other half. "just now" sits inside the 45-second edge.
 export function formatRelativeTime(iso: string): string {
   if (!iso) return "";
   const t = new Date(iso).getTime();
@@ -39,9 +40,15 @@ export function formatRelativeTime(iso: string): string {
   const diffSec = Math.max(0, (Date.now() - t) / 1000);
   if (diffSec < 45) return "just now";
   const diffMin = diffSec / 60;
-  if (diffMin < 60) return `${Math.round(diffMin)}m ago`;
+  if (diffMin < 60) {
+    const n = Math.round(diffMin);
+    return `${n} ${n === 1 ? "minute" : "minutes"} ago`;
+  }
   const diffHr = diffMin / 60;
-  if (diffHr < 24) return `${Math.round(diffHr)}h ago`;
+  if (diffHr < 24) {
+    const n = Math.round(diffHr);
+    return `${n} ${n === 1 ? "hour" : "hours"} ago`;
+  }
   const diffDay = diffHr / 24;
   if (diffDay < 7) {
     const n = Math.round(diffDay);

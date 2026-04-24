@@ -224,6 +224,20 @@ body {
   object-fit: cover; flex: 0 0 auto;
   box-shadow: var(--ts-shadow-sm);
 }
+/* Initial-letter fallback when project.author.avatar is absent. Uses the
+   accent gradient as the bg so it reads as "brand-coloured" rather than
+   "broken image", with white text for contrast. */
+.ts-avatar-fallback {
+  background: var(--ts-accent-gradient);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-color: transparent;
+}
 .ts-title {
   margin: 0; font-size: 17px; font-weight: 600;
   letter-spacing: -0.01em;
