@@ -76,6 +76,12 @@ export interface SearchResult {
   projects: UnifiedProject[];
   totalCount: number;
   source: SourceType;
+  // Set when the source failed (network error, timeout, CORS, 5xx).
+  // Adapter wrappers always swallow per-source errors so one slow / dead
+  // upstream doesn't block the others — but the UI still wants to know
+  // which sources didn't deliver, so it can offer a "3 sources unavailable"
+  // affordance in the toolbar.
+  error?: string;
 }
 
 export interface SearchProgressEvent {
@@ -83,6 +89,7 @@ export interface SearchProgressEvent {
   projects: UnifiedProject[]; // ranked slice for this source alone
   done: boolean; // true once every source has completed
   remaining: number; // sources still in flight after this event
+  error?: string; // populated if this source failed
 }
 
 export type SearchProgressCallback = (event: SearchProgressEvent) => void;

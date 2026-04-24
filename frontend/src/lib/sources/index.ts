@@ -182,7 +182,9 @@ export async function searchAllSources(
       result = await withTimeout(source, () => runSource(source));
     } catch (error) {
       console.error(`Error searching ${source}:`, error);
-      result = { projects: [], totalCount: 0, source };
+      const message =
+        error instanceof Error ? error.message : "Unknown error";
+      result = { projects: [], totalCount: 0, source, error: message };
     }
 
     remaining -= 1;
@@ -196,6 +198,7 @@ export async function searchAllSources(
         projects: result.projects,
         done: remaining === 0,
         remaining,
+        error: result.error,
       });
     }
     return result;

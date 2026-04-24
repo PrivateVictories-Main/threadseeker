@@ -29,7 +29,7 @@ import {
 } from "@/lib/sources";
 import { parseQuery, applyOperators, describeOperators } from "@/lib/query-parser";
 import { toast } from "sonner";
-import { Search, ArrowRight, Clock, X, SearchX, Github } from "lucide-react";
+import { Search, ArrowRight, Clock, X, SearchX, Github, WifiOff, RefreshCw, AlertTriangle } from "lucide-react";
 
 const HISTORY_KEY = "threadseeker:history:v1";
 const HISTORY_MAX = 8;
@@ -140,6 +140,17 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [pendingSources, setPendingSources] = useState(0);
   const [pendingSourceList, setPendingSourceList] = useState<SourceType[]>([]);
+  // Sources that errored out during the current search run. Reset at the
+  // start of each search; populated incrementally via the progress
+  // callback. Powers the toolbar's "N sources unavailable" indicator and
+  // the all-sources-failed retry card.
+  const [failedSources, setFailedSources] = useState<SourceType[]>([]);
+  // Source count for the most-recent search run. Used to detect the
+  // "every queried source failed" case so the empty state can route to a
+  // retry card instead of the generic no-results message.
+  const [lastSearchedCount, setLastSearchedCount] = useState(0);
+  // Whether the failed-sources tray (set by the toolbar indicator) is open.
+  const [failedTrayOpen, setFailedTrayOpen] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedSources, setSelectedSources] = useState<SourceType[]>(ALL_SOURCES);
@@ -244,6 +255,9 @@ export default function Home() {
         : selectedSources;
       setPendingSources(targetSources.length);
       setPendingSourceList(targetSources);
+      setFailedSources([]);
+      setLastSearchedCount(targetSources.length);
+      setFailedTrayOpen(false);
       setHasSearched(true);
 
       // Record the query in local history (most-recent first, deduped).
@@ -294,6 +308,11 @@ export default function Home() {
             if (searchRunIdRef.current !== runId) return; // stale run
             setPendingSources(event.remaining);
             setPendingSourceList((prev) => prev.filter((s) => s !== event.source));
+            if (event.error) {
+              setFailedSources((prev) =>
+                prev.includes(event.source) ? prev : [...prev, event.source],
+              );
+            }
             if (event.projects.length > 0) {
               setProjects((prev) => {
                 // Merge by id (projects arrive per-source, so collisions are
@@ -406,6 +425,7 @@ export default function Home() {
     setIsLoading(false);
     setPendingSources(0);
     setPendingSourceList([]);
+    setFailedSources([]);
     setHasSearched(false);
     setActiveSourceFilter(null);
     setSortMode("relevance");
@@ -727,36 +747,99 @@ export default function Home() {
                       onSourceClick={setActiveSourceFilter}
                     />
 
-                    <p className="text-[13px] text-slate-500 px-1">
-                      <span className="text-slate-800 font-semibold">{view.length}</span>{" "}
-                      {view.length === 1 ? "result" : "results"}
-                      {activeSourceFilter && (
-                        <span>
-                          {" "}
-                          from{" "}
-                          <span className="text-indigo-700 font-medium">
-                            {getSourceConfig(activeSourceFilter).name}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1">
+                      <p className="text-[13px] text-slate-500">
+                        <span className="text-slate-800 font-semibold">{view.length}</span>{" "}
+                        {view.length === 1 ? "result" : "results"}
+                        {activeSourceFilter && (
+                          <span>
+                            {" "}
+                            from{" "}
+                            <span className="text-indigo-700 font-medium">
+                              {getSourceConfig(activeSourceFilter).name}
+                            </span>
                           </span>
-                        </span>
-                      )}
-                      {parsedQuery.freeText && (
-                        <span>
-                          {" "}
-                          for{" "}
-                          <span className="text-indigo-700 font-medium">
-                            {parsedQuery.freeText}
+                        )}
+                        {parsedQuery.freeText && (
+                          <span>
+                            {" "}
+                            for{" "}
+                            <span className="text-indigo-700 font-medium">
+                              {parsedQuery.freeText}
+                            </span>
                           </span>
-                        </span>
-                      )}
-                      {opSummary && (
-                        <span>
-                          {" · "}
-                          <span className="text-slate-600 font-mono text-[11.5px]">
-                            {opSummary}
+                        )}
+                        {opSummary && (
+                          <span>
+                            {" · "}
+                            <span className="text-slate-600 font-mono text-[11.5px]">
+                              {opSummary}
+                            </span>
                           </span>
-                        </span>
+                        )}
+                      </p>
+
+                      {/* Failed-sources indicator: a quiet ghost pill that
+                          appears only when one or more sources errored
+                          (and at least one source delivered, otherwise the
+                          full retry card above would be showing). Click
+                          opens a tray listing which sources failed so the
+                          user can decide whether to retry or ignore. */}
+                      {failedSources.length > 0 && (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setFailedTrayOpen((v) => !v)}
+                            aria-expanded={failedTrayOpen}
+                            className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-amber-700/90 hover:text-amber-800 bg-amber-50/70 hover:bg-amber-100/80 border border-amber-200/70 hover:border-amber-300 rounded-full px-2.5 py-0.5 transition-colors"
+                            title="Some sources didn't respond. Click for details."
+                          >
+                            <AlertTriangle className="w-3 h-3" aria-hidden />
+                            <span className="tabular-nums">
+                              {failedSources.length}
+                            </span>
+                            <span>
+                              {failedSources.length === 1
+                                ? "source unavailable"
+                                : "sources unavailable"}
+                            </span>
+                          </button>
+                          {failedTrayOpen && (
+                            <div className="absolute left-0 top-full mt-1.5 z-20 glass-strong rounded-xl px-3 py-2.5 min-w-[200px] shadow-lg">
+                              <p className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-slate-400 mb-1.5">
+                                Didn&apos;t respond
+                              </p>
+                              <ul className="space-y-0.5">
+                                {failedSources.map((s) => {
+                                  const cfg = getSourceConfig(s);
+                                  const Icon = cfg.lucideIcon;
+                                  return (
+                                    <li
+                                      key={s}
+                                      className="flex items-center gap-1.5 text-[12px] text-slate-700"
+                                    >
+                                      <Icon className="w-3.5 h-3.5 text-slate-500" aria-hidden />
+                                      <span>{cfg.name}</span>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFailedTrayOpen(false);
+                                  handleSearch(query || lastSubmittedRef.current);
+                                }}
+                                className="mt-2 w-full inline-flex items-center justify-center gap-1.5 text-[11.5px] font-medium text-indigo-700 hover:text-indigo-800 transition-colors"
+                              >
+                                <RefreshCw className="w-3 h-3" />
+                                Retry search
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
-                    </p>
+                    </div>
 
                     <AnimatedGrid
                       ref={resultsGridRef}
@@ -845,6 +928,42 @@ export default function Home() {
                         </div>
                       );
                     })()}
+                  </div>
+                ) : hasSearched && lastSearchedCount > 0 && failedSources.length === lastSearchedCount ? (
+                  // Network failure: every queried source errored out and we
+                  // have no results at all. Show a friendlier "couldn't
+                  // reach sources" card with a one-tap retry rather than
+                  // the generic empty state — feels less like a dead end
+                  // and more like a known transient condition.
+                  <div className="flex flex-col items-center text-center py-24">
+                    <div
+                      className="w-16 h-16 rounded-full glass-strong flex items-center justify-center mb-5"
+                      aria-hidden
+                    >
+                      <WifiOff className="w-7 h-7 text-indigo-400" />
+                    </div>
+                    <p className="text-lg font-semibold text-slate-800">
+                      Couldn&apos;t reach sources
+                    </p>
+                    <p className="text-[13.5px] text-slate-500 mt-1.5 max-w-sm">
+                      All {lastSearchedCount} sources were unreachable. This
+                      is usually a transient network hiccup — try again.
+                    </p>
+                    <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleSearch(query || lastSubmittedRef.current)}
+                        className="btn btn-primary rounded-full h-11 px-6 text-[13px] inline-flex items-center justify-center gap-1.5"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Retry search
+                      </button>
+                      <button
+                        onClick={handleClear}
+                        className="text-[12.5px] font-medium text-slate-500 hover:text-indigo-700 transition-colors px-3.5 py-1.5"
+                      >
+                        Back to home
+                      </button>
+                    </div>
                   </div>
                 ) : hasSearched ? (
                   // Empty state — centered, friendly.
