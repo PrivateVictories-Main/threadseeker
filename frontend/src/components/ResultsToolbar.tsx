@@ -23,6 +23,14 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: "downloads", label: "Most downloads" },
 ];
 
+// Past this many empty sources, the per-source "0" pills collapse into
+// a single "+N with no matches" summary so a sparse query (e.g. 20 of
+// 28 sources empty) doesn't fill the toolbar with a wall of quiet
+// pills. Picked at 5 because: the active source pills above already
+// show what *did* deliver, so the user mostly cares "did everything I
+// expected get checked" rather than "exactly which 18 came up dry".
+const EMPTY_COLLAPSE_THRESHOLD = 5;
+
 interface Props {
   projects: UnifiedProject[];
   sortMode: SortMode;
@@ -358,22 +366,45 @@ export function ResultsToolbar({
                   Rendered as desaturated, non-interactive pills with a
                   trailing "0" so the user can see "this source had
                   nothing for your query" without confusing them for
-                  failed sources (those live in the amber tray). */}
-              {emptySources?.map((source) => {
-                const cfg = getSourceConfig(source);
-                const Icon = cfg.lucideIcon;
-                return (
+                  failed sources (those live in the amber tray).
+
+                  Sparse-query collapse: when more than EMPTY_COLLAPSE
+                  sources came up empty (e.g. a niche query that hits
+                  20 of 28 platforms with nothing), rendering 20 quiet
+                  "0" pills creates a visual wall. Past the threshold
+                  we collapse the whole set into a single summary pill
+                  ("+15 with no matches") with the full list available
+                  on hover/tap via title. Power users can still see
+                  exactly which sources delivered via the active
+                  pills above. */}
+              {emptySources && emptySources.length > 0 && (
+                emptySources.length > EMPTY_COLLAPSE_THRESHOLD ? (
                   <span
-                    key={source}
-                    className="filter-pill pill text-[12px] flex items-center gap-1.5 opacity-50 cursor-default"
-                    title={`${cfg.name} — no matches`}
+                    className="filter-pill pill text-[12px] flex items-center gap-1.5 opacity-60 cursor-default tabular-nums"
+                    title={`No matches from: ${emptySources
+                      .map((s) => getSourceConfig(s).name)
+                      .join(", ")}`}
                   >
-                    <Icon className="w-3.5 h-3.5" aria-hidden />
-                    <span>{cfg.name}</span>
-                    <span className="opacity-70 tabular-nums">0</span>
+                    <span>+{emptySources.length} with no matches</span>
                   </span>
-                );
-              })}
+                ) : (
+                  emptySources.map((source) => {
+                    const cfg = getSourceConfig(source);
+                    const Icon = cfg.lucideIcon;
+                    return (
+                      <span
+                        key={source}
+                        className="filter-pill pill text-[12px] flex items-center gap-1.5 opacity-50 cursor-default"
+                        title={`${cfg.name} — no matches`}
+                      >
+                        <Icon className="w-3.5 h-3.5" aria-hidden />
+                        <span>{cfg.name}</span>
+                        <span className="opacity-70 tabular-nums">0</span>
+                      </span>
+                    );
+                  })
+                )
+              )}
             </div>
           </motion.div>
         )}
