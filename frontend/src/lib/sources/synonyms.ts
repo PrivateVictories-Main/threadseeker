@@ -1,4 +1,5 @@
 // frontend/src/lib/sources/synonyms.ts
+import { classifyIntent, Intent } from "./intent";
 // Hand-curated concept dictionary. Replaces the Groq query-rewrite layer.
 // Adding new "meta" terminology (e.g. when a framework blows up) = commit
 // a new SynonymEntry. Zero runtime cost, fully version-controlled.
@@ -82,3 +83,42 @@ export const SYNONYMS: SynonymEntry[] = [
     boostProjects: ["tiangolo/fastapi", "django/django"],
   },
 ];
+
+export interface ExpandQueryResult {
+  /** Lowercased tokens — user's raw query words PLUS triggered expansions. */
+  expandedTerms: string[];
+  /** "owner/repo" fingerprints the ranker should boost. */
+  boostFullNames: string[];
+  /** Regex-based query intent for per-source weighting. */
+  intent: Intent;
+  /** Raw user query, lowercased & trimmed. */
+  normalizedQuery: string;
+}
+
+export function expandQuery(raw: string): ExpandQueryResult {
+  const q = raw.toLowerCase().trim();
+  const userTokens = q.split(/\s+/).filter((t) => t.length > 1);
+
+  const expanded = new Set<string>(userTokens);
+  const boosts = new Set<string>();
+
+  for (const entry of SYNONYMS) {
+    const triggered = entry.triggers.some((t) => q.includes(t.toLowerCase()));
+    if (!triggered) continue;
+    if (entry.requires) {
+      const allRequired = entry.requires.every((r) => q.includes(r.toLowerCase()));
+      if (!allRequired) continue;
+    }
+    for (const e of entry.expandTo) expanded.add(e.toLowerCase());
+    for (const b of entry.boostProjects ?? []) boosts.add(b.toLowerCase());
+  }
+
+  const { intent } = classifyIntent(raw);
+
+  return {
+    expandedTerms: Array.from(expanded),
+    boostFullNames: Array.from(boosts),
+    intent,
+    normalizedQuery: q,
+  };
+}
