@@ -28,11 +28,11 @@ export function SavedSection() {
   return (
     <div className="glass section-container mt-6">
       <h2 className="section-title flex items-center justify-center gap-2">
-        <BookmarkCheck className="w-3.5 h-3.5 text-rose-500" />
+        <BookmarkCheck className="w-3 h-3 text-rose-500" />
         Saved · {items.length}
       </h2>
       <div className="flex flex-wrap justify-center gap-2 max-w-3xl mx-auto">
-        {items.slice(0, 12).map((b) => {
+        {items.slice(0, 6).map((b) => {
           const cfg = getSourceConfig(b.source);
           return (
             <div

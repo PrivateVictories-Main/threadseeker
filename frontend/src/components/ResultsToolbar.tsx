@@ -1,11 +1,18 @@
 "use client";
 
 import { UnifiedProject, SourceType, getSourceConfig } from "@/lib/sources";
-import { ArrowDownWideNarrow, Link2, Check, Download } from "lucide-react";
-import { useState } from "react";
+import {
+  ArrowDownWideNarrow,
+  Link2,
+  Check,
+  Download,
+  Filter,
+  ChevronDown,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
-import { springSnappy } from "@/lib/motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { springSnappy, springSoft } from "@/lib/motion";
 
 export type SortMode = "relevance" | "stars" | "updated" | "downloads";
 
@@ -26,7 +33,6 @@ interface Props {
 
 function toMarkdown(projects: UnifiedProject[]): string {
   const lines = ["# ThreadSeeker results", ""];
-  // Group by source so exports stay organized.
   const bySource = new Map<SourceType, UnifiedProject[]>();
   for (const p of projects) {
     const arr = bySource.get(p.source) ?? [];
@@ -55,6 +61,20 @@ export function ResultsToolbar({
 }: Props) {
   const [copied, setCopied] = useState(false);
   const [exportedAs, setExportedAs] = useState<null | "md" | "json">(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
+
+  // Close sort dropdown on outside-click.
+  useEffect(() => {
+    if (!sortOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!sortRef.current) return;
+      if (!sortRef.current.contains(e.target as Node)) setSortOpen(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [sortOpen]);
 
   const handleExport = async (kind: "md" | "json") => {
     const payload =
@@ -96,58 +116,92 @@ export function ResultsToolbar({
       /* user cancelled or clipboard unavailable */
     }
   };
-  // Count results per source.
   const counts = new Map<SourceType, number>();
   for (const p of projects) {
     counts.set(p.source, (counts.get(p.source) ?? 0) + 1);
   }
-  // Sort source chips by descending count so the dominant source is first.
   const orderedSources = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  const activeSourceCount = orderedSources.length;
+  const currentSortLabel =
+    SORT_OPTIONS.find((o) => o.value === sortMode)?.label ?? "Relevance";
 
   return (
-    <div className="glass flex flex-wrap items-center gap-2 p-2">
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <motion.button
-          onClick={() => onSourceClick(null)}
-          data-active={String(activeSource === null)}
-          className="filter-pill pill text-[12px]"
-          animate={{
-            backgroundColor:
-              activeSource === null ? "#6366f1" : "rgba(255,255,255,0.92)",
-            color: activeSource === null ? "#ffffff" : undefined,
-          }}
-          transition={springSnappy}
+    <div className="glass flex flex-col gap-2 px-4 py-2.5 rounded-xl">
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={() => setFilterOpen((v) => !v)}
+          className="btn btn-ghost text-[12.5px] h-8 px-3"
+          aria-expanded={filterOpen}
+          title="Filter by source"
         >
-          All {projects.length}
-        </motion.button>
-        {orderedSources.map(([source, count]) => {
-          const cfg = getSourceConfig(source);
-          const active = activeSource === source;
-          return (
-            <motion.button
-              key={source}
-              onClick={() => onSourceClick(active ? null : source)}
-              data-active={String(active)}
-              className="filter-pill pill text-[12px] flex items-center gap-1.5"
-              animate={{
-                backgroundColor: active ? "#6366f1" : "rgba(255,255,255,0.92)",
-                color: active ? "#ffffff" : undefined,
-              }}
-              transition={springSnappy}
-            >
-              <span>{cfg.icon}</span>
-              <span>{cfg.name}</span>
-              <span className="opacity-70">{count}</span>
-            </motion.button>
-          );
-        })}
-      </div>
+          <Filter className="w-3.5 h-3.5" />
+          <span>
+            Sources
+            {activeSource ? (
+              <span className="ml-1 text-indigo-700">· {getSourceConfig(activeSource).name}</span>
+            ) : (
+              <span className="ml-1 text-slate-400">· All {activeSourceCount}</span>
+            )}
+          </span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 transition-transform ${filterOpen ? "rotate-180" : ""}`}
+          />
+        </button>
 
-      <div className="ml-auto flex items-center gap-2">
-        <div className="flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-2">
+          <div className="relative" ref={sortRef}>
+            <button
+              onClick={() => setSortOpen((v) => !v)}
+              className="btn btn-ghost text-[12.5px] h-8 px-3"
+              aria-expanded={sortOpen}
+              aria-haspopup="listbox"
+            >
+              <ArrowDownWideNarrow className="w-3.5 h-3.5" />
+              <span>{currentSortLabel}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform ${sortOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+            <AnimatePresence>
+              {sortOpen && (
+                <motion.ul
+                  role="listbox"
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1, transition: springSoft }}
+                  exit={{ opacity: 0, y: -6, scale: 0.98, transition: { duration: 0.12 } }}
+                  className="absolute right-0 top-[calc(100%+4px)] z-30 glass-strong min-w-[180px] p-1.5 text-[12.5px]"
+                >
+                  {SORT_OPTIONS.map((o) => {
+                    const active = o.value === sortMode;
+                    return (
+                      <li key={o.value}>
+                        <button
+                          role="option"
+                          aria-selected={active}
+                          onClick={() => {
+                            onSortChange(o.value);
+                            setSortOpen(false);
+                          }}
+                          className={`w-full text-left rounded-md px-3 py-1.5 flex items-center justify-between gap-4 transition-colors ${
+                            active
+                              ? "bg-indigo-50 text-indigo-700 font-semibold"
+                              : "text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          <span>{o.label}</span>
+                          {active && <Check className="w-3.5 h-3.5" />}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </motion.ul>
+              )}
+            </AnimatePresence>
+          </div>
+          <div className="hidden sm:block w-px h-5 bg-indigo-100" aria-hidden />
           <button
             onClick={() => handleExport("md")}
-            className="btn text-[12px]"
+            className="btn btn-ghost text-[12.5px] h-8 px-3"
             title="Copy results as Markdown"
           >
             {exportedAs === "md" ? (
@@ -159,7 +213,7 @@ export function ResultsToolbar({
           </button>
           <button
             onClick={() => handleExport("json")}
-            className="btn text-[12px]"
+            className="btn btn-ghost text-[12.5px] h-8 px-3"
             title="Copy results as JSON"
           >
             {exportedAs === "json" ? (
@@ -169,37 +223,73 @@ export function ResultsToolbar({
             )}
             <span>JSON</span>
           </button>
+          <button
+            onClick={handleShare}
+            className="btn btn-ghost text-[12.5px] h-8 px-3"
+            title="Copy link to these results"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Copied</span>
+              </>
+            ) : (
+              <>
+                <Link2 className="w-3.5 h-3.5" />
+                <span>Share</span>
+              </>
+            )}
+          </button>
         </div>
-        <button
-          onClick={handleShare}
-          className="btn text-[12px]"
-          title="Copy link to these results"
-        >
-          {copied ? (
-            <>
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Copied</span>
-            </>
-          ) : (
-            <>
-              <Link2 className="w-3.5 h-3.5" />
-              <span>Share</span>
-            </>
-          )}
-        </button>
-        <ArrowDownWideNarrow className="w-3.5 h-3.5 text-slate-500" />
-        <select
-          value={sortMode}
-          onChange={(e) => onSortChange(e.target.value as SortMode)}
-          className="text-[12px] bg-white/80 border border-indigo-200 rounded-md px-2.5 py-1.5 text-slate-700 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 font-medium"
-        >
-          {SORT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
       </div>
+
+      <AnimatePresence initial={false}>
+        {filterOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto", transition: springSoft }}
+            exit={{ opacity: 0, height: 0, transition: { duration: 0.18 } }}
+            className="overflow-hidden"
+          >
+            <div className="pt-2 flex flex-wrap items-center gap-1.5">
+              <motion.button
+                onClick={() => onSourceClick(null)}
+                data-active={String(activeSource === null)}
+                className="filter-pill pill text-[12px]"
+                animate={{
+                  backgroundColor:
+                    activeSource === null ? "#6366f1" : "rgba(255,255,255,0.92)",
+                  color: activeSource === null ? "#ffffff" : undefined,
+                }}
+                transition={springSnappy}
+              >
+                All {projects.length}
+              </motion.button>
+              {orderedSources.map(([source, count]) => {
+                const cfg = getSourceConfig(source);
+                const active = activeSource === source;
+                return (
+                  <motion.button
+                    key={source}
+                    onClick={() => onSourceClick(active ? null : source)}
+                    data-active={String(active)}
+                    className="filter-pill pill text-[12px] flex items-center gap-1.5"
+                    animate={{
+                      backgroundColor: active ? "#6366f1" : "rgba(255,255,255,0.92)",
+                      color: active ? "#ffffff" : undefined,
+                    }}
+                    transition={springSnappy}
+                  >
+                    <span>{cfg.icon}</span>
+                    <span>{cfg.name}</span>
+                    <span className="opacity-70">{count}</span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

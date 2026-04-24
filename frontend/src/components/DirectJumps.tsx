@@ -65,7 +65,7 @@ export function DirectJumps({ query }: Props) {
   return (
     <div className="glass section-container">
       <h3 className="section-title">
-        Jump to <span className="font-mono">{q}</span> on
+        Jump to <span className="font-mono normal-case tracking-normal text-slate-600">{q}</span>
       </h3>
       <div className="flex flex-wrap items-center gap-2">
         {hits.map((r) => (
