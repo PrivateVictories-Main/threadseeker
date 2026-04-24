@@ -56,22 +56,28 @@
   .text-pretty { text-wrap: pretty; }
 }
 
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+/* Thin light-theme scrollbar — matches indigo accent, recedes into the
+   gradient until hovered. Firefox picks up the properties on `html`. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.28) transparent;
 }
-
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.22);
-  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.18);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
-
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(99, 102, 241, 0.38);
+  background-clip: padding-box;
 }
 
 body {
@@ -431,6 +437,31 @@ body { transition: --ts-intent-hue 800ms ease; }
 @keyframes pulseRing {
   0% { box-shadow: 0 0 0 0 var(--ts-accent-soft); }
   100% { box-shadow: 0 0 0 14px rgba(99,102,241,0); }
+}
+
+/* Honor reduced-motion — kill decorative CSS animations + long transitions.
+   Framer-motion handles its own reduced-motion via its provider; this only
+   covers the hand-rolled keyframes and hover transitions here. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton .shimmer,
+  .search-bar-shell.pulse,
+  .ts-hero-accent {
+    animation: none !important;
+  }
+  .ts-hero-accent {
+    background-position: 0% center;
+  }
+  body {
+    transition: none;
+  }
+  .ts-card,
+  .filter-pill,
+  .topic-chip,
+  .btn,
+  .btn-primary,
+  .sb-submit {
+    transition: none !important;
+  }
 }
 
 .ts-toast-motion {
