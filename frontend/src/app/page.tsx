@@ -518,7 +518,7 @@ export default function Home() {
                 )}
               </span>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
               {Array.from({ length: 9 }).map((_, i) => (
                 <CardSkeleton key={i} />
               ))}
@@ -592,16 +592,16 @@ export default function Home() {
                 <AnimatedGrid
                   ref={resultsGridRef}
                   keyed={query || parsedQuery.freeText}
-                  className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                  className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
                 >
                   {view.map((project, idx) => (
                     <div
                       key={project.id}
                       data-result-card
                       data-result-url={project.url}
-                      className={`transition-shadow rounded-xl ${
+                      className={`h-full transition-shadow rounded-[18px] ${
                         focusedIdx === idx
-                          ? "ring-2 ring-amber-500/60 ring-offset-2 ring-offset-black"
+                          ? "ring-2 ring-indigo-500/60 ring-offset-2 ring-offset-white"
                           : ""
                       }`}
                     >

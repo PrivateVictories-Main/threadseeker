@@ -10,6 +10,7 @@ import { bookmarkVariants } from "@/lib/motion";
 import { useBookmark } from "@/lib/bookmarks";
 import {
   formatCount,
+  formatRelativeTime,
   licenseBucket,
   maintenanceState,
   copyItemsForSource,
@@ -38,11 +39,26 @@ export function UnifiedProjectCard({ project, onToast }: Props) {
     project.source === "gitlab" ||
     project.source === "codeberg";
 
+  const topics = (project.topics ?? []).slice(0, 5);
+  const avatar = project.author?.avatar;
+  const subline = isRepo
+    ? project.fullName.includes("/")
+      ? `by ${project.fullName.split("/")[0]}`
+      : ""
+    : project.fullName !== project.name
+      ? project.fullName
+      : "";
+
   return (
     <AnimatedCard layoutId={project.id}>
       <article className="ts-card glass">
         <div className="ts-top">
           <SourceBadge source={project.source} />
+          {project.updatedAt && (
+            <span className="ts-updated">
+              updated {formatRelativeTime(project.updatedAt)}
+            </span>
+          )}
           <motion.button
             className={`ts-bookmark ${isBookmarked ? "bookmarked" : ""}`}
             variants={bookmarkVariants}
@@ -58,15 +74,38 @@ export function UnifiedProjectCard({ project, onToast }: Props) {
             {isBookmarked ? "♥" : "♡"}
           </motion.button>
         </div>
-        <h3 className="ts-title">
-          {project.name}
-          {project.fullName !== project.name && (
-            <span className="ts-title-sub">
-              {isRepo ? `by ${project.fullName.split("/")[0]}` : project.fullName}
-            </span>
+
+        <div className="ts-title-row">
+          {avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatar}
+              alt=""
+              className="ts-avatar"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="ts-avatar" aria-hidden />
           )}
-        </h3>
+          <h3 className="ts-title">
+            <span className="ts-title-main">{project.name}</span>
+            {subline && <span className="ts-title-sub">{subline}</span>}
+          </h3>
+        </div>
+
         <p className="ts-desc">{project.description ?? ""}</p>
+
+        {topics.length > 0 && (
+          <div className="ts-topics">
+            {topics.map((t) => (
+              <span key={t} className="topic-chip">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+
         <CardPills
           popularity={popularity}
           language={project.language}

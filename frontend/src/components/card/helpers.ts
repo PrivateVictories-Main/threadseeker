@@ -29,6 +29,36 @@ export function maintenanceState(updatedAt: string): MaintenanceState {
   return "abandoned";
 }
 
+// Short human-friendly relative-time formatter. Pure JS, no deps.
+// Examples: "just now", "3m ago", "2h ago", "5 days ago", "3 weeks ago",
+// "2 months ago", "4 years ago".
+export function formatRelativeTime(iso: string): string {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  const diffSec = Math.max(0, (Date.now() - t) / 1000);
+  if (diffSec < 45) return "just now";
+  const diffMin = diffSec / 60;
+  if (diffMin < 60) return `${Math.round(diffMin)}m ago`;
+  const diffHr = diffMin / 60;
+  if (diffHr < 24) return `${Math.round(diffHr)}h ago`;
+  const diffDay = diffHr / 24;
+  if (diffDay < 7) {
+    const n = Math.round(diffDay);
+    return `${n} ${n === 1 ? "day" : "days"} ago`;
+  }
+  if (diffDay < 30) {
+    const n = Math.round(diffDay / 7);
+    return `${n} ${n === 1 ? "week" : "weeks"} ago`;
+  }
+  if (diffDay < 365) {
+    const n = Math.round(diffDay / 30);
+    return `${n} ${n === 1 ? "month" : "months"} ago`;
+  }
+  const n = Math.round(diffDay / 365);
+  return `${n} ${n === 1 ? "year" : "years"} ago`;
+}
+
 export function copyItemsForSource(p: UnifiedProject): CopyItem[] {
   switch (p.source) {
     case "github":

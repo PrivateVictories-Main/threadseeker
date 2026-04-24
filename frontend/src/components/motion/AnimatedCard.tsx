@@ -21,6 +21,7 @@ export function AnimatedCard({
       exit="exit"
       whileHover={reduced ? undefined : "hover"}
       whileTap={reduced ? undefined : "tap"}
+      className="h-full"
     >
       {children}
     </motion.div>
