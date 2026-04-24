@@ -25,6 +25,7 @@ import {
   expandQuery,
   rankCorpus,
   buildSearchQuery,
+  sparseFraction,
 } from "@/lib/sources";
 import { parseQuery, applyOperators, describeOperators } from "@/lib/query-parser";
 import { toast } from "sonner";
@@ -415,20 +416,14 @@ export default function Home() {
   const activeSources = selectedSources.length;
   const resultCount = projects.length;
 
-  // Community sources whose unified cards land in the 260px sparse shell
-  // (no description / no topics). When the user has narrowed to ONLY
-  // these, the loading skeletons should match the shorter geometry so
-  // the grid doesn't visually pop from 340px → 260px on data-in.
-  const SPARSE_SOURCES: ReadonlySet<SourceType> = new Set([
-    "hackernews",
-    "reddit",
-    "lobsters",
-    "stackoverflow",
-    "devto",
-  ]);
-  const skeletonsShouldBeSparse =
-    selectedSources.length > 0 &&
-    selectedSources.every((s) => SPARSE_SOURCES.has(s));
+  // Skeleton geometry picker. The "sparse" sources (community discussion
+  // threads — registry sources tagged sparse:true) typically render in the
+  // 260px sparse-card shell (no description / no topics). When ≥60% of the
+  // active selection is sparse, the loading skeletons match the shorter
+  // geometry so the grid doesn't visually pop 340 → 260 on data-in.
+  // Threshold lives at 60% — predictable, and gives one-of-three / two-of-five
+  // mixed selections the tall geometry while three-of-five still goes sparse.
+  const skeletonsShouldBeSparse = sparseFraction(selectedSources) >= 0.6;
 
   // Sort-friendly view (applied before operator post-filter).
   const sortedView = mode === "results" ? applyResultsView(projects, sortMode, activeSourceFilter) : projects;

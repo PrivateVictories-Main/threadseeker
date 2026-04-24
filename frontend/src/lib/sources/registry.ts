@@ -33,6 +33,12 @@ interface SourceDisplayConfig {
   bgColor: string;
   supportsOr: boolean;
   category: SourceCategory;
+  // True for sources that typically return cards without descriptions or
+  // topics (community discussions, comment threads). The grid renders these
+  // in the 260px sparse shell rather than the 340px tall shell. Used by
+  // the loading-skeleton geometry picker so the grid doesn't visually pop
+  // 340 → 260 on data-in for community-heavy searches.
+  sparse?: boolean;
 }
 
 const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
@@ -98,6 +104,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-amber-500/10",
     supportsOr: false,
     category: "community",
+    sparse: true,
   },
   codeberg: {
     name: "Codeberg",
@@ -134,6 +141,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-orange-500/10",
     supportsOr: false,
     category: "community",
+    sparse: true,
   },
   dockerhub: {
     name: "Docker Hub",
@@ -170,6 +178,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-zinc-500/10",
     supportsOr: false,
     category: "community",
+    sparse: true,
   },
   lobsters: {
     name: "Lobsters",
@@ -179,6 +188,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-rose-500/10",
     supportsOr: false,
     category: "community",
+    sparse: true,
   },
   stackoverflow: {
     name: "Stack Overflow",
@@ -188,6 +198,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-orange-500/10",
     supportsOr: false,
     category: "community",
+    sparse: true,
   },
   paperswithcode: {
     name: "Papers with Code",
@@ -292,6 +303,25 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
 
 export function getSourceConfig(source: SourceType): SourceDisplayConfig {
   return SOURCE_CONFIGS[source];
+}
+
+// Returns true when a source typically yields cards without descriptions
+// or topics — the ones that fit the 260px sparse-card geometry rather
+// than the 340px tall geometry. Used for skeleton-shape selection.
+export function isSparseSource(source: SourceType): boolean {
+  return SOURCE_CONFIGS[source]?.sparse === true;
+}
+
+// Fraction of the given source list that's marked sparse, in [0..1].
+// Used by the loading-skeleton picker to choose tall vs sparse geometry
+// when the user's selection is mixed (e.g. github + reddit + lobsters).
+// >= 0.6 → render the shorter sparse skeletons so the grid doesn't pop
+// from 340 → 260 on data-in.
+export function sparseFraction(sources: SourceType[]): number {
+  if (sources.length === 0) return 0;
+  let n = 0;
+  for (const s of sources) if (isSparseSource(s)) n++;
+  return n / sources.length;
 }
 
 // Group a list of sources by their declared category, preserving the
