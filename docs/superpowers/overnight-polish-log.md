@@ -500,3 +500,61 @@ Already shipped: palette fix, card redesign, search-as-you-type, dark-class purg
 - **Toast `backdrop-filter: blur(18px) saturate(140%)`** — Safari on older iOS (≤15) silently drops `saturate()` from compound backdrop-filter. The toast still looks fine (just the blur fires) but isn't quite as vibrant. No fallback authored.
 
 - **Per-category All/None button on touch** — the iter-8 toggle is now wrapped in the iter-7 zero-state fade (un-faded by iter-9 fix). Tap target is the small text "All"/"None" — at ~10px font + uppercase it might still be a small touch surface. Worth bumping to 36×36 hit area on touch in iter 11 if user testing surfaces complaints.
+
+### Iteration 12 — 2026-04-23 — drain iter-11 handoff + cross-source helper tests + motion dedup
+
+**Commits:**
+- 5b7a0c3 — Polish: openLabelForSource long tail + cross-source helper unit tests
+- b0e3540 — Polish: collapse per-card motion layers — hoist focus-ring + filter exit
+- 67607f6 — Polish: toast closeButton — visible on md+ for keyboard users, hidden on touch
+- c8bceab — Polish: source tagline tooltips — disambiguate JSR/AUR/openvsx etc.
+
+**Wins:**
+- **openLabelForSource long tail (handoff primary 1).** Iter-11 covered threads + papers + dev.to. Filled in the rest of the long-tail vocabulary: Flathub / F-Droid → "Get app", Open VSX → "Install extension", WordPress → "View plugin", Docker Hub → "Pull image". Sharpened Stack Overflow from "Open thread" to "View answer" — the destination is the question page where the accepted answer is the headline content; the more pointed verb beats the generic forum vocabulary. Each label fits the existing button width vocabulary (the trailing "→" lives in CardActions). Sources outside the registered set still fall back to "Open" — no behavioral change for the unregistered edge.
+- **Cross-source helper unit tests (handoff primary 2).** Added vitest coverage for `openLabelForSource()` and `popularityForProject()` to `helpers.test.ts`. 11 assertions across:
+  - Thread vocabulary (reddit/HN/lobsters → "Open thread")
+  - Stack Overflow (sharpened to "View answer")
+  - Paper sources (arxiv/pwc/zenodo → "View paper")
+  - Distribution sources (flathub/fdroid → "Get app", openvsx → "Install extension", wordpress → "View plugin", dockerhub → "Pull image")
+  - Generic fallback (github/gitlab/npm/crates/pypi → "Open")
+  - Repo star formatting (github stars → "★ 1.2k")
+  - Thread upvote + comments (HN with 312 stars + 47 comments → "▲ 312 · 💬 47")
+  - Thread upvote alone (no comments)
+  - Package downloads (npm 5.4M downloads → "↓ 5.4M")
+  - No-signal fallbacks (paper with no stars → null, lobsters thread with no upvotes/comments → null)
+  - Test count 47 → 58 (+11). Factored a `makeProject()` helper into the test file so future helper tests don't have to drag the full UnifiedProject contract into every assertion.
+- **Per-card motion-layer dedup (handoff primary 3).** Iter-11 noted the page-level `motion.div` wrapper (filter-fade + focus-ring + data-result attrs) and `AnimatedCard`'s inner motion.div doubled the per-card mount/unmount cost AnimatePresence has to track. Restructured: `AnimatedCard` now accepts `className`, `resultId`, `resultUrl` props and stamps the focus-ring / data attrs directly onto its motion.div. `UnifiedProjectCard` forwards via a new `outerClassName` prop. Page.tsx grid loop drops the wrapping motion.div entirely — one motion node per card instead of two. Filter-change exit now uses `cardVariants.exit` (the single-source-of-truth exit variant) instead of an inline override; tightened scale 0.98 → 0.94 (handoff secondary 5) so the toggle-collapse reads as a deliberate departure rather than a barely-perceptible ghost. Added `scale: 1` to the `visible` variant so the variant returns cleanly when re-entering. Bundle 87.5 kB unchanged.
+- **Toast closeButton compromise (handoff primary 4).** Iter-11's `closeButton: false` was friendly on touch but left desktop keyboard / mouse users without a discoverable dismiss target (Esc works, but isn't visible). Compromise: enabled `closeButton`, then styled it via `.toaster [data-close-button]` as a near-invisible ghost (18×18, opacity 0 at rest, faint indigo border) that fades in only on toast hover or button focus. Below the `md` breakpoint a media query hides the button outright so touch widths keep the friendly tap-anywhere-dismiss vocabulary. Keyboard users get the explicit X; mouse users get a discoverable affordance; touch users keep the forgiving pattern.
+- **Source tagline tooltips (if-time 9 / critical-eye audit).** Some source labels are TLA-shaped and opaque to non-domain users — "JSR", "AUR", "openvsx", "conda-forge", "Flathub" don't self-explain. Added an optional `tagline` field to `SourceDisplayConfig` (one-line ≤60 char description, verbless and consistent across all 28 sources). SourceFilter pills wire `title="{name} — {tagline}"` (browser-native tooltip — no JS overhead, zero a11y debt) plus an `aria-label` for screen-reader parity. Bundle 87.5 → 88.0 kB (+0.5 kB for 28 strings, well inside budget).
+
+**Skipped this iteration (with reason):**
+- **`formatRelativeTime` "just now" threshold (if-time 6).** Re-read the helper. Current `< 45s → "just now"` then bucket bumps; `Math.round` rolls between 30s and 90s into "1 minute ago". The transition reads cleanly: `just now` lands inside <45s, "1 minute ago" lands at >45s. "<1m ago" would be more clinical and lose the conversational warmth. Decision: leave alone — already good.
+- **Hero spacing rhythm at all widths (if-time 7).** Walked the breakpoint stack mentally: `pt-16 sm:pt-24 lg:pt-28 pb-16` (64/96/112 top, 64 bottom), `mb-12` (48px) under H1+paragraph block, `mt-6` (24) → "Try" → `mt-8` (32) → source filter → `mt-12` (48) → recent. The 6/8/12 progression in `mt-` reads as a coherent grow rhythm; spacing token sequence (24/32/48) sits squarely in the rhythm vocabulary. Decision: leave alone — already good.
+- **Card action row visual hierarchy (if-time 8).** `btn-primary` carries the indigo-gradient fill + layered shadow + hover translateY; `btn-ghost` is transparent / soft-bordered / muted text. Click affordance cascades primary → ghost cleanly; the visual weight delta is exactly what "primary action vs. secondary copy" should look like. Decision: leave alone — already good.
+- **Critical-eye audit polish picks.** Walked the hero-to-results flow. The bookmark feedback (pulse-ring + bouncy heart + indigo→slate transition) is already strong. The trending section + "Try" row already mirror each other's chrome. The streaming load uses an animated source-icon row + skeleton grid — feels alive. The sticky bar's loading-pulse dot + "{N} loading" gives a clear in-flight signal. **No critical-eye fixes worth doing past the source-tagline tooltips above.** Net code added < net polish gained — the alternative was gold-plating.
+
+**Test count:** 58 (was 47, +11 — first new test surface this overnight run).
+
+**Files touched:**
+- `frontend/src/components/card/helpers.ts` (openLabelForSource long tail)
+- `frontend/src/components/card/helpers.test.ts` (cross-source helper tests)
+- `frontend/src/components/motion/AnimatedCard.tsx` (className / resultId / resultUrl props)
+- `frontend/src/components/UnifiedProjectCard.tsx` (outerClassName forward)
+- `frontend/src/app/page.tsx` (drop wrapping motion.div)
+- `frontend/src/lib/motion.ts` (cardVariants exit scale 0.94, visible scale: 1)
+- `frontend/src/app/layout.tsx` (closeButton enabled)
+- `frontend/src/app/globals.css` (close-button ghost styling, md+ media query)
+- `frontend/src/lib/sources/registry.ts` (tagline field + 28 entries)
+- `frontend/src/components/SourceFilter.tsx` (title= + aria-label tooltip)
+
+**Still rough (hand off to iteration 13):**
+- **Toast close-button cross-browser QA.** The new opacity-0 → opacity-1 ghost was authored against Sonner's emitted DOM (`[data-close-button]` selector). Sonner 1.x reliably stamps that attribute, but if the dependency moves to a different markup the styling silently vanishes. Worth a Safari/Firefox/Chrome smoke once the next dev build is running.
+- **Source-tagline tooltip on touch.** `title=` is desktop-only — touch devices ignore it. The pills are 44×44 (iter-11 tap-target sweep) so a long-press doesn't reliably surface the tooltip across browsers. A tap-and-hold popover or a small `(?)` icon next to genuinely opaque labels (JSR, AUR, openvsx) could fill the gap on touch — but adds a JS layer over what's currently zero-cost browser native. Defer until a touch user reports confusion.
+- **Per-card motion-dedup may break framer FLIP edge cases.** AnimatePresence now sees `<UnifiedProjectCard>` (a function component) as its direct child, with the motion node living inside `AnimatedCard`. Standard framer pattern (and works in tests) — but if a future refactor splits AnimatedCard's motion.div behind another non-motion wrapper, AnimatePresence won't find it. Iter-13 candidate: add a sentinel comment / lint rule that the path from AnimatePresence's children to the motion node stays direct.
+- **`cardVariants.exit` scale 0.94 vs hover scale.** The hover variant is `y: -4` (no scale). Now that exit is `scale: 0.94`, mid-hover-then-filter-out cards animate their scale from 1.0 → 0.94 instead of from a hover-default 1.0 — fine, but visual difference between exit-after-hover and exit-without-hover should be re-checked at 60Hz. Confidence high; flagged for completeness.
+- **Tagline copy vetting.** Wrote 28 taglines verbless + consistent shape, but they're shipped without copyedit. "Non-profit Forgejo-hosted repos" (Codeberg) name-drops Forgejo which is itself opaque to most users — could simplify to "Open-source forge alternative to GitHub". Defer to a copyedit pass.
+- **`openLabelForSource` for `aur` and `nuget`** — both fall through to "Open". AUR could read "View package" or "Install via AUR" but the latter is too prescriptive (assumes Arch); NuGet fits the package vocabulary which "Open" handles. Either is defensible.
+- **Toast close-button focus indicator.** The `:focus-visible` rule fades the button to opacity 1 but the underlying Sonner X has its own focus styles which we're overriding via `!important`. A keyboard tab-into-toast may still flash the OS default focus ring before our styles kick in. Cross-browser QA candidate.
+- **Critical-eye `searchDurationMs` precision.** Sticky bar shows `(searchDurationMs / 1000).toFixed(2)` — always 2 decimals. For a 0.42s query reads as ".42s" (slightly clinical). Could `.toFixed(1)` for sub-second + `.toFixed(2)` past 1.0s. Minor.
+- **Iter-11's `closeButton: false` comment in `Toaster` toastOptions** has been replaced — but the iter-11 inline comment stayed accurate at write-time. Future readers should see the iter-12 enable comment instead. Verified the comment now reflects current behavior.
+- **Bundle 87.5 → 88.0 kB** — within budget but noted for the trend. The 28 taglines are static strings; if they ever need i18n threading the translation infrastructure will tip the bundle further. Defer until i18n ships.
