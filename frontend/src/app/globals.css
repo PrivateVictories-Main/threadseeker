@@ -148,3 +148,15 @@ body {
   font-size: 15px; color: var(--ts-text);
 }
 .search-bar-input::placeholder { color: var(--ts-text-subtle); }
+
+/* Filter pills (toggleable) */
+.filter-pill {
+  /* inherits .pill */
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.filter-pill[data-active="true"] {
+  background: var(--ts-accent-gradient);
+  color: white;
+  border-color: transparent;
+}

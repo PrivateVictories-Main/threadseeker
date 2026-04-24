@@ -103,15 +103,12 @@ export function ResultsToolbar({
   const orderedSources = [...counts.entries()].sort((a, b) => b[1] - a[1]);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="glass flex flex-wrap items-center gap-2 p-2">
       <div className="flex items-center gap-1.5 flex-wrap">
         <button
           onClick={() => onSourceClick(null)}
-          className={`text-[11px] rounded-full border px-2.5 py-1 transition-colors ${
-            activeSource === null
-              ? "border-slate-600 bg-slate-800/60 text-slate-200"
-              : "border-slate-800/50 bg-slate-900/40 text-slate-500 hover:text-slate-300 hover:border-slate-700/60"
-          }`}
+          data-active={String(activeSource === null)}
+          className="filter-pill pill text-[11px]"
         >
           All {projects.length}
         </button>
@@ -122,25 +119,22 @@ export function ResultsToolbar({
             <button
               key={source}
               onClick={() => onSourceClick(active ? null : source)}
-              className={`text-[11px] rounded-full border px-2.5 py-1 transition-colors flex items-center gap-1.5 ${
-                active
-                  ? "border-slate-600 bg-slate-800/60 text-slate-200"
-                  : "border-slate-800/50 bg-slate-900/40 text-slate-500 hover:text-slate-300 hover:border-slate-700/60"
-              }`}
+              data-active={String(active)}
+              className="filter-pill pill text-[11px] flex items-center gap-1.5"
             >
               <span>{cfg.icon}</span>
               <span>{cfg.name}</span>
-              <span className="text-slate-600">{count}</span>
+              <span className="opacity-70">{count}</span>
             </button>
           );
         })}
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <div className="flex items-center border border-slate-800/50 rounded-md overflow-hidden">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => handleExport("md")}
-            className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-200 bg-slate-900/40 hover:bg-slate-800/60 px-2 py-1 transition-colors"
+            className="btn text-[11px]"
             title="Copy results as Markdown"
           >
             {exportedAs === "md" ? (
@@ -152,7 +146,7 @@ export function ResultsToolbar({
           </button>
           <button
             onClick={() => handleExport("json")}
-            className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-200 bg-slate-900/40 hover:bg-slate-800/60 px-2 py-1 transition-colors border-l border-slate-800/50"
+            className="btn text-[11px]"
             title="Copy results as JSON"
           >
             {exportedAs === "json" ? (
@@ -165,7 +159,7 @@ export function ResultsToolbar({
         </div>
         <button
           onClick={handleShare}
-          className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-200 bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/50 hover:border-slate-700/60 rounded-md px-2 py-1 transition-colors"
+          className="btn text-[11px]"
           title="Copy link to these results"
         >
           {copied ? (
