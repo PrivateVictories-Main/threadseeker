@@ -426,8 +426,18 @@ export default function Home() {
   const skeletonsShouldBeSparse = sparseFraction(selectedSources) >= 0.6;
 
   // Sort-friendly view (applied before operator post-filter).
-  const sortedView = mode === "results" ? applyResultsView(projects, sortMode, activeSourceFilter) : projects;
-  const view = applyOperators(sortedView, parsedQuery);
+  // Both stages memoized so the array identity is stable when inputs
+  // haven't changed — avoids cascading O(n) work in the focusedIdx
+  // map effect + cheaper React reconciliation when sort/filter UI
+  // re-renders without changing the underlying view.
+  const sortedView = useMemo(
+    () => (mode === "results" ? applyResultsView(projects, sortMode, activeSourceFilter) : projects),
+    [mode, projects, sortMode, activeSourceFilter],
+  );
+  const view = useMemo(
+    () => applyOperators(sortedView, parsedQuery),
+    [sortedView, parsedQuery],
+  );
   const opSummary = describeOperators(parsedQuery);
 
   // O(n) once per view change — far cheaper than the previous DOM walk
