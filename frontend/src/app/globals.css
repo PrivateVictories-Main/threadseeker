@@ -406,6 +406,13 @@ button.topic-chip-interactive {
   min-width: 0;
   padding: 5px 10px;
 }
+/* Single-pill row (sparse source, e.g. just popularity) — left-align and
+   shrink so it reads as a metadata tag instead of a stretched-to-fill bar.
+   :only-child catches the single-pill case without per-instance markup. */
+.ts-pills .pill:only-child {
+  flex: 0 0 auto;
+  justify-content: flex-start;
+}
 .ts-actions {
   display: flex; flex-wrap: wrap; gap: 8px;
 }
