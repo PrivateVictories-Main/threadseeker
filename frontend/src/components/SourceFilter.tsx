@@ -13,6 +13,9 @@ interface SourceFilterProps {
   allSources: SourceType[];
   selectedSources: SourceType[];
   onToggle: (source: SourceType) => void;
+  // Optional bulk-set hook for the per-category All/None toggle. When
+  // omitted the toggle is hidden (single-source-toggle parents still work).
+  onSetSelected?: (next: SourceType[]) => void;
   onClear?: () => void;
   open?: boolean;
 }
@@ -24,6 +27,7 @@ export function SourceFilter({
   allSources,
   selectedSources,
   onToggle,
+  onSetSelected,
   onClear,
   open = true,
 }: SourceFilterProps) {
@@ -73,28 +77,65 @@ export function SourceFilter({
               // active here" without the user having to count chips. Chips
               // stay clickable — fade is purely visual, not pointer-events.
               const allInactive = active === 0;
+              const allActive = active === total;
+              // Per-category bulk toggle — flips between selecting every
+              // chip in the category and removing every chip. Label
+              // mirrors the action: at full, the button reads "None"
+              // (it'll deselect); otherwise "All" (it'll select rest).
+              // Guards against emptying the global selection: if turning
+              // off this category would leave zero sources selected
+              // overall, the toggle short-circuits to a no-op so the
+              // results don't suddenly go blank.
+              const handleCategoryToggle = () => {
+                if (!onSetSelected) return;
+                const groupSet = new Set(group.sources);
+                const others = selectedSources.filter((s) => !groupSet.has(s));
+                if (allActive) {
+                  // Don't allow toggling off the last remaining category.
+                  if (others.length === 0) return;
+                  onSetSelected(others);
+                } else {
+                  onSetSelected([...others, ...group.sources]);
+                }
+              };
               return (
                 <div
                   key={group.category}
                   className={`transition-opacity duration-200 ${allInactive ? "opacity-60" : "opacity-100"}`}
                 >
-                  <div className="flex items-baseline justify-between mb-2">
+                  <div className="flex items-baseline justify-between mb-2 gap-2">
                     <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-slate-400">
                       {group.title}
                     </div>
-                    <div className="text-[10px] tabular-nums font-medium text-slate-400">
-                      <span
-                        className={
-                          active === total
-                            ? "text-indigo-600"
-                            : active === 0
-                              ? "text-slate-300"
-                              : ""
-                        }
-                      >
-                        {active}
-                      </span>
-                      <span className="text-slate-300">/{total}</span>
+                    <div className="flex items-baseline gap-2">
+                      {onSetSelected && (
+                        <button
+                          type="button"
+                          onClick={handleCategoryToggle}
+                          className="text-[10px] font-medium text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-[0.08em]"
+                          aria-label={
+                            allActive
+                              ? `Deselect all ${group.title} sources`
+                              : `Select all ${group.title} sources`
+                          }
+                        >
+                          {allActive ? "None" : "All"}
+                        </button>
+                      )}
+                      <div className="text-[10px] tabular-nums font-medium text-slate-400">
+                        <span
+                          className={
+                            allActive
+                              ? "text-indigo-600"
+                              : active === 0
+                                ? "text-slate-300"
+                                : ""
+                          }
+                        >
+                          {active}
+                        </span>
+                        <span className="text-slate-300">/{total}</span>
+                      </div>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5">

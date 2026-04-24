@@ -560,6 +560,9 @@ export default function Home() {
                       allSources={ALL_SOURCES}
                       selectedSources={selectedSources}
                       onToggle={handleSourceToggle}
+                      onSetSelected={(next) => {
+                        if (next.length > 0) setSelectedSources(next);
+                      }}
                       onClear={() => setSelectedSources(ALL_SOURCES)}
                     />
                   )}
