@@ -39,7 +39,7 @@ export function UnifiedProjectCard({ project, onToast }: Props) {
     project.source === "gitlab" ||
     project.source === "codeberg";
 
-  const topics = (project.topics ?? []).slice(0, 5);
+  const topics = (project.topics ?? []).slice(0, 3);
   const avatar = project.author?.avatar;
   const subline = isRepo
     ? project.fullName.includes("/")
@@ -54,11 +54,6 @@ export function UnifiedProjectCard({ project, onToast }: Props) {
       <article className="ts-card glass">
         <div className="ts-top">
           <SourceBadge source={project.source} />
-          {project.updatedAt && (
-            <span className="ts-updated">
-              updated {formatRelativeTime(project.updatedAt)}
-            </span>
-          )}
           <motion.button
             className={`ts-bookmark ${isBookmarked ? "bookmarked" : ""}`}
             variants={bookmarkVariants}
@@ -95,6 +90,12 @@ export function UnifiedProjectCard({ project, onToast }: Props) {
         </div>
 
         <p className="ts-desc">{project.description ?? ""}</p>
+
+        {project.updatedAt && (
+          <p className="ts-caption">
+            updated {formatRelativeTime(project.updatedAt)}
+          </p>
+        )}
 
         {topics.length > 0 && (
           <div className="ts-topics">
