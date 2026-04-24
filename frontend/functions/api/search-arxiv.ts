@@ -1,7 +1,7 @@
 // arXiv search. arXiv's API returns Atom XML, so we parse it server-side
 // and hand back a clean JSON list. 6-hour edge cache — new papers land
 // daily but rarely within a single session.
-import { cachedJson, corsPreflight, jsonResponse, sanitizeQuery } from "../_shared/groq";
+import { cachedJson, corsPreflight, jsonResponse, sanitizeQuery } from "../_shared/http";
 
 interface ArxivPaper {
   id: string;

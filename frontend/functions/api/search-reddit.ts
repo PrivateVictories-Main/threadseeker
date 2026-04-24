@@ -10,7 +10,7 @@ import {
   corsPreflight,
   jsonResponse,
   sanitizeQuery,
-} from "../_shared/groq";
+} from "../_shared/http";
 import { analyzeSentiment, type Sentiment } from "../_shared/sentiment";
 
 interface RedditThreadOut {
@@ -30,9 +30,7 @@ const USER_AGENT = "ThreadSeeker/1.0 (https://threadseeker.pages.dev)";
 
 export const onRequestOptions: PagesFunction = async () => corsPreflight();
 
-export const onRequestPost: PagesFunction<{
-  GROQ_API_KEY?: string;
-}> = async ({ request }) => {
+export const onRequestPost: PagesFunction = async ({ request }) => {
   let body: { query?: unknown; max_results?: unknown };
   try {
     body = await request.json();

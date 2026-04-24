@@ -4,7 +4,7 @@
 // is not a general-purpose open proxy.
 //
 // Every entry here is a public, read-only JSON endpoint.
-import { corsPreflight, jsonResponse } from "../_shared/groq";
+import { corsPreflight, jsonResponse } from "../_shared/http";
 
 const HOST_ALLOWLIST = new Set<string>([
   "hub.docker.com",

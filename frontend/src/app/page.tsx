@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { SearchBar } from "@/components/SearchBar";
 import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
 import { SourceFilter } from "@/components/SourceFilter";
-import { SynthesisBox } from "@/components/SynthesisBox";
 import { ResultsToolbar, SortMode, applyResultsView } from "@/components/ResultsToolbar";
 import { TrendingSection } from "@/components/TrendingSection";
 import { SavedSection } from "@/components/SavedSection";
@@ -512,9 +511,6 @@ export default function Home() {
             const opSummary = describeOperators(parsedQuery);
             return (
               <div className="space-y-4">
-                {/* Synthesis only renders once everything has landed, so we
-                    don't spam the API with partial snapshots. */}
-                {!isLoading && <SynthesisBox query={query} projects={projects} />}
                 <DirectJumps query={parsedQuery.freeText || query} />
                 <ResultsToolbar
                   projects={projects}

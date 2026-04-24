@@ -1,55 +1,5 @@
-// Minimal Groq client for Cloudflare Pages Functions.
-// Uses the OpenAI-compatible /chat/completions endpoint. The Groq key is
-// Ryan's Pages secret — there is no BYOK path; users never see/need a key.
-
-const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-
-export interface GroqMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
-
-export interface GroqCallOptions {
-  apiKey: string;
-  model: string;
-  messages: GroqMessage[];
-  temperature?: number;
-  maxTokens?: number;
-  signal?: AbortSignal;
-}
-
-export async function callGroq(opts: GroqCallOptions): Promise<string> {
-  const res = await fetch(GROQ_ENDPOINT, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${opts.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: opts.model,
-      messages: opts.messages,
-      temperature: opts.temperature ?? 0.3,
-      max_tokens: opts.maxTokens ?? 300,
-    }),
-    signal: opts.signal,
-  });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`Groq ${res.status}: ${txt.slice(0, 200)}`);
-  }
-  const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  return data.choices?.[0]?.message?.content?.trim() ?? "";
-}
-
-// Resolve the Pages secret. Returns null if unset — callers degrade gracefully.
-export function resolveGroqKey(
-  _request: Request,
-  env: { GROQ_API_KEY?: string },
-): string | null {
-  return env.GROQ_API_KEY ?? null;
-}
+// Shared HTTP helpers for Cloudflare Pages Functions.
+// Generic response, CORS, query sanitization, and edge-cache utilities.
 
 // Shared JSON response helper with permissive CORS for local dev.
 export function jsonResponse(
@@ -91,7 +41,7 @@ export function sanitizeQuery(raw: unknown): string | null {
 
 // Cache a POST handler's JSON response in Cloudflare's edge cache, keyed by
 // the request URL + a deterministic body hash. Same (query) => instant reply
-// without the Groq round-trip.
+// without a round-trip to the upstream.
 export async function cachedJson(
   request: Request,
   cacheKeyParts: string[],

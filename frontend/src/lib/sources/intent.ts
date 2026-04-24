@@ -1,6 +1,6 @@
 // frontend/src/lib/sources/intent.ts
 // Regex-based intent classifier. No LLM. Moved out of the deleted
-// Groq optimize-queries function.
+// optimize-queries Pages Function.
 
 export type Intent =
   | "project_search"

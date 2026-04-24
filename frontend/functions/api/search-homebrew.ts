@@ -2,7 +2,7 @@
 // formula + cask list (~4-5 MB combined) once and filter server-side. The
 // full lists are cached at the edge for 24h — subsequent queries hit the
 // warm cache and never re-fetch from brew.sh.
-import { cachedJson, corsPreflight, jsonResponse, sanitizeQuery } from "../_shared/groq";
+import { cachedJson, corsPreflight, jsonResponse, sanitizeQuery } from "../_shared/http";
 
 interface BrewPackage {
   kind: "formula" | "cask";

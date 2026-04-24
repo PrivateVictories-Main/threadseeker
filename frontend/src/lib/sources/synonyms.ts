@@ -1,6 +1,6 @@
 // frontend/src/lib/sources/synonyms.ts
 import { classifyIntent, Intent } from "./intent";
-// Hand-curated concept dictionary. Replaces the Groq query-rewrite layer.
+// Hand-curated concept dictionary. Replaces the old LLM query-rewrite layer.
 // Adding new "meta" terminology (e.g. when a framework blows up) = commit
 // a new SynonymEntry. Zero runtime cost, fully version-controlled.
 

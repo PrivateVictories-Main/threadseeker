@@ -1,7 +1,7 @@
 // F-Droid search. F-Droid doesn't expose a search endpoint either, so we
 // fetch their index-v2 file once (cached 24h at the edge) and filter it.
 // We keep the response slim — only id, name, summary, author, etc.
-import { cachedJson, corsPreflight, jsonResponse, sanitizeQuery } from "../_shared/groq";
+import { cachedJson, corsPreflight, jsonResponse, sanitizeQuery } from "../_shared/http";
 
 interface FDroidApp {
   id: string;

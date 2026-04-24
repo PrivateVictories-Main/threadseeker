@@ -7,11 +7,11 @@
 //
 // Endpoints (all POST, JSON):
 //   /api/search-reddit     — Reddit CORS-blocked search with sentiment
-//   /api/optimize-queries  — AI-optimized per-platform queries
-//   /api/synthesize        — Cross-source AI verdict
 //
 // Everything else (GitHub, npm, PyPI, HF, HN, GitLab, Codeberg, crates.io,
-// Packagist, RubyGems) is called directly from the browser.
+// Packagist, RubyGems, arXiv, F-Droid, Homebrew) is called directly from
+// the browser or via same-origin Pages Functions that don't need a client
+// helper.
 import type { UnifiedProject } from "./sources";
 
 const BACKEND_OVERRIDE =
@@ -22,32 +22,6 @@ const API_BASE = BACKEND_OVERRIDE || "";
 
 function apiUrl(path: string): string {
   return `${API_BASE}/api${path}`;
-}
-
-export interface OptimizedQueries {
-  github_query: string;
-  huggingface_query: string;
-  reddit_query: string;
-  intent?: string;
-  source_weights?: Record<string, number>;
-  reasoning?: string;
-}
-
-export async function optimizeQueries(
-  query: string,
-): Promise<OptimizedQueries | null> {
-  try {
-    const response = await fetch(apiUrl("/optimize-queries"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
-    });
-    if (!response.ok) return null;
-    return (await response.json()) as OptimizedQueries;
-  } catch (error) {
-    console.error("optimizeQueries failed:", error);
-    return null;
-  }
 }
 
 export async function searchRedditViaBackend(
@@ -84,87 +58,4 @@ export async function searchRedditViaBackend(
     console.error("searchReddit failed:", error);
     return [];
   }
-}
-
-export async function relatedQueries(query: string): Promise<string[]> {
-  try {
-    const response = await fetch(apiUrl("/related-queries"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
-    });
-    if (!response.ok) return [];
-    const data = (await response.json()) as { related?: string[] };
-    return Array.isArray(data.related) ? data.related : [];
-  } catch (error) {
-    console.error("relatedQueries failed:", error);
-    return [];
-  }
-}
-
-export async function generateIntegrationSnippet(
-  query: string,
-  project: UnifiedProject,
-): Promise<string | null> {
-  try {
-    const response = await fetch(apiUrl("/integrate"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query,
-        project: {
-          source: project.source,
-          name: project.name,
-          fullName: project.fullName,
-          description: project.description,
-          language: project.language,
-          url: project.url,
-          topics: project.topics,
-        },
-      }),
-    });
-    if (!response.ok) return null;
-    const data = (await response.json()) as { snippet?: string | null };
-    return data.snippet || null;
-  } catch (error) {
-    console.error("generateIntegrationSnippet failed:", error);
-    return null;
-  }
-}
-
-export async function synthesizeResults(
-  query: string,
-  projects: UnifiedProject[],
-): Promise<string | null> {
-  if (projects.length === 0) return null;
-  try {
-    const response = await fetch(apiUrl("/synthesize"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query,
-        projects: projects.slice(0, 20).map((p) => ({
-          source: p.source,
-          name: p.fullName,
-          description: p.description,
-          url: p.url,
-          stars: p.stars,
-        })),
-      }),
-    });
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data.synthesis || null;
-  } catch (error) {
-    console.error("synthesize failed:", error);
-    return null;
-  }
-}
-
-// API is always "configured" now — the functions ship with the site.
-// Callers use this to decide whether to attempt backend-gated features.
-// For local `next dev` without `wrangler pages dev`, set
-// NEXT_PUBLIC_BACKEND_URL=disabled to suppress calls that would 404.
-export function isBackendConfigured(): boolean {
-  return BACKEND_OVERRIDE !== "disabled";
 }
