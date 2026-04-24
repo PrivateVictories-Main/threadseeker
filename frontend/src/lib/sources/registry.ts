@@ -73,6 +73,13 @@ interface SourceDisplayConfig {
   // the loading-skeleton geometry picker so the grid doesn't visually pop
   // 340 → 260 on data-in for community-heavy searches.
   sparse?: boolean;
+  // One-line plain-English description used as the filter-pill `title=`
+  // tooltip + (future) screen-reader description. Some source names are
+  // self-explanatory ("GitHub", "Reddit") but others are TLA-shaped
+  // ("AUR", "JSR", "Open VSX") and benefit from the hover hint. Keep
+  // each tagline ≤ 60 chars and verbless ("Arch User Repository", not
+  // "Browse the Arch User Repository") so they stack consistently.
+  tagline?: string;
 }
 
 const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
@@ -85,6 +92,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-gray-500/10",
     supportsOr: true,
     category: "repos",
+    tagline: "Code repositories on GitHub",
   },
   huggingface: {
     name: "Hugging Face",
@@ -95,6 +103,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-yellow-500/10",
     supportsOr: false,
     category: "ai",
+    tagline: "AI models, datasets and spaces",
   },
   gitlab: {
     name: "GitLab",
@@ -105,6 +114,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-orange-500/10",
     supportsOr: true,
     category: "repos",
+    tagline: "Code repositories on GitLab.com",
   },
   npm: {
     name: "npm",
@@ -115,6 +125,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-red-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "JavaScript / TypeScript packages",
   },
   pypi: {
     name: "PyPI",
@@ -127,6 +138,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-blue-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "Python packages",
   },
   crates: {
     name: "crates.io",
@@ -139,6 +151,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-orange-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "Rust crates",
   },
   hackernews: {
     name: "Hacker News",
@@ -150,6 +163,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     supportsOr: false,
     category: "community",
     sparse: true,
+    tagline: "Tech-news threads from Hacker News",
   },
   codeberg: {
     name: "Codeberg",
@@ -160,6 +174,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-emerald-500/10",
     supportsOr: true,
     category: "repos",
+    tagline: "Non-profit Forgejo-hosted repos",
   },
   packagist: {
     name: "Packagist",
@@ -170,6 +185,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-indigo-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "PHP packages (Composer)",
   },
   rubygems: {
     name: "RubyGems",
@@ -180,6 +196,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-rose-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "Ruby gems",
   },
   reddit: {
     name: "Reddit",
@@ -191,6 +208,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     supportsOr: false,
     category: "community",
     sparse: true,
+    tagline: "Discussion threads from Reddit",
   },
   dockerhub: {
     name: "Docker Hub",
@@ -201,6 +219,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-sky-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "Container images",
   },
   jsr: {
     name: "JSR",
@@ -211,6 +230,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-yellow-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "JS Registry — Deno-friendly TypeScript packages",
   },
   flathub: {
     name: "Flathub",
@@ -221,6 +241,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-indigo-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "Linux desktop apps (Flatpak)",
   },
   devto: {
     name: "Dev.to",
@@ -232,6 +253,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     supportsOr: false,
     category: "community",
     sparse: true,
+    tagline: "Developer blog posts on Dev.to",
   },
   lobsters: {
     name: "Lobsters",
@@ -243,6 +265,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     supportsOr: false,
     category: "community",
     sparse: true,
+    tagline: "Computing-focused link aggregator",
   },
   stackoverflow: {
     name: "Stack Overflow",
@@ -254,6 +277,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     supportsOr: false,
     category: "community",
     sparse: true,
+    tagline: "Q&A from Stack Overflow",
   },
   paperswithcode: {
     name: "Papers with Code",
@@ -264,6 +288,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-violet-500/10",
     supportsOr: false,
     category: "ai",
+    tagline: "ML papers paired with implementations",
   },
   homebrew: {
     name: "Homebrew",
@@ -274,6 +299,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-amber-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "macOS / Linux package manager formulas",
   },
   fdroid: {
     name: "F-Droid",
@@ -284,6 +310,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-lime-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "Free / open-source Android apps",
   },
   arxiv: {
     name: "arXiv",
@@ -294,6 +321,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-red-500/10",
     supportsOr: false,
     category: "scholarly",
+    tagline: "Open-access scholarly preprints",
   },
   aur: {
     name: "AUR",
@@ -304,6 +332,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-sky-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "Arch User Repository — community Arch packages",
   },
   openvsx: {
     name: "Open VSX",
@@ -314,6 +343,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-violet-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "VS Code extensions (vendor-neutral marketplace)",
   },
   conda: {
     name: "conda-forge",
@@ -324,6 +354,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-green-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "Scientific Python / R packages via Conda",
   },
   zenodo: {
     name: "Zenodo",
@@ -334,6 +365,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-cyan-500/10",
     supportsOr: false,
     category: "scholarly",
+    tagline: "Research datasets and software (CERN)",
   },
   nuget: {
     name: "NuGet",
@@ -344,6 +376,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-blue-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: ".NET packages",
   },
   wordpress: {
     name: "WordPress",
@@ -354,6 +387,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-slate-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "WordPress plugins",
   },
   maven: {
     name: "Maven Central",
@@ -364,6 +398,7 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     bgColor: "bg-amber-500/10",
     supportsOr: false,
     category: "packages",
+    tagline: "Java / JVM artifacts",
   },
 };
 

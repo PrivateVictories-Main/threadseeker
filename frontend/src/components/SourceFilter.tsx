@@ -156,12 +156,23 @@ export function SourceFilter({
                       const config = getSourceConfig(source);
                       const Icon = config.lucideIcon;
                       const isActive = selectedSources.includes(source);
+                      // Tooltip via `title=` so unfamiliar acronyms (JSR,
+                      // AUR, openvsx, conda-forge…) carry a one-line
+                      // disambiguation on hover. Browser-native tooltip
+                      // is intentional — no JS overhead, accessible by
+                      // default. Falls back to the source name when no
+                      // tagline is registered.
+                      const tooltip = config.tagline
+                        ? `${config.name} — ${config.tagline}`
+                        : config.name;
                       return (
                         <button
                           key={source}
                           onClick={() => onToggle(source)}
                           data-active={String(isActive)}
                           className="filter-pill pill text-[12px] flex items-center gap-1.5"
+                          title={tooltip}
+                          aria-label={tooltip}
                         >
                           <Icon className="w-3.5 h-3.5" aria-hidden />
                           <span>{config.name}</span>
