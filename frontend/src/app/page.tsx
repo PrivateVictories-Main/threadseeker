@@ -11,6 +11,7 @@ import { SavedSection } from "@/components/SavedSection";
 import { DirectJumps } from "@/components/DirectJumps";
 import { CardSkeleton } from "@/components/CardSkeleton";
 import { ShortcutHelpModal, ShortcutHelpButton } from "@/components/ShortcutHelpModal";
+import { NetworkErrorMessage, NetworkErrorTray } from "@/components/network/NetworkErrorMessage";
 import { AnimatedGrid } from "@/components/motion/AnimatedGrid";
 import { Toast } from "@/components/motion/Toast";
 import { CountUp } from "@/components/motion/CountUp";
@@ -29,7 +30,7 @@ import {
 } from "@/lib/sources";
 import { parseQuery, applyOperators, describeOperators } from "@/lib/query-parser";
 import { toast } from "sonner";
-import { Search, ArrowRight, Clock, X, SearchX, Github, WifiOff, RefreshCw, AlertTriangle } from "lucide-react";
+import { Search, ArrowRight, Clock, X, SearchX, Github } from "lucide-react";
 
 const HISTORY_KEY = "threadseeker:history:v1";
 const HISTORY_MAX = 8;
@@ -815,63 +816,18 @@ export default function Home() {
                       {/* Failed-sources indicator: a quiet ghost pill that
                           appears only when one or more sources errored
                           (and at least one source delivered, otherwise the
-                          full retry card above would be showing). Click
+                          full retry card below would be showing). Click
                           opens a tray listing which sources failed so the
                           user can decide whether to retry or ignore. */}
-                      {failedSources.length > 0 && (
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setFailedTrayOpen((v) => !v)}
-                            aria-expanded={failedTrayOpen}
-                            className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-amber-700/90 hover:text-amber-800 bg-amber-50/70 hover:bg-amber-100/80 border border-amber-200/70 hover:border-amber-300 rounded-full px-2.5 py-0.5 transition-colors"
-                            title="Some sources didn't respond. Click for details."
-                          >
-                            <AlertTriangle className="w-3 h-3" aria-hidden />
-                            <span className="tabular-nums">
-                              {failedSources.length}
-                            </span>
-                            <span>
-                              {failedSources.length === 1
-                                ? "source unavailable"
-                                : "sources unavailable"}
-                            </span>
-                          </button>
-                          {failedTrayOpen && (
-                            <div className="absolute left-0 top-full mt-1.5 z-20 glass-strong rounded-xl px-3 py-2.5 min-w-[200px] shadow-lg">
-                              <p className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-slate-400 mb-1.5">
-                                Didn&apos;t respond
-                              </p>
-                              <ul className="space-y-0.5">
-                                {failedSources.map((s) => {
-                                  const cfg = getSourceConfig(s);
-                                  const Icon = cfg.lucideIcon;
-                                  return (
-                                    <li
-                                      key={s}
-                                      className="flex items-center gap-1.5 text-[12px] text-slate-700"
-                                    >
-                                      <Icon className="w-3.5 h-3.5 text-slate-500" aria-hidden />
-                                      <span>{cfg.name}</span>
-                                    </li>
-                                  );
-                                })}
-                              </ul>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setFailedTrayOpen(false);
-                                  handleSearch(query || lastSubmittedRef.current);
-                                }}
-                                className="mt-2 w-full inline-flex items-center justify-center gap-1.5 text-[11.5px] font-medium text-indigo-700 hover:text-indigo-800 transition-colors"
-                              >
-                                <RefreshCw className="w-3 h-3" />
-                                Retry search
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      <NetworkErrorTray
+                        failedSources={failedSources}
+                        open={failedTrayOpen}
+                        onToggle={() => setFailedTrayOpen((v) => !v)}
+                        onRetry={() => {
+                          setFailedTrayOpen(false);
+                          handleSearch(query || lastSubmittedRef.current);
+                        }}
+                      />
                     </div>
 
                     <AnimatedGrid
@@ -969,36 +925,11 @@ export default function Home() {
                   // reach sources" card with a one-tap retry rather than
                   // the generic empty state — feels less like a dead end
                   // and more like a known transient condition.
-                  <div className="flex flex-col items-center text-center py-24">
-                    <div
-                      className="w-16 h-16 rounded-full glass-strong flex items-center justify-center mb-5"
-                      aria-hidden
-                    >
-                      <WifiOff className="w-7 h-7 text-indigo-400" />
-                    </div>
-                    <p className="text-lg font-semibold text-slate-800">
-                      Couldn&apos;t reach sources
-                    </p>
-                    <p className="text-[13.5px] text-slate-500 mt-1.5 max-w-sm">
-                      All {lastSearchedCount} sources were unreachable. This
-                      is usually a transient network hiccup — try again.
-                    </p>
-                    <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleSearch(query || lastSubmittedRef.current)}
-                        className="btn btn-primary rounded-full h-11 px-6 text-[13px] inline-flex items-center justify-center gap-1.5"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        Retry search
-                      </button>
-                      <button
-                        onClick={handleClear}
-                        className="text-[12.5px] font-medium text-slate-500 hover:text-indigo-700 transition-colors px-3.5 py-1.5"
-                      >
-                        Back to home
-                      </button>
-                    </div>
-                  </div>
+                  <NetworkErrorMessage
+                    sourceCount={lastSearchedCount}
+                    onRetry={() => handleSearch(query || lastSubmittedRef.current)}
+                    onClear={handleClear}
+                  />
                 ) : hasSearched ? (
                   // Empty state — centered, friendly.
                   <div className="flex flex-col items-center text-center py-24">
