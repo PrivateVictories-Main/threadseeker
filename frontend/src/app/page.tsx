@@ -523,8 +523,12 @@ export default function Home() {
                   }}
                 />
 
-                {/* Try row — matches Recent pill rhythm */}
-                <div className="mt-6 flex flex-wrap justify-center items-center gap-2">
+                {/* Try row — pill rhythm + arrow-slide hover that mirrors
+                    Recent below. Slightly softer chrome (bg-white/70 vs
+                    Recent's /80) keeps suggestions fainter than history.
+                    The label sits in its own non-shrinkable cluster so it
+                    doesn't get marooned across a wrap. */}
+                <div className="mt-6 flex flex-wrap justify-center items-center gap-x-2 gap-y-1.5">
                   <span className="text-[11px] text-slate-400 uppercase tracking-[0.14em] font-semibold mr-1">
                     Try
                   </span>
@@ -532,10 +536,10 @@ export default function Home() {
                     <button
                       key={eq}
                       onClick={() => handleSearch(eq)}
-                      className="group inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-600 hover:text-indigo-700 bg-white/70 hover:bg-white border border-indigo-200/80 hover:border-indigo-300 rounded-full px-3 py-1.5 transition-colors"
+                      className="group inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-600 hover:text-indigo-700 bg-white/70 hover:bg-white border border-indigo-200/80 hover:border-indigo-300 rounded-full px-3 py-1.5 transition-all"
                     >
                       <span>{eq}</span>
-                      <ArrowRight className="w-3 h-3 text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <ArrowRight className="w-3 h-3 text-indigo-400 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all" />
                     </button>
                   ))}
                 </div>
