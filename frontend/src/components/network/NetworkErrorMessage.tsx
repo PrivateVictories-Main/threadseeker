@@ -12,52 +12,83 @@
 // Extracted from page.tsx so both call sites share a single visual
 // vocabulary (WifiOff / AlertTriangle / RefreshCw, indigo + amber tinting)
 // instead of two parallel JSX blocks drifting apart over time.
+//
+// `<NetworkErrorMessage>` accepts overridable copy (icon, title,
+// message, button labels) so it's reusable for non-search error states
+// (e.g. "couldn't fetch bookmarks", "trending feed unavailable")
+// without breaking the search call site, which keeps its existing
+// sourceCount-based default.
 
-import { WifiOff, RefreshCw, AlertTriangle } from "lucide-react";
+import { WifiOff, RefreshCw, AlertTriangle, type LucideIcon } from "lucide-react";
 import { getSourceConfig, SourceType } from "@/lib/sources";
+import type { ReactNode } from "react";
 
 interface NetworkErrorMessageProps {
-  /** Number of sources queried in the failed run (for "All N were
-   *  unreachable" copy). */
+  /** Number of sources queried in the failed run. Used to compose the
+   *  default "All N sources were unreachable" message when no explicit
+   *  `message` override is provided. Required for back-compat with the
+   *  existing search call site. */
   sourceCount: number;
   onRetry: () => void;
-  onClear: () => void;
+  /** Optional secondary action — when omitted the secondary button
+   *  doesn't render. The search page wires this to "Back to home". */
+  onClear?: () => void;
+  /** Override the error-pictogram. Defaults to WifiOff (network
+   *  hiccup). Pass `AlertTriangle` etc. for non-network errors. */
+  icon?: LucideIcon;
+  /** Override the bold heading. Defaults to "Couldn't reach sources". */
+  title?: ReactNode;
+  /** Override the body copy. When omitted, falls back to a sourceCount-
+   *  driven "All N sources were unreachable…" sentence. */
+  message?: ReactNode;
+  /** Primary button label. Defaults to "Retry search". */
+  retryLabel?: ReactNode;
+  /** Secondary button label. Defaults to "Back to home". */
+  clearLabel?: ReactNode;
 }
 
 export function NetworkErrorMessage({
   sourceCount,
   onRetry,
   onClear,
+  icon: Icon = WifiOff,
+  title = "Couldn't reach sources",
+  message,
+  retryLabel = "Retry search",
+  clearLabel = "Back to home",
 }: NetworkErrorMessageProps) {
+  const body = message ?? (
+    <>
+      All {sourceCount} sources were unreachable. This is usually a
+      transient network hiccup &mdash; try again.
+    </>
+  );
   return (
     <div className="flex flex-col items-center text-center py-24">
       <div
         className="w-16 h-16 rounded-full glass-strong flex items-center justify-center mb-5"
         aria-hidden
       >
-        <WifiOff className="w-7 h-7 text-indigo-400" />
+        <Icon className="w-7 h-7 text-indigo-400" />
       </div>
-      <p className="text-lg font-semibold text-slate-800">
-        Couldn&apos;t reach sources
-      </p>
-      <p className="text-[13.5px] text-slate-500 mt-1.5 max-w-sm">
-        All {sourceCount} sources were unreachable. This is usually a
-        transient network hiccup &mdash; try again.
-      </p>
+      <p className="text-lg font-semibold text-slate-800">{title}</p>
+      <p className="text-[13.5px] text-slate-500 mt-1.5 max-w-sm">{body}</p>
       <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2">
         <button
           onClick={onRetry}
           className="btn btn-primary rounded-full h-11 px-6 text-[13px] inline-flex items-center justify-center gap-1.5"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Retry search
+          <RefreshCw className="w-3.5 h-3.5" aria-hidden />
+          {retryLabel}
         </button>
-        <button
-          onClick={onClear}
-          className="text-[12.5px] font-medium text-slate-500 hover:text-indigo-700 transition-colors px-3.5 py-1.5"
-        >
-          Back to home
-        </button>
+        {onClear && (
+          <button
+            onClick={onClear}
+            className="text-[12.5px] font-medium text-slate-500 hover:text-indigo-700 transition-colors px-3.5 py-1.5"
+          >
+            {clearLabel}
+          </button>
+        )}
       </div>
     </div>
   );
