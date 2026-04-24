@@ -5,6 +5,7 @@ import type { UnifiedProject } from "@/lib/sources/types";
 import { SourceBadge } from "./card/SourceBadge";
 import { CardPills } from "./card/CardPills";
 import { CardActions, type CopyItem } from "./card/CardActions";
+import { AnimatedCard } from "./motion/AnimatedCard";
 import { useBookmark } from "@/lib/bookmarks";
 import {
   formatCount,
@@ -32,41 +33,43 @@ export function UnifiedProjectCard({ project }: { project: UnifiedProject }) {
     project.source === "codeberg";
 
   return (
-    <article className="ts-card glass">
-      <div className="ts-top">
-        <SourceBadge source={project.source} />
-        <button
-          className={`ts-bookmark ${isBookmarked ? "bookmarked" : ""}`}
-          onClick={toggle}
-          aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
-        >
-          {isBookmarked ? "♥" : "♡"}
-        </button>
-      </div>
-      <h3 className="ts-title">
-        {project.name}
-        {project.fullName !== project.name && (
-          <span className="ts-title-sub">
-            {isRepo ? `by ${project.fullName.split("/")[0]}` : project.fullName}
-          </span>
-        )}
-      </h3>
-      <p className="ts-desc">{project.description ?? ""}</p>
-      <CardPills
-        popularity={popularity}
-        language={project.language}
-        license={licenseBucket(project.license)}
-        maintenance={maintenanceState(project.updatedAt)}
-      />
-      <CardActions
-        url={project.url}
-        copyItems={copyItems}
-        onCopy={(text) => {
-          setCopied(text);
-          setTimeout(() => setCopied(null), 1500);
-        }}
-      />
-      {copied && <div className="ts-toast">Copied: {copied.slice(0, 40)}</div>}
-    </article>
+    <AnimatedCard layoutId={project.id}>
+      <article className="ts-card glass">
+        <div className="ts-top">
+          <SourceBadge source={project.source} />
+          <button
+            className={`ts-bookmark ${isBookmarked ? "bookmarked" : ""}`}
+            onClick={toggle}
+            aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
+          >
+            {isBookmarked ? "♥" : "♡"}
+          </button>
+        </div>
+        <h3 className="ts-title">
+          {project.name}
+          {project.fullName !== project.name && (
+            <span className="ts-title-sub">
+              {isRepo ? `by ${project.fullName.split("/")[0]}` : project.fullName}
+            </span>
+          )}
+        </h3>
+        <p className="ts-desc">{project.description ?? ""}</p>
+        <CardPills
+          popularity={popularity}
+          language={project.language}
+          license={licenseBucket(project.license)}
+          maintenance={maintenanceState(project.updatedAt)}
+        />
+        <CardActions
+          url={project.url}
+          copyItems={copyItems}
+          onCopy={(text) => {
+            setCopied(text);
+            setTimeout(() => setCopied(null), 1500);
+          }}
+        />
+        {copied && <div className="ts-toast">Copied: {copied.slice(0, 40)}</div>}
+      </article>
+    </AnimatedCard>
   );
 }
