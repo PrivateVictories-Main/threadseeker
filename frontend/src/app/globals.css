@@ -516,8 +516,17 @@ button.topic-chip-interactive {
   height: 64px;
   transition: box-shadow .2s ease, transform .2s ease;
 }
+/* Focus halo: the inner 4px ring is the existing crisp accessibility-
+   floor focus indicator (preserves WCAG 2.4.7). The new outer 24px
+   blurred indigo glow at low alpha (0.10) is the "active" cue —
+   feels like the bar is gently illuminated while the user types,
+   then dissipates on blur. Transition lives on `box-shadow` from the
+   default rule above so the halo eases in/out instead of snapping. */
 .search-bar-shell:focus-within {
-  box-shadow: 0 0 0 4px var(--ts-accent-soft), var(--ts-shadow-rest);
+  box-shadow:
+    0 0 0 4px var(--ts-accent-soft),
+    0 0 24px 0 rgba(99, 102, 241, 0.10),
+    var(--ts-shadow-rest);
 }
 .search-bar-input {
   flex: 1; background: transparent; border: none; outline: none;
