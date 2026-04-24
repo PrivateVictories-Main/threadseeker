@@ -126,7 +126,20 @@ export function NetworkErrorTray({
         </span>
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1.5 z-20 glass-strong rounded-xl px-3 py-2.5 min-w-[200px] shadow-lg">
+        // Placement at narrow viewports (≤320px iPhone-SE):
+        // - `left-0` pins the left edge to the indicator, but combined
+        //   with `min-w-[200px]` the tray could overflow the right edge
+        //   when the indicator sits mid-row in a flex-wrap context.
+        // - `max-w-[calc(100vw-32px)]` clamps the total width to the
+        //   viewport minus a 16px margin on each side, so the tray
+        //   never punches out of the viewport regardless of trigger
+        //   position. Long source names ellipsize via `truncate` on
+        //   the inner `<span>` rather than wrapping unpredictably.
+        // - `min-w-0` on the wrapper lets flex/grid parents actually
+        //   shrink children below their natural width.
+        // - On `sm:+` we drop the clamp and restore the original
+        //   200px floor since narrow-viewport pressure is gone.
+        <div className="absolute left-0 top-full mt-1.5 z-20 glass-strong rounded-xl px-3 py-2.5 min-w-0 max-w-[calc(100vw-32px)] sm:min-w-[200px] sm:max-w-none shadow-lg">
           <p className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-slate-400 mb-1.5">
             Didn&apos;t respond
           </p>
@@ -137,10 +150,10 @@ export function NetworkErrorTray({
               return (
                 <li
                   key={s}
-                  className="flex items-center gap-1.5 text-[12px] text-slate-700"
+                  className="flex items-center gap-1.5 text-[12px] text-slate-700 min-w-0"
                 >
-                  <Icon className="w-3.5 h-3.5 text-slate-500" aria-hidden />
-                  <span>{cfg.name}</span>
+                  <Icon className="w-3.5 h-3.5 text-slate-500 shrink-0" aria-hidden />
+                  <span className="truncate">{cfg.name}</span>
                 </li>
               );
             })}
