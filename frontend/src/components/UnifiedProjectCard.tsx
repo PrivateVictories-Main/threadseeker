@@ -32,7 +32,7 @@ export function UnifiedProjectCard({ project }: { project: UnifiedProject }) {
     project.source === "codeberg";
 
   return (
-    <article className="ts-card">
+    <article className="ts-card glass">
       <div className="ts-top">
         <SourceBadge source={project.source} />
         <button

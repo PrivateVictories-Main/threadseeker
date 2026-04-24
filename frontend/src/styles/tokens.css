@@ -1,0 +1,29 @@
+/* frontend/src/styles/tokens.css */
+:root {
+  --ts-bg-gradient: linear-gradient(135deg, #fde6ff 0%, #e0e7ff 45%, #d9f9ff 100%);
+
+  --ts-surface: rgba(255, 255, 255, 0.65);
+  --ts-surface-strong: rgba(255, 255, 255, 0.85);
+  --ts-border: rgba(255, 255, 255, 0.85);
+
+  --ts-accent: #7c3aed;
+  --ts-accent-soft: rgba(124, 58, 237, 0.15);
+  --ts-accent-gradient: linear-gradient(135deg, #8b5cf6, #a78bfa);
+
+  --ts-text: #1a1a2e;
+  --ts-text-muted: #4b5563;
+  --ts-text-subtle: #7c7396;
+
+  --ts-radius-lg: 16px;
+  --ts-radius-md: 12px;
+  --ts-radius-sm: 8px;
+  --ts-radius-full: 999px;
+
+  --ts-shadow-rest: 0 8px 32px rgba(80, 50, 150, 0.10);
+  --ts-shadow-hover: 0 14px 40px rgba(80, 50, 150, 0.18);
+
+  --ts-blur: 24px;
+
+  /* Intent-tint slot (lerped in JS via inline style) */
+  --ts-intent-hue: 280; /* violet default; how_to→110 sage, model_search→35 amber, troubleshooting→350 rose */
+}
