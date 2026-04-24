@@ -70,23 +70,33 @@ export function ShortcutHelpModal() {
               </button>
             </div>
             <div className="h-px w-full bg-indigo-100/80 mb-4" aria-hidden />
-            <div className="space-y-3">
+            <dl className="flex flex-col gap-2.5">
               {SHORTCUTS.map((s) => (
-                <div key={s.label} className="flex items-center justify-between gap-4">
-                  <span className="text-[13px] text-slate-700">{s.label}</span>
-                  <span className="flex items-center gap-1">
+                <div
+                  key={s.label}
+                  className="grid grid-cols-[1fr_auto] items-center gap-6"
+                >
+                  <dt className="text-[13px] text-slate-700 leading-snug">{s.label}</dt>
+                  <dd className="flex items-center gap-1.5">
                     {s.keys.map((k, i) => (
-                      <kbd
-                        key={i}
-                        className="min-w-[24px] h-[22px] px-2 inline-flex items-center justify-center rounded-md border border-indigo-200 bg-white text-slate-700 text-[11px] font-mono shadow-sm"
-                      >
-                        {k}
-                      </kbd>
+                      <span key={i} className="flex items-center gap-1.5">
+                        {i > 0 && (
+                          <span
+                            className="text-[10.5px] text-slate-400 font-medium"
+                            aria-hidden
+                          >
+                            or
+                          </span>
+                        )}
+                        <kbd className="min-w-[26px] h-[24px] px-2 inline-flex items-center justify-center rounded-md border border-indigo-200 bg-white text-slate-700 text-[11px] font-mono shadow-sm tracking-wide">
+                          {k}
+                        </kbd>
+                      </span>
                     ))}
-                  </span>
+                  </dd>
                 </div>
               ))}
-            </div>
+            </dl>
           </motion.div>
         </div>
       )}
