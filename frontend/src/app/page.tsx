@@ -720,9 +720,13 @@ export default function Home() {
               {/* Sticky glass header with compact SearchBar + live readout.
                   Shadow opacity is driven by scrollY so the header reads
                   flat at top of page and gains depth as the user scrolls
-                  past ~60px — see stickyShadowOpacity above. */}
-              <motion.div
+                  past ~60px — see stickyShadowOpacity above. Rendered as
+                  a semantic <header> so screen readers and content-rail
+                  navigation can locate the search affordance as a
+                  banner-region landmark. */}
+              <motion.header
                 className="sticky top-0 z-20 glass-sticky"
+                aria-label="Search and refine results"
                 style={{ ["--ts-sticky-shadow-opacity" as string]: stickyShadowOpacity }}
               >
                 <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
@@ -771,7 +775,7 @@ export default function Home() {
                     <span style={{ width: `${progressPct}%` }} />
                   </div>
                 )}
-              </motion.div>
+              </motion.header>
 
               <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 w-full">
                 {isLoading && resultCount === 0 ? (
