@@ -40,8 +40,8 @@ export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
       aria-label="Search open-source projects"
       className="relative max-w-2xl mx-auto"
     >
-      <div className="flex items-center bg-slate-900/50 rounded-xl border border-slate-800/60 focus-within:border-slate-600/60 transition-colors">
-        <div className="pl-4">
+      <div className="glass-strong search-bar-shell flex items-center transition-colors">
+        <div className="pl-1">
           <Search className="w-4.5 h-4.5 text-slate-600" aria-hidden />
         </div>
         <input
@@ -53,7 +53,7 @@ export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
           aria-label="Search query"
           autoComplete="off"
           spellCheck={false}
-          className="flex-1 bg-transparent text-slate-200 placeholder:text-slate-600 text-sm h-12 px-3 focus:outline-none"
+          className="search-bar-input flex-1 text-sm h-12 px-3"
         />
         <button
           type="submit"
