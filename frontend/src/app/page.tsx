@@ -754,6 +754,12 @@ export default function Home() {
                   onToast={showToast}
                 />
 
+                {/* Iter-22 / Overhaul H — Track 5: subtle 1px gradient
+                    divider separating the curated section above from
+                    the try-row + sources + trending below. Reads as
+                    breathing-room rather than a hard section break. */}
+                <div className="ts-section-divider" aria-hidden />
+
                 {/* Curated try-row — keeps the same Apple-style pill chrome
                     but the leading label is now monospace `// Try` so the
                     cluster reads as a code-comment hint rather than a
