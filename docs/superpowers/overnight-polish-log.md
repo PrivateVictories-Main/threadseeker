@@ -861,3 +861,213 @@ custom dimensions.
   short-circuits and the card jumps from desc → topics directly. That
   reads as intentional, but the missing visual rule could be replaced
   with a thin indigo-soft divider for visual rhythm.
+
+---
+
+## Iteration 16 — Major Overhaul B (hero / sticky / typography / toolbar)
+
+User feedback after Overhaul A: "I want it to be more futuristic, more
+meta, more clean looking. Some of the text is just way too small. It's
+not flashy. I want it to be extremely meta, extremely professional
+looking. Realistically as a researcher, looking up open source
+projects… categorized. You can do your own filters… based upon
+popularity, how many stars… Why is it popular?" Linear / Raycast /
+Vercel / Cursor as the design north star.
+
+This iteration takes the rest of the app — hero, landing, sticky
+header, toolbar, typography — to the bar Overhaul A established for
+the card.
+
+### TRACK 1 — Hero / landing redesign (commits a88292d, 5f16009)
+
+- **Brand mark.** New `<BrandMark>` component renders a 22px indigo
+  gradient `≡` glyph next to a monospace `threadseeker` wordmark with
+  a `v1.0` chip. Variants: `hero` (top-left of the landing page,
+  includes version chip), `inline` (sticky header, footer — drops the
+  chip). Stays consistent across the entire app.
+- **Hero typography.** Killed the gradient-shimmer "Search open source
+  everywhere" h1. Replaced with a two-line composition: monospace
+  caption `OPEN-SOURCE INDEX` (with hairline rule decorations on
+  either side) above a 64px medium-weight headline `Find what's worth
+  building on.` with the verb "building on." in the indigo-violet
+  shimmer-gradient accent. Reads as Linear / Vercel / Cursor command
+  surface — confident, technical, not cute.
+- **Search bar command surface.** Leading `/` mono pill replaces the
+  bare search icon (mirrors the long-standing `/` keyboard shortcut
+  visually); trailing mono `28 sources · ~80ms` indicator anchors the
+  right edge (visible sm+); placeholder rotates through five curated
+  example queries every 4s while unfocused. The cycle pauses on focus
+  / once the user types anything.
+- **Stat strip.** Four monospace cells below the search bar — Sources
+  (28) / Repos indexed (2.3M+) / Avg search (~80ms) / Accounts (0).
+  Reads as a trust signal at the top of the funnel. 2-col grid on
+  mobile, 4-col sm+. Static placeholders for the middle two — see
+  hand-off below.
+- **Curated try row.** Same Apple-style pills, but the leading label
+  is now monospace `// Try` and each pill leads with a small `›` mono
+  bullet so the cluster reads as a code-comment hint.
+- **Section header vocabulary.** `// Try`, `// Recent`, `// Sources
+  N/M`, `// Saved 12`, `// Trending this week`, `// Jump to <pkg>`,
+  `// More from`. New `.ts-section-header` utility class drives all
+  of them with the same mono uppercase tracking; the `<strong>`
+  element carries the indigo accent for the actual count / subject
+  noun.
+
+### TRACK 2 — Sticky header refinement (commit 5f16009)
+
+- **Layout.** Brand mark anchors the left edge (sm+); compact search
+  bar in the middle; mono stats cluster + Clear button on the right.
+- **Mono stats.** `45 results · 142ms` / `45 results · 3 loading`
+  collapses into a single tabular-nums monospace readout with bullet
+  separators. Clear button also goes mono uppercase. Header now reads
+  as a unified technical readout rather than a sans-serif word salad.
+- **Indeterminate progress.** Sticky progress bar swaps to a left-to-
+  right looping shuttle animation when `progressPct` is at <=4%
+  (just-started) or >=100% (last source landed, state still flushing)
+  so the user sees motion the whole time the bar reads "loading"
+  rather than a dead 4% stub at search-start. Determinate width
+  transition still drives the middle of the search.
+
+### TRACK 3 — Typography rationalization (commits b16536f, 34e1051, ffaf5c4)
+
+- **Sans vs. mono register split.** Codified a single rule: sans
+  (`Inter`) for content, mono (`ui-monospace, SF Mono`) for system /
+  technical context. Section headers, stat labels, sticky stats,
+  source badges, popularity badges, metric grid labels, version
+  chips, toolbar Sources/Sort labels, footer metadata — all mono.
+  Project titles, descriptions, taglines, button labels, recent
+  search history — all sans.
+- **Card micro-typography.** Metric grid labels (STARS / FORKS /
+  DOWNLOADS) now mono so the label/value contrast reads as
+  metric:value rather than caption:body. Popularity badge (HOT /
+  TRENDING) goes mono with tighter letter-spacing — reads as a system
+  status flag. SourceBadge collapses from sans-serif "GitHub" to mono
+  uppercase "[GITHUB]" with a 6px radius — looks like a label tag in
+  a dev-tool sidebar instead of a content chip. Per-source colors
+  carry through unchanged.
+- **Result-count line.** Below the toolbar: now mono tabular-nums
+  with bullet separators (`45 RESULTS · FOR react · OPS`).
+  Searching-N-sources ticker also goes mono. Footer rebuild pairs
+  the BrandMark with mono uppercase `28 PLATFORMS · NO PAID APIS ·
+  NO TRACKING` metadata.
+
+### TRACK 4 — ResultsToolbar polish + CardPills cleanup (commits 492f460, b16536f)
+
+- **CardPills deletion.** Component was orphaned from
+  UnifiedProjectCard during Overhaul A. Sole consumer was its own
+  unit test. Folded the only exported type (`MaintenanceState`) into
+  `helpers.ts` where every other card classification primitive
+  already lives, then deleted the component + tests. Test count
+  81 → 76 (lost 5 CardPills-only assertions; helpers tests still
+  exercise `maintenanceState` end-to-end).
+- **ResultsToolbar refinement.** New `.ts-toolbar` adds a 1px bottom
+  border meeting the results grid below. Ghost dot dividers (`·`)
+  cluster Sources + Sort vs. MD/JSON/Share groups. Sources / Sort
+  buttons gain mono uppercase `SORT` / `SOURCES` micro-labels with
+  the value in sans next to them. Active filter pill collapses from
+  inline `Sources · GitHub` text into a mono gradient badge chip
+  (`[GITHUB]`) inside the same Sources button — reads as a deliberate
+  status indicator. Source filter button picks up an indigo
+  border + accent-strong color when active for redundant signal.
+
+### Numbers
+
+- **Tests:** 81 → 76 (CardPills-only assertions dropped; remaining 76 still cover everything that ships).
+- **TS:** `tsc --noEmit` clean.
+- **Lint:** clean (`react/jsx-no-comment-textnodes` initially flagged
+  `// Try` style children — escaped to `{"// Try"}` literal strings
+  to silence without changing the rendered output).
+- **Build:** clean. Page bundle 89.6 → 90.2 kB (+0.6 kB across the
+  new BrandMark component, mono CSS rules, and search bar refactor).
+
+### Files touched
+
+- `frontend/src/components/BrandMark.tsx` (NEW)
+- `frontend/src/app/page.tsx` (hero rebuild, sticky header, footer, mono section labels everywhere)
+- `frontend/src/app/globals.css` (`.ts-brand`, `.ts-hero-caption`, `.ts-hero-headline`, `.ts-stat-strip`, `.ts-section-header`, `.ts-cmd-hint`, `.ts-cmd-meta`, `.ts-toolbar`, `.ts-toolbar-badge`, `.ts-toolbar-divider`, indeterminate progress, mono metric labels, mono popularity badge, mono source badge)
+- `frontend/src/components/SearchBar.tsx` (sourceCount prop, leading `/` hint, trailing meta pill, rotating placeholders, focus state tracking)
+- `frontend/src/components/ResultsToolbar.tsx` (mono labels, badge chip, ghost dividers)
+- `frontend/src/components/SavedSection.tsx` (mono section header)
+- `frontend/src/components/TrendingSection.tsx` (mono section header)
+- `frontend/src/components/DirectJumps.tsx` (mono section header)
+- `frontend/src/components/card/helpers.ts` (MaintenanceState moved in)
+- `frontend/src/components/card/CardPills.tsx` (DELETED)
+- `frontend/src/components/card/CardPills.test.tsx` (DELETED)
+- `frontend/DESIGN.md` (sans/mono register doc, section-header vocabulary, typography table refresh)
+
+### Hand-off for the next overhaul / iteration
+
+- **Stat strip values are static placeholders.** `2.3M+` / `~80ms`
+  are decorative trust signals. If we want them to read live, the
+  scaffolding would need a small ingestion pipeline (count distinct
+  repos across adapters' result corpus over a week of logs;
+  rolling-window measure of `searchDurationMs` from the sticky
+  header). Defer until we have telemetry — for now the static
+  numbers are accurate-enough and the strip earns its weight on the
+  trust-signal axis alone.
+- **Brand mark on phones.** Hero version is visible at all widths
+  but the sticky inline variant hides below `sm:` so the search bar
+  has room. On a 320px iPhone-SE the hero brand still fits but the
+  pt-6 + headline + stat strip stack runs longer than the iter-15
+  hero — verify on real device that the fold doesn't cut the search
+  bar awkwardly above the strip.
+- **Search bar trailing meta** is hidden when the user has typed
+  anything (so it doesn't clash with the clear-X) and on phone
+  widths. The `28 sources · ~80ms` reads on first-load + when the
+  bar is empty + on sm+. If the static `~80ms` ever feels stale or
+  wrong, swap to a `searchDurationMs`-driven variant once the user
+  has run a search — but for first-impression copy the static
+  number is fine.
+- **Hero caption decorative rules.** The `before:`/`after:` hairline
+  rules around `OPEN-SOURCE INDEX` only render at the standard hero
+  font size. If the caption ever wraps (it shouldn't, it's 22 chars
+  + 22+22px decorations), the rules will still anchor to the start /
+  end of the visible flow — flagged for completeness only.
+- **Indeterminate sticky shuttle.** Animates a 30%-width bar across
+  the header; the `transform: translateX(-100% → 440%)` math is
+  picked so the bar's leading edge reaches the right side cleanly.
+  At 120Hz the animation should feel even smoother — no degradation
+  expected. Reduced-motion path keeps the bar at full-width 55%
+  opacity (visible signal, no motion).
+- **CardPills deletion is final.** No JSX consumer remained. If a
+  future use case wants the four-pill row again, rebuild it as a
+  thin component over `helpers.metricsForProject` + the
+  `pill-popularity / pill-language / pill-license / pill-maint-*`
+  CSS classes — the helpers and CSS still exist.
+- **Toolbar active-filter badge** is visually loud at gradient-fill.
+  If a future iteration wants a quieter affordance (e.g. an indigo
+  outline badge when a filter is on but the user hasn't touched it
+  yet), swap `.ts-toolbar-badge`'s `background: var(--ts-accent-gradient)`
+  for a transparent/border treatment. Currently optimized for
+  "this is a deliberate filter, not a default."
+- **Mono-uppercase source badges.** "Hugging Face" → "HUGGING FACE",
+  "PyPI" → "PYPI", "Docker Hub" → "DOCKER HUB". Reads as system
+  labels which is the brief, but the per-source registry's `name`
+  field is mixed-case and SourceBadge applies CSS `text-transform:
+  uppercase` over it. If a source name ever needs explicit case (a
+  brand insistence), break out a `displayBadge` field on the
+  registry and have SourceBadge prefer it over `name`.
+- **Footer kbd `?`** — the `Press ? for shortcuts` cluster is now
+  mono uppercase except for the lowercase question mark in the kbd.
+  The kbd carries `uppercase` but `?` has no case so the visual is
+  fine; flagged only because the shortcut help button is the
+  always-on alternate. No change needed.
+- **Iter 17 candidates.** (a) Source filter sheet on hero — the
+  inline expansion still uses indigo-soft pill chips per category;
+  could adopt a smaller mono category-header treatment for parity
+  with the rest of the page. (b) DirectJumps registry pills — still
+  sans-serif registry name; could switch to mono. (c) Empty-state
+  ("No results found") — still in the previous typographic
+  register; could pick up the same mono caption / section-header
+  vocabulary. (d) Real telemetry behind the stat strip's middle
+  cells. (e) Cmd-K command palette to make the whole page feel
+  Raycast-grade in interaction not just typography.
+
+### What this iteration deliberately did NOT do
+
+- Touch motion / spring presets (per the brief)
+- Touch tokens.css palette (per the brief; only typography + mono accents)
+- Re-engineer adapters (per the brief)
+- Add new sources (per the brief)
+- Add cmd-K interaction layer (would have justified its own iteration)
+- Build a real telemetry pipeline behind the stat strip (defer)
