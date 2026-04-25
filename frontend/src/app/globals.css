@@ -75,14 +75,17 @@
 }
 
 /* Thin light-theme scrollbar — matches indigo accent, recedes into the
-   gradient until hovered. Firefox picks up the properties on `html`. */
+   gradient until hovered. Firefox picks up the properties on `html`.
+   Overhaul D — narrower 6px (was 8px) for the glass-character read.
+   Keeps the 2px transparent border-padding so the thumb visually sits
+   inside its own 6px channel rather than flush against content. */
 html {
   scrollbar-width: thin;
   scrollbar-color: rgba(99, 102, 241, 0.28) transparent;
 }
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -90,11 +93,12 @@ html {
 ::-webkit-scrollbar-thumb {
   background: rgba(99, 102, 241, 0.18);
   border-radius: 999px;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   background-clip: padding-box;
+  transition: background .2s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.38);
+  background: rgba(99, 102, 241, 0.42);
   background-clip: padding-box;
 }
 
@@ -305,7 +309,13 @@ body > * {
 .btn-primary {
   background: var(--ts-accent-gradient); color: white;
   border-color: transparent;
-  box-shadow: 0 4px 12px rgba(99,102,241,0.25), 0 1px 2px rgba(99,102,241,0.15);
+  /* Overhaul D — top inset sheen on the gradient so the button has the
+     same "lit from above" read as the cards. The drop-shadow stays
+     indigo-tinted so it grounds back to the brand palette. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 4px 12px rgba(99,102,241,0.25),
+    0 1px 2px rgba(99,102,241,0.15);
 }
 .btn-ghost {
   background: transparent;
@@ -321,7 +331,10 @@ body > * {
 @media (hover: hover) {
   .btn:hover { background: rgba(99,102,241,0.08); }
   .btn-primary:hover {
-    box-shadow: 0 6px 20px rgba(99,102,241,0.38), 0 2px 4px rgba(99,102,241,0.18);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.32),
+      0 6px 20px rgba(99,102,241,0.38),
+      0 2px 4px rgba(99,102,241,0.18);
     transform: translateY(-1px);
   }
   .btn-ghost:hover {
@@ -869,9 +882,17 @@ button.topic-chip-interactive {
    then dissipates on blur. Transition lives on `box-shadow` from the
    default rule above so the halo eases in/out instead of snapping. */
 .search-bar-shell:focus-within {
+  /* Overhaul D — layered focus glow:
+       - inner sheen brighter (0.78) so the bar reads as "lit"
+       - tightened indigo halo (4px ring at higher alpha for crispness)
+       - widened ambient blur (32px at 0.14) for atmospheric reach
+       - layered shadow underneath
+     The layered approach lets the user feel the bar gain depth on focus
+     rather than just gain an outline. */
   box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
     0 0 0 4px var(--ts-accent-soft),
-    0 0 24px 0 rgba(99, 102, 241, 0.10),
+    0 0 32px 0 rgba(99, 102, 241, 0.14),
     var(--ts-shadow-rest);
 }
 .search-bar-input {
@@ -905,13 +926,22 @@ button.topic-chip-interactive {
   background: var(--ts-accent-gradient);
   color: white; font-size: 14px; font-weight: 600;
   border: none; cursor: pointer;
-  box-shadow: 0 4px 12px rgba(99,102,241,0.25), 0 1px 2px rgba(99,102,241,0.15);
+  /* Overhaul D — top sheen sheers the gradient toward white at the
+     top edge for the same "lit from above" treatment cards/buttons
+     share. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    0 4px 12px rgba(99,102,241,0.25),
+    0 1px 2px rgba(99,102,241,0.15);
   transition: box-shadow .2s ease, transform .2s ease, opacity .2s ease;
 }
 .sb-submit:disabled { opacity: 0.4; cursor: not-allowed; }
 @media (hover: hover) {
   .sb-submit:not(:disabled):hover {
-    box-shadow: 0 6px 20px rgba(99,102,241,0.38), 0 2px 4px rgba(99,102,241,0.18);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.36),
+      0 6px 20px rgba(99,102,241,0.38),
+      0 2px 4px rgba(99,102,241,0.18);
     transform: translateY(-1px);
   }
 }
