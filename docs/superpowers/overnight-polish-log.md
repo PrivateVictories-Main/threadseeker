@@ -1071,3 +1071,221 @@ the card.
 - Add new sources (per the brief)
 - Add cmd-K interaction layer (would have justified its own iteration)
 - Build a real telemetry pipeline behind the stat strip (defer)
+
+---
+
+## Iteration 17 — Major Overhaul C (⌘K command palette + final mono parity)
+
+User feedback after Overhaul B: A and B took the card + hero +
+sticky header to Linear/Raycast-grade typography. The signature
+Raycast interaction — a ⌘K command palette — was still missing,
+plus a few labels (SourceFilter inline pills, DirectJumps registry
+chips, empty state, network error) hadn't picked up the mono
+register yet. This iteration ships the palette as the centerpiece
+and finishes the typographic-vocabulary sweep so the entire app
+shares one label system.
+
+### TRACK 1 — ⌘K command palette (commit 72eefe8 + 5-line refinement acfe4a5)
+
+New `CommandPalette` component (~440 lines including comments) at
+`frontend/src/components/CommandPalette.tsx`. Glass-strong modal,
+top-anchored at 12vh so the user's eye stays on the input rather
+than chasing a centered surface. Backdrop fade (0.16s ease-out) +
+modal scale 0.96→1 with `springSoft`. Honors reduced-motion via
+the global `<MotionConfig reducedMotion="user">` — no manual
+branching needed.
+
+Sections (in registration order, preserved by Map insertion order):
+
+- **Search** — when the user has typed anything, the first command
+  is always `Search for "<query>"` with a `↵` kbd hint.
+- **Quick searches** — six curated presets: `mcp server`,
+  `react state management`, `rust http client`,
+  `local llm runtime`, `agentic framework`, `vector database`.
+  Click → run search + close palette.
+- **Filters** — six pin-to-source toggles (GitHub / HF / npm / PyPI
+  / crates.io / Docker Hub) plus "Clear source filter" when a
+  filter is active. Toggling on/off updates the page's
+  `activeSourceFilter`.
+- **Sort** — switches sort mode. The currently-active sort is
+  hidden from the list to keep the section compact.
+- **Bookmarks** — top 5 saved projects, opens each in a new tab.
+- **Actions** — show keyboard shortcuts (dispatches the existing
+  `SHORTCUT_HELP_EVENT`), clear search history, reset all source
+  toggles (only renders when a non-default source set is active).
+
+Keyboard contract:
+
+- ⌘K (mac) / Ctrl+K (other) — toggle open/closed (also hidden md+
+  kbd chip in the sticky header dispatches the open event).
+- ↑/↓ to navigate
+- Enter to fire the active row
+- **Enter with no matching command + non-empty query** falls back
+  to `onSearch(filter)` so the palette doesn't dead-end the user
+  when their typed text happens not to fuzzy-match any command.
+  Mirrors Raycast's first-class-action fallback.
+- Esc to close
+- Click on backdrop to close
+
+Substring fuzzy match across `section + label + subtitle` so
+"github" finds "Filter to GitHub" in the Filters section and
+"shortcut" finds "Show keyboard shortcuts" in Actions.
+
+Footer chrome: mono micro-row showing `↑↓ NAVIGATE · ↵ RUN` on the
+left and a tabular-nums command count on the right.
+
+Wire-up in `page.tsx`:
+
+- `<CommandPalette>` lives at the top of the layout (z-60) so it
+  sits above ShortcutHelpModal (z-50) and the sticky header (z-20).
+- A new `⌘ K` kbd chip in the sticky header (hidden below md so the
+  search bar gets the room) dispatches the open event.
+- `ShortcutHelpModal` SHORTCUTS array gets a new top entry
+  advertising `⌘K / Ctrl+K — Open the command palette`.
+
+### TRACK 2 — Final mono parity sweep (commit 97425e1)
+
+Every label-vocabulary surface left from Overhaul B picks up the
+mono uppercase register so the entire page reads in a single
+typographic system:
+
+- **SourceFilter sheet header** — was a one-off
+  `text-[10.5px] uppercase tracking-[0.14em]`. Now uses the shared
+  `.ts-section-header` so it rhymes with `// SOURCES N/M` headers
+  elsewhere on the page. Reset button also goes mono.
+- **SourceFilter category pills** — promoted from
+  `.pill text-[12px]` (sans) to `font-mono text-[10.5px] uppercase
+  tracking-[0.06em] font-semibold`. Reads as system-tag chips
+  instead of content pills, matching the SourceBadge vocabulary
+  exactly. Per-source colors carry through unchanged.
+- **DirectJumps registry pills** — both the inline mobile row and
+  the desktop card switch to mono uppercase. `npm`, `PYPI`,
+  `CRATES.IO`, etc. now read as platform identifiers.
+- **TrendingSection language tabs** — promoted from sans-medium
+  11.5px to `font-mono text-[10.5px] uppercase tracking-[0.10em]
+  font-semibold`. The underline-bar active treatment carries
+  through. Reads as ecosystem labels instead of menu copy.
+- **Empty state ("No matches")** — opens with a `// NO MATCHES`
+  ts-section-header above a refined 20px tracking-tight headline
+  ("Nothing to surface yet"). Description copy stays sans (content
+  tier). Same vocabulary as the rest of the page.
+- **NetworkErrorMessage** — `// NETWORK ERROR` header above a 20px
+  tracking-tight headline; the partial-failure tray's
+  `Didn't respond` label lifts into `.ts-section-header`.
+
+### TRACK 3 — SourceBadge audit decision: NO CHANGE
+
+The card's source badge (e.g. `[GITHUB]`, `[NPM]`) was already
+promoted to mono uppercase 10.5px font-weight 700 with 0.06em
+letter-spacing during Overhaul B's typography rationalization.
+The diamond ◆ indicator and per-source color tints are preserved.
+
+Re-audited under iter-17's brief — the existing treatment already
+hits the "kernel-level system tag" register the brief asks for.
+No further tightening would improve readability without sacrificing
+the per-source color signal. **Decision documented: no change.**
+
+### TRACK 4 — Stat strip iPhone-SE responsive (commit d15b5df)
+
+At 320px width the 2x2 stat strip's `Repos indexed` label was
+on the edge of wrapping (the 0.16em letter-spacing pushed it
+past the 108px-of-content cell width). Fix: trim the cell padding
+14/16 → 12/12 and the label tracking 0.16em → 0.10em on the narrow
+band, plus a hard `white-space: nowrap` with ellipsis fallback so
+any future longer label gracefully truncates rather than overflowing.
+At sm+ (640px) the cells restore the roomier 14/16 padding +
+0.16em tracking. 768px iPad portrait fits the 4-cell row
+comfortably; 1440px desktop unchanged.
+
+### TRACK 5 — Critical-eye final review (commit acfe4a5)
+
+After Tracks 1–4 a fresh read of `page.tsx` and `UnifiedProjectCard`
+flagged one quick-fix and three "ship as-is" calls:
+
+- **Fixed**: command palette Enter behavior when filter narrows past
+  every command. Now falls back to running the typed text as a
+  search instead of swallowing the keypress (commit acfe4a5).
+- **Ship as-is**: empty-state action pills (Drop filters / Search
+  all sources / Drop one term / Search GitHub directly) wrap to two
+  rows on iPhone-SE. The mobile-promoted gradient CTA already
+  carries the primary intent; the pill cluster below is supporting
+  affordance and doesn't need to be one line.
+- **Ship as-is**: stat strip values (`2.3M+`, `~80ms`) are still
+  static placeholders — flagged in Overhaul B's hand-off; needs a
+  real telemetry pipeline to make live.
+- **Ship as-is**: hero subtitle (`One query across N platforms…`)
+  uses `text-[15px] sm:text-[16px] text-slate-500 leading-relaxed`.
+  Considered tightening to a tracked sans, but the descriptive
+  copy register already reads correctly as content (not system).
+
+### Numbers
+
+- **Tests:** 76 → 76 (no test changes; existing 8 files / 76
+  assertions still cover everything that ships).
+- **TS:** `tsc --noEmit` clean.
+- **Build:** clean. Page bundle 90.2 → 93.1 kB (+2.9 kB across the
+  CommandPalette component + the mono parity sweep). `+0.6 kB` of
+  the delta is the palette's command-list reducer + grouping
+  logic; the rest is the JSX tree.
+
+### Files touched
+
+- `frontend/src/components/CommandPalette.tsx` (NEW — ~440 lines including docs)
+- `frontend/src/components/ShortcutHelpModal.tsx` (advertises new ⌘K binding)
+- `frontend/src/app/page.tsx` (CommandPalette wire-up + sticky-header ⌘K chip + empty-state mono header)
+- `frontend/src/components/SourceFilter.tsx` (header → ts-section-header, pills → mono uppercase)
+- `frontend/src/components/DirectJumps.tsx` (registry pills → mono uppercase, both layout variants)
+- `frontend/src/components/TrendingSection.tsx` (language tabs → mono uppercase)
+- `frontend/src/components/network/NetworkErrorMessage.tsx` (mono section header + 20px headline; tray header lifts into ts-section-header)
+- `frontend/src/app/globals.css` (.ts-stat-cell + .ts-stat-label responsive padding/tracking)
+- `docs/superpowers/overnight-polish-log.md` (this entry)
+
+### What landed but is flagged for the next iteration
+
+- **Bookmarks section in palette is shallow** — it shows the top 5
+  saved projects but offers no remove / re-order action. A natural
+  Iter-18 extension is a sub-mode (`> bookmarks` → narrow to bookmark
+  management) so the palette becomes a control surface for the saved
+  shelf, not just a launcher.
+- **Filter section caps at 6 sources** — picked the most-used six
+  (GitHub / HF / npm / PyPI / crates / Docker Hub). The other 22
+  sources are accessible via the SourceFilter sheet but not the
+  palette. If we want a "Filter to ANY source" command, the cleanest
+  add is a sub-search like `> sources stack` that narrows the
+  filter list itself.
+- **No mouse-only "open command palette" on hero** — the kbd chip
+  lives in the sticky header (which only renders post-search). On
+  the landing page the palette is keyboard-only via ⌘K. Considered
+  a hero floating affordance; decided against because the hero is
+  already dense and the keyboard shortcut is visually advertised
+  elsewhere (footer "press ?", stat strip + try-row register).
+- **Quick searches are static** — six hardcoded presets. A future
+  iteration could build them from the user's recent-history with a
+  curated fallback when the history is empty, but the static set is
+  intentionally on-brand (mcp / agentic / local-llm / vector-db) and
+  earns its weight as a discovery surface for first-time visitors.
+- **No "/" command-syntax inside palette** — Raycast supports nested
+  commands via `>` or `/`. Considered for sources/sort sub-navs but
+  scoped out for v1; a flat list is easier to reason about, and
+  fuzzy substring across section names already gets the user there
+  ("sort" matches the Sort section).
+- **Substring vs. true fuzzy** — substring is fast and predictable
+  for the current command vocabulary. If the list grows past ~50
+  items a `fzf`-style scoring would start to matter, but at ~20–25
+  visible commands substring is the right tool. Don't add a fuzzy
+  library before it's needed.
+- **Stat strip middle cells** still placeholders (`2.3M+`, `~80ms`).
+  Still a defer per Overhaul B's hand-off — needs telemetry plumbing.
+
+### What this iteration deliberately did NOT do
+
+- Touch motion / spring presets (per the brief)
+- Re-engineer adapters or search quality (per the brief)
+- Add new sources (per the brief)
+- Touch SourceBadge (audit said "leave it" — already at target)
+- Add a heavyweight command-palette library (cmdk / kbar) — the
+  ~440-line custom component is leaner and integrates directly with
+  the existing `ts-section-header`, motion springs, and bookmarks API
+- Re-flow the empty-state action pills onto a single row (would
+  require either truncating copy or introducing a horizontal scroll
+  treatment; the current 2-row wrap is acceptable)
