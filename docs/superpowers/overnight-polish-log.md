@@ -1761,3 +1761,269 @@ Strip visual weakness, strengthen what stays.
   is the right interim — next iteration's job to ship telemetry)
 - Refactor any component (purely visual + token + small JSX change
   surface area)
+
+---
+
+## Iteration 20 — Major Overhaul F (preview-panel cards)
+
+User feedback after Overhaul E: "Front page looks significantly more
+polished, more UI, more professional. Glass is looking very nice. I
+want the cards to look even nicer. I want it to be more visible. I
+want there to be significantly more data you can read and you can go
+into the projects. It'll give you an overview." Plus: "If you have any
+ideas that would make this even more professional or more meta, more
+over the top, please include them."
+
+Hero/landing/glass were declared good — this iteration was the cards
+only. The bar from the brief: a researcher should be able to evaluate a
+project from the card alone, without clicking through to GitHub.
+
+### TRACK 1 — Rich body + in-place expansion (commits 4e92371 + 3b273ec + 82f359e)
+
+The card layout grows from 7 sections to 8+ tiers, with the new
+expansion panel doubling the readable surface on demand.
+
+**Compact mode** (default, ~380px tall):
+- Top row — SourceBadge · PopularityBadge (now pulses) · Bookmark
+- Title row — Avatar (44px) + name + version chip
+- NEW: Mini-spec chip beneath title — single mono row of
+  `MIT · TYPESCRIPT · 41 contributors · 4y old`. Pulls license,
+  language, contributors, and age in that order. Caps at 4 segments;
+  sparse cards drop the chip entirely.
+- Description (3-line clamp)
+- NEW: MiniStatStrip — 5 mono cells between description and the
+  headline metric grid. Source-aware:
+    github  → CREATED / UPDATED / ISSUES / WATCH / FORKS
+    npm     → VERSION / PUBLISHED / WEEKLY / TOTAL
+    arxiv   → YEAR / CITATIONS / AUTHORS
+    HN/Red  → UPVOTES / COMMENTS / POSTED
+  Empty cells drop. Visual register: smaller than the metric grid
+  (10.5px mono labels, 12px tabular-nums values) — explicitly the
+  "second tier" of the card so the metric grid stays the headline.
+- Headline metric grid (existing, 3 cells)
+- Topics (up to 4)
+- Footer row — activity dot + relative time | language pill +
+  license pill (now tone-tinted with an icon prefix)
+- Action row — primary CTA + ghost copy + NEW expand toggle
+
+**Expanded mode** (in-place, height: auto via framer-motion):
+- ExpandedDetail panel renders below the action row. AnimatePresence
+  unmounts on collapse so the DOM stays light. Reduced-motion users
+  get an opacity-only fade.
+- Reveals up to 8 sections, each with a mono `// SECTION_NAME` header
+  in indigo-strong, separated by 1px indigo-soft dividers:
+    1. README excerpt — lazy-fetched on first open via lib/readme.ts
+       (github + codeberg). Plain-text, 600-char cap. Failures
+       silently hide the section.
+    2. Language breakdown — LanguageBar.tsx, a 6px stacked bar over
+       the project's languageBreakdown map. Falls back to a
+       single-segment bar if only `language` (string) is set.
+    3. Recent activity — Sparkline.tsx, 88x22 inline-SVG bars.
+       Reserved slot; currently no adapter ships per-week commit
+       counts so it stays hidden.
+    4. Recent releases — last 3 releases (version + relative date
+       + optional notes link).
+    5. Maintainer — avatar + author name (bio reserved).
+    6. Top comments — for HN/Reddit/SO threads when populated.
+       Card-style with left-edge accent rule.
+    7. Related sources — chips linking the same project on other
+       platforms via the existing relatedSources field.
+    8. Quick-action row (Track 5) — mono ghost buttons:
+         github → ISSUES + STAR HISTORY + HOMEPAGE
+         npm    → REGISTRY + DOCS
+         arxiv  → CODE if homepage set
+
+UnifiedProject gained 5 optional fields for the new sections:
+`releases`, `languageBreakdown`, `readmeExcerpt`, `topComments`,
+`subscribersCount`. Adapters fill nothing new yet — the card hides
+empty sections rather than padding with placeholders. Future
+iterations can light up the slots without changing the card.
+
+### TRACK 2 — Lazy README fetch on expand (commit 3b273ec)
+
+ExpandedDetail mounts a `useEffect` that fires `fetchReadmeExcerpt`
+exactly once when:
+  - `open` flips to true
+  - `readmeExcerpt` is empty
+  - source is github or codeberg (`supportsReadme()`)
+The existing lib/readme.ts already strips markdown to plain text and
+caches per `source:fullName` key, so re-opening a card never re-hits
+the network. Failures (CORS, 404, timeout) silently hide the section
+— no error UI. The "Fetching README…" caption appears for the brief
+window between open and resolve.
+
+### TRACK 3 — Visual polish on expanded state (commit 82f359e)
+
+`.ts-card.is-expanded` gains a deeper indigo halo + 1px stronger
+ring so an open card visibly stands apart from collapsed siblings in
+a row. Expand toggle button is mono ghost-style, paired with a
+chevron that rotates 180° on toggle (.25s cubic-bezier).
+
+Inside the panel:
+- Sections divided by 1px indigo-100 rules, last child suppresses.
+- Section headers `// SECTION_NAME` 10.5px mono, tracked 0.14em,
+  indigo-strong color — pairs visually with the metric-grid labels.
+- Numbers in tabular-nums mono; release versions in indigo-strong
+  mono.
+- Comment cards have a 2px indigo accent rule on the left + a soft
+  rgba(99,102,241,0.04) background tint, rounded right corners only.
+  Reads as a "quoted" block, not a flat panel.
+
+Height transitions live in framer-motion (0.32s cubic-bezier on
+`height: auto` + `opacity`); the layout="position" on AnimatedCard
+already animates the grid reflow when the card grows so neighbors
+slide rather than snap.
+
+### TRACK 4 — Over-the-top touches (commit 82f359e)
+
+Picked 4 of the 8 ideas from the brief — quality over quantity.
+
+1. **Identity ribbon** — IdentityRibbon.tsx, a 3px source-tinted
+   vertical bar on the LEFT edge of every card. Color palette mirrors
+   the SourceBadge so the two reinforce each other; covers all 28
+   sources (github = slate, npm = red, arxiv = red, hn = orange,
+   reddit = orange, etc.). At rest opacity 0.55; hover lifts to 1.0
+   so the ribbon "wakes up" with the card. Pure decorative, aria-
+   hidden, pointer-events none.
+
+2. **Pulse on hot/trending popularity badge** — `.ts-card[data-pop=
+   "hot"|"trending"] .ts-pop-badge` runs a 2.6s box-shadow pulse
+   (amber for hot, indigo for trending). Slow, premium breath that
+   reads as "this is the rocket" without animating the layout.
+   Reduced-motion silences via the @media block.
+
+3. **Card scan line on hover** — `.ts-scanline`, a 1px gradient that
+   sweeps top-to-bottom on first hover (1.4s cubic-bezier), then
+   fades. Reads as "data scanning" / live-system feel. Implementation
+   is a `<span>` absolute-positioned with a CSS keyframe; only fires
+   on `(hover: hover)` media so touch devices don't trigger it from
+   sticky :hover. Reduced-motion silences.
+
+4. **License icon + tone** — replaces the text-only license pill
+   with a small icon prefix (⚖ permissive / 🔒 copyleft / ○ other)
+   + tone-keyed background tint (emerald / amber / slate). Drives
+   off the new `licenseTone()` helper that classifies MIT/Apache/
+   BSD/ISC as permissive, GPL/AGPL/LGPL/MPL as copyleft, everything
+   else as other. The pill keeps its license name; the icon is a
+   visual prefix. Title attribute always shows the full license
+   string for tooltip access.
+
+5. **Number presentation** — popularity-badge title now appends the
+   precise count: `1.2k (1,231) stars in under a month`. Drives off
+   the new `formatCountFull()` helper which wraps `toLocaleString`.
+
+Skipped: mini activity sparkline rendered fake (would require fake
+data, brief said "do not make up data"); quick actions inside the
+compact action row (would push the row over 4 elements and crowd the
+layout — moved them to the expand panel instead, where they're more
+discoverable).
+
+### TRACK 5 — Action / link improvements (commit 3b273ec)
+
+CardActions gains an opt-in `expanded` + `onToggleExpand` pair that
+adds a "More / Less" mono toggle button on the right edge of the
+row. The existing primary CTA + ghost copy buttons are unchanged.
+Existing CardActions tests continue to pass — toggle is opt-in.
+
+quickActionsForProject() generates the source-specific quick-action
+list rendered inside the expand panel. The primary "Open" button
+URLs were verified — no adapter changes needed; every adapter
+already sets `project.url` to the right deep-link.
+
+### Numbers
+
+- **Tests:** 76 → 76 (no test count change; new helpers + components
+  pass typecheck cleanly).
+- **TypeScript:** `tsc --noEmit` clean.
+- **Build:** clean. Page bundle 93.5 → 96.5 kB (+3.0 kB across the
+  three commits — mostly CSS for the new sub-system).
+- **Files added:** 5 (ExpandedDetail, IdentityRibbon, LanguageBar,
+  MiniStatStrip, Sparkline).
+- **Files modified:** 5 (UnifiedProjectCard, CardActions, helpers,
+  types, globals.css).
+
+### Files touched
+
+- `frontend/src/components/UnifiedProjectCard.tsx`
+- `frontend/src/components/card/CardActions.tsx`
+- `frontend/src/components/card/ExpandedDetail.tsx` (new)
+- `frontend/src/components/card/IdentityRibbon.tsx` (new)
+- `frontend/src/components/card/LanguageBar.tsx` (new)
+- `frontend/src/components/card/MiniStatStrip.tsx` (new)
+- `frontend/src/components/card/Sparkline.tsx` (new)
+- `frontend/src/components/card/helpers.ts`
+- `frontend/src/lib/sources/types.ts`
+- `frontend/src/app/globals.css`
+
+### Hand-off for the next iteration
+
+- **Adapter enrichment for the new optional fields** — the card has
+  the slots (releases, languageBreakdown, topComments, contributors,
+  commitsLastMonth) but no adapter fills them yet. Highest-leverage
+  next moves:
+    * GitHub `/repos/{owner}/{repo}/languages` for languageBreakdown
+      — could fire on expand alongside the README fetch (single
+      extra rate-limited call per opened card). Cache shape mirrors
+      lib/readme.ts.
+    * GitHub `/repos/{owner}/{repo}/releases` for the releases
+      array. Same lazy pattern.
+    * HN/Reddit/SO topComments — would need a per-thread API call.
+      Consider making it part of the result-fetch pipeline rather
+      than lazy on expand, since threads with no comments are less
+      interesting and the count is already on the metric strip.
+- **Expanded card width** — the brief offered "expanded card spans
+  full row width if possible." This iteration kept the expanded card
+  in its original column (single-column expansion). The grid reflow
+  animates smoothly via existing AnimatedCard layout="position", but
+  for very long READMEs the panel can get tall (~500-600px content).
+  If this becomes an issue, the spans-row approach is straightforward:
+  add `grid-column: 1 / -1` when `is-expanded` is set on the wrapper.
+  Deferred — start with the simpler in-place expansion and only widen
+  if real usage shows it's needed.
+- **Sparkline reserved slot** — Sparkline.tsx + the activity section
+  exist but stay hidden until an adapter ships per-window count data.
+  GitHub's `/repos/{owner}/{repo}/stats/commit_activity` endpoint
+  returns 52 weeks of weekly counts (the perfect input shape) but
+  it's slow on cold cache (the API computes it in the background).
+  Worth wiring once we have a pre-warming strategy.
+- **License icon character escapes** — the 🔒 emoji renders as a full
+  emoji in Chrome/Safari/Firefox. If the license pill ever gets very
+  small (< 100px wide), the emoji could push the text. The Tailwind/
+  Radix Lucide icons are already in the bundle — could swap to
+  `<Scale className="w-3 h-3" />` and `<Lock />` for a tighter visual
+  fit. Left as text glyph for now to avoid bundle growth.
+- **Pulse animation accumulation** — the pop-badge pulse uses
+  `box-shadow` which composites cleanly, but a row of 5+ hot cards
+  would have 5 simultaneous pulse animations running. At 2.6s they're
+  out of phase enough to read as alive rather than uniform, but on
+  low-end devices this could become noticeable. Single-card observed
+  fine; check the long-tail when a hot-trending result page arrives.
+- **Scan-line height** — the keyframe ends at translateY(380px),
+  matching the collapsed card min-height. On expanded cards (~640px+),
+  the scan tapers before reaching the bottom. The effect still reads
+  correctly because the opacity fades at 85%, but if expanded cards
+  start being the dominant state, switch to a CSS-variable-driven
+  end position (`--ts-scan-end: var(--card-height)`) and have the
+  card publish its measured height.
+- **Mini-spec chip overflow** — the spec line ellipsizes on overflow
+  but on a narrow card with all 4 segments and a long license name
+  ("CC-BY-NC-SA-4.0"), only the first 1-2 segments may show. The
+  ordering (license → language → contributors → age) puts the most
+  important fact first, so this is acceptable. If users complain
+  about contributors being hidden, swap order.
+
+### What this iteration deliberately did NOT do
+
+- Touch hero / landing / glass / sticky header (user explicitly said
+  these are good).
+- Touch search ranking, BM25, intent detection, or query parsing.
+- Add new sources or modify any source adapter (the new optional
+  fields are intentionally empty on first ship — adapters fill them
+  in future iterations).
+- Add the `git clone` quick action to the compact action row (would
+  duplicate the existing ghost copy button on github cards).
+- Make up data for the sparkline / contributors count / releases.
+- Refactor the command palette, search bar, or sticky header.
+- Add markdown rendering to the README excerpt — plain text is
+  enough for "is this project worth digging into" and avoids any
+  XSS surface from third-party README content.
