@@ -15,13 +15,12 @@ export interface CardActionsProps {
    */
   openLabel?: string;
   /**
-   * Iter-20 / Overhaul F — expand-toggle wiring. When `onToggleExpand`
-   * is provided, the action row gains a small chevron control on the
-   * far right that flips the expanded state on the parent card. The
-   * `expanded` flag drives the chevron orientation + aria-expanded.
+   * Iter-21 / Overhaul G — open the detail drawer (right-side slide-in
+   * panel). Replaces the previous in-place expand toggle. When provided,
+   * the action row gains a small mono "Details ↗" button that pops the
+   * drawer; when omitted the row reads as before (no Details button).
    */
-  expanded?: boolean;
-  onToggleExpand?: () => void;
+  onOpenDetails?: () => void;
 }
 
 export function CardActions({
@@ -29,8 +28,7 @@ export function CardActions({
   copyItems,
   onCopy,
   openLabel = "Open",
-  expanded,
-  onToggleExpand,
+  onOpenDetails,
 }: CardActionsProps) {
   return (
     <div className="ts-actions">
@@ -49,19 +47,15 @@ export function CardActions({
           ⎘ {item.label}
         </button>
       ))}
-      {onToggleExpand && (
+      {onOpenDetails && (
         <button
           type="button"
-          className={`btn btn-ghost ts-expand-toggle${expanded ? " is-expanded" : ""}`}
-          onClick={onToggleExpand}
-          aria-expanded={expanded}
-          aria-label={expanded ? "Collapse details" : "Show more details"}
-          title={expanded ? "Collapse" : "Show more"}
+          className="btn btn-ghost ts-details-btn"
+          onClick={onOpenDetails}
+          aria-label="Show details"
+          title="Show full details"
         >
-          <span className="ts-expand-toggle-text">{expanded ? "Less" : "More"}</span>
-          <span className="ts-expand-toggle-chev" aria-hidden>
-            ▾
-          </span>
+          Details ↗
         </button>
       )}
     </div>
