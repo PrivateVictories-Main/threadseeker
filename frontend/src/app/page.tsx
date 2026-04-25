@@ -1138,7 +1138,11 @@ export default function Home() {
                     onClear={handleClear}
                   />
                 ) : hasSearched ? (
-                  // Empty state — centered, friendly.
+                  // Empty state — centered, friendly. Picks up the same
+                  // typographic register as the rest of the page: a mono
+                  // section header floats above the headline so it reads
+                  // as a system-state announcement instead of a generic
+                  // hero. Description copy stays sans (content tier).
                   <div className="flex flex-col items-center text-center py-24">
                     <div
                       className="w-16 h-16 rounded-full glass-strong flex items-center justify-center mb-5"
@@ -1146,10 +1150,13 @@ export default function Home() {
                     >
                       <SearchX className="w-7 h-7 text-indigo-400" />
                     </div>
-                    <p className="text-lg font-semibold text-slate-800">
-                      No results found
+                    <span className="ts-section-header mb-1.5">
+                      {"// No matches"}
+                    </span>
+                    <p className="text-[20px] font-semibold text-slate-800 tracking-tight">
+                      Nothing to surface yet
                     </p>
-                    <p className="text-[13.5px] text-slate-500 mt-1.5 max-w-sm">
+                    <p className="text-[13.5px] text-slate-500 mt-2 max-w-sm leading-relaxed">
                       Try broadening your query, removing filters, or enabling
                       more sources.
                     </p>

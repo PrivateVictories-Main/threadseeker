@@ -175,7 +175,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
               role="tab"
               aria-selected={active}
               onClick={() => setLang(l.value)}
-              className={`relative text-[11.5px] font-medium px-3 py-1.5 transition-colors ${
+              className={`relative font-mono text-[10.5px] uppercase tracking-[0.10em] font-semibold px-3 py-1.5 transition-colors ${
                 active
                   ? "text-indigo-700"
                   : "text-slate-500 hover:text-slate-800"

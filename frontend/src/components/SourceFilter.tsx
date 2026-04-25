@@ -45,14 +45,22 @@ export function SourceFilter({
           exit="exit"
         >
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-[10.5px] uppercase tracking-[0.14em] font-semibold text-slate-400">
-              Sources · {selectedSources.length}/{allSources.length}
+            {/* Header now uses the shared mono section-header vocabulary
+                instead of its previous one-off sans-uppercase weight, so
+                the filter sheet's title rhymes with the rest of the app's
+                "// LABEL" headers. The count subject is wrapped in
+                <strong> to pick up the indigo-accent ts-section-header
+                strong rule. */}
+            <h4 className="ts-section-header font-mono">
+              {"// Sources "}
+              <strong>{selectedSources.length}</strong>
+              {`/${allSources.length}`}
             </h4>
             {onClear && (
               <button
                 onClick={onClear}
                 disabled={!canClear}
-                className="text-[11px] font-medium text-slate-400 hover:text-indigo-600 disabled:opacity-0 disabled:pointer-events-none transition-colors"
+                className="font-mono text-[10.5px] uppercase tracking-[0.10em] font-semibold text-slate-400 hover:text-indigo-600 disabled:opacity-0 disabled:pointer-events-none transition-colors"
                 aria-label="Reset to all sources"
               >
                 Reset
@@ -170,7 +178,7 @@ export function SourceFilter({
                           key={source}
                           onClick={() => onToggle(source)}
                           data-active={String(isActive)}
-                          className="filter-pill pill text-[12px] flex items-center gap-1.5"
+                          className="filter-pill pill flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.06em] font-semibold"
                           title={tooltip}
                           aria-label={tooltip}
                         >

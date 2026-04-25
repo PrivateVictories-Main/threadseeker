@@ -64,6 +64,11 @@ export function NetworkErrorMessage({
     </>
   );
   return (
+    // Iter-17 mono parity sweep — the network-failure card now opens
+    // with a "// NETWORK ERROR" mono section header so it reads in the
+    // same typographic vocabulary as the rest of the page. Title bumps
+    // from text-lg sans to a 20px tracking-tight headline that matches
+    // the empty-state's anchor.
     <div className="flex flex-col items-center text-center py-24">
       <div
         className="w-16 h-16 rounded-full glass-strong flex items-center justify-center mb-5"
@@ -71,8 +76,13 @@ export function NetworkErrorMessage({
       >
         <Icon className="w-7 h-7 text-indigo-400" />
       </div>
-      <p className="text-lg font-semibold text-slate-800">{title}</p>
-      <p className="text-[13.5px] text-slate-500 mt-1.5 max-w-sm">{body}</p>
+      <span className="ts-section-header mb-1.5">{"// Network error"}</span>
+      <p className="text-[20px] font-semibold text-slate-800 tracking-tight">
+        {title}
+      </p>
+      <p className="text-[13.5px] text-slate-500 mt-2 max-w-sm leading-relaxed">
+        {body}
+      </p>
       <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2">
         <button
           onClick={onRetry}
@@ -140,8 +150,8 @@ export function NetworkErrorTray({
         // - On `sm:+` we drop the clamp and restore the original
         //   200px floor since narrow-viewport pressure is gone.
         <div className="absolute left-0 top-full mt-1.5 z-20 glass-strong rounded-xl px-3 py-2.5 min-w-0 max-w-[calc(100vw-32px)] sm:min-w-[200px] sm:max-w-none shadow-lg">
-          <p className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-slate-400 mb-1.5">
-            Didn&apos;t respond
+          <p className="ts-section-header mb-1.5">
+            {"// Didn't respond"}
           </p>
           <ul className="space-y-0.5">
             {failedSources.map((s) => {
