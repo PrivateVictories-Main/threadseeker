@@ -1120,22 +1120,41 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+/* Iter-17 — tighten cell padding + label tracking on iPhone SE
+   (320px) so the 2x2 grid keeps every label on a single line.
+   `Repos indexed` was the worst offender at 0.16em tracking; the
+   narrower-tracking + reduced horizontal padding gives it the
+   ~6 extra px it needs to stay one line. Desktop returns to the
+   roomier 14px/16px padding + 0.16em tracking. */
 .ts-stat-cell {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 14px 16px;
+  padding: 12px 12px;
   background: rgba(255, 255, 255, 0.62);
   text-align: left;
+}
+@media (min-width: 640px) {
+  .ts-stat-cell {
+    padding: 14px 16px;
+  }
 }
 .ts-stat-label {
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.10em;
   color: var(--ts-text-faint);
   line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (min-width: 640px) {
+  .ts-stat-label {
+    letter-spacing: 0.16em;
+  }
 }
 .ts-stat-value {
   font-size: 18px;
