@@ -649,7 +649,7 @@ export default function Home() {
                     Find what&apos;s worth{" "}
                     <span className="ts-hero-accent">building on.</span>
                   </h1>
-                  <p className="mt-6 text-[15px] sm:text-[16px] text-slate-500 max-w-xl mx-auto leading-relaxed">
+                  <p className="mt-6 text-[15px] sm:text-[16px] text-slate-600 max-w-xl mx-auto leading-relaxed">
                     One query across {activeSources} platforms — repositories,
                     packages, models, and community threads. No accounts.
                   </p>
@@ -668,27 +668,29 @@ export default function Home() {
                   }}
                 />
 
-                {/* Stat strip — four monospace cells. Decorative trust
-                    signals at the top of the funnel: how many sources we
-                    cover, how big the index is, what to expect on speed,
-                    and the no-account promise. The middle two values are
-                    static placeholders — see overhaul-log iter 16. */}
+                {/* Stat strip — four monospace cells. Iter-19 — replaced
+                    the two fake metric placeholders ("2.3M+", "~80ms")
+                    with honest text values. Fake numbers on a polished
+                    app read worse than honest copy. The four cells now
+                    each carry a real, verifiable promise: 28 sources,
+                    no paid APIs (we only use free tiers), no account
+                    requirement, fully local (no telemetry). */}
                 <div className="ts-stat-strip" aria-label="ThreadSeeker stats">
                   <div className="ts-stat-cell">
                     <span className="ts-stat-label">Sources</span>
                     <span className="ts-stat-value">{ALL_SOURCES.length}</span>
                   </div>
                   <div className="ts-stat-cell">
-                    <span className="ts-stat-label">Repos indexed</span>
-                    <span className="ts-stat-value">2.3M+</span>
-                  </div>
-                  <div className="ts-stat-cell">
-                    <span className="ts-stat-label">Avg search</span>
-                    <span className="ts-stat-value">~80ms</span>
+                    <span className="ts-stat-label">Paid APIs</span>
+                    <span className="ts-stat-value">0</span>
                   </div>
                   <div className="ts-stat-cell">
                     <span className="ts-stat-label">Accounts</span>
                     <span className="ts-stat-value">0</span>
+                  </div>
+                  <div className="ts-stat-cell">
+                    <span className="ts-stat-label">Tracking</span>
+                    <span className="ts-stat-value">None</span>
                   </div>
                 </div>
 
@@ -764,7 +766,7 @@ export default function Home() {
                           setHistory([]);
                           saveHistory([]);
                         }}
-                        className="ml-1 inline-flex items-center justify-center w-8 h-8 sm:w-auto sm:h-auto sm:p-0 -my-1 text-slate-300 hover:text-slate-600 transition-colors rounded-full"
+                        className="ml-1 inline-flex items-center justify-center w-8 h-8 sm:w-auto sm:h-auto sm:p-0 -my-1 text-slate-400 hover:text-slate-700 transition-colors rounded-full"
                         title="Clear history"
                         aria-label="Clear search history"
                       >
@@ -869,7 +871,7 @@ export default function Home() {
                     <span className="text-slate-400">results</span>
                     {isLoading && pendingSources > 0 && (
                       <>
-                        <span className="text-slate-300">·</span>
+                        <span className="text-slate-400">·</span>
                         <span className="inline-flex items-center gap-1.5 text-indigo-600">
                           <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" aria-hidden />
                           {pendingSources} loading
@@ -878,7 +880,7 @@ export default function Home() {
                     )}
                     {!isLoading && searchDurationMs !== null && (
                       <>
-                        <span className="text-slate-300">·</span>
+                        <span className="text-slate-400">·</span>
                         <span className="text-slate-500">
                           {searchDurationMs < 1000
                             ? `${searchDurationMs}ms`
@@ -1017,7 +1019,7 @@ export default function Home() {
                         </span>
                         {activeSourceFilter && (
                           <span>
-                            <span className="text-slate-300 mx-1.5">·</span>
+                            <span className="text-slate-400 mx-1.5">·</span>
                             <span className="uppercase text-[11px] tracking-[0.06em] text-slate-400">
                               from
                             </span>{" "}
@@ -1028,7 +1030,7 @@ export default function Home() {
                         )}
                         {parsedQuery.freeText && (
                           <span>
-                            <span className="text-slate-300 mx-1.5">·</span>
+                            <span className="text-slate-400 mx-1.5">·</span>
                             <span className="uppercase text-[11px] tracking-[0.06em] text-slate-400">
                               for
                             </span>{" "}
@@ -1039,7 +1041,7 @@ export default function Home() {
                         )}
                         {opSummary && (
                           <span>
-                            <span className="text-slate-300 mx-1.5">·</span>
+                            <span className="text-slate-400 mx-1.5">·</span>
                             <span className="text-slate-600 text-[11px] normal-case">
                               {opSummary}
                             </span>
@@ -1341,20 +1343,20 @@ export default function Home() {
         </AnimatePresence>
       </main>
 
-      <footer className="mt-auto border-t border-indigo-100/70">
+      <footer className="mt-auto border-t border-indigo-200/60">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6 text-[12px] text-slate-500">
           <div className="leading-relaxed flex items-center gap-3 flex-wrap">
             <BrandMark variant="inline" />
-            <span className="text-slate-300">·</span>
+            <span className="text-slate-400">·</span>
             <span className="font-mono text-[11px] uppercase tracking-[0.08em] tabular-nums">
               <span className="text-slate-700 font-semibold">{ALL_SOURCES.length}</span>{" "}
               <span className="text-slate-400">platforms</span>
             </span>
-            <span className="text-slate-300">·</span>
+            <span className="text-slate-400">·</span>
             <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-slate-400">
               No paid APIs
             </span>
-            <span className="text-slate-300">·</span>
+            <span className="text-slate-400">·</span>
             <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-slate-400">
               No tracking
             </span>
@@ -1369,7 +1371,7 @@ export default function Home() {
               <Github className="w-3.5 h-3.5" aria-hidden />
               GitHub
             </a>
-            <span className="text-slate-300 normal-case">·</span>
+            <span className="text-slate-400 normal-case">·</span>
             <span className="inline-flex items-center gap-1.5 normal-case text-slate-500 lowercase">
               <span className="uppercase">Press</span>
               <kbd className="px-1.5 py-0.5 rounded border border-indigo-200 bg-white text-slate-700 font-mono text-[11px] uppercase">

@@ -1387,12 +1387,22 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   }
 }
 .ts-stat-value {
+  /* Iter-19 — 18 → 20 on desktop, mono for stronger system-readout feel.
+     User feedback: "values feel small". Sans-serif at 18px read closer
+     to body text than to a metric; mono at 20px reads as a confident
+     dev-tool readout pairing properly with the small mono labels above. */
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 18px;
   font-weight: 600;
   color: var(--ts-text);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
+}
+@media (min-width: 640px) {
+  .ts-stat-value {
+    font-size: 20px;
+  }
 }
 
 /* Mono section header — replaces plain "TRENDING" / "SAVED" sans labels.

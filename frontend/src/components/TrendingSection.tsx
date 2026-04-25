@@ -291,7 +291,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
                     onQueryClick(r.name);
                   }
                 }}
-                className="group flex items-center gap-2.5 rounded-xl bg-white/60 hover:bg-white border border-transparent hover:border-indigo-200 px-2.5 py-2 transition-colors"
+                className="group flex items-center gap-2.5 rounded-xl bg-white/70 hover:bg-white border border-indigo-100/70 hover:border-indigo-300 px-2.5 py-2 transition-colors hover:shadow-sm"
                 title={r.description ?? r.fullName}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}

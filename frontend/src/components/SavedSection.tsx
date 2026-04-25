@@ -75,7 +75,7 @@ export function SavedSection() {
           return (
             <div
               key={b.id}
-              className="group relative flex items-center gap-2 rounded-xl border border-indigo-100 bg-white/75 hover:bg-white hover:border-indigo-300 hover:shadow-sm px-2.5 py-2 transition-all"
+              className="group relative flex items-center gap-2 rounded-xl border border-indigo-200/70 bg-white/80 hover:bg-white hover:border-indigo-400 hover:shadow-md px-2.5 py-2 transition-all"
             >
               <a
                 href={b.url}
