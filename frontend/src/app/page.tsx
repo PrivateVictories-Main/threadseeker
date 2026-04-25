@@ -947,9 +947,26 @@ export default function Home() {
               <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 w-full">
                 {isLoading && resultCount === 0 ? (
                   <div className="space-y-5">
-                    <div className="flex items-center gap-2 font-mono text-[11.5px] uppercase tracking-[0.08em] text-slate-500 tabular-nums">
-                      <span>
-                        Searching <span className="text-slate-700 font-semibold">{activeSources}</span> sources
+                    {/* Iter-19 / Track 1 — "Searching N of M sources…"
+                        readout with animated dots. The previous caption
+                        only printed the total count, leaving the user
+                        without progressive evidence that sources were
+                        landing. Now shows landed/total live so even
+                        before any results arrive the page reads as
+                        active. */}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11.5px] uppercase tracking-[0.08em] text-slate-500 tabular-nums">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" aria-hidden />
+                        Searching{" "}
+                        <span className="text-indigo-700 font-semibold">
+                          {activeSources - pendingSources}
+                        </span>{" "}
+                        of{" "}
+                        <span className="text-slate-700 font-semibold">
+                          {activeSources}
+                        </span>{" "}
+                        sources
+                        <span className="ts-loading-dots" aria-hidden />
                       </span>
                       <span className="inline-flex items-center gap-1.5 text-slate-400">
                         {pendingSourceList.slice(0, 10).map((src) => {

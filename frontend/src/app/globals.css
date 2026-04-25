@@ -985,13 +985,20 @@ button.topic-chip-interactive {
   box-shadow: var(--ts-shadow-hover);
 }
 
-/* Skeleton — slower, softer shimmer; shape mirrors real card layout. */
+/* Skeleton — slower, softer shimmer; shape mirrors real card layout.
+   Iter-19 / Track 1 — shimmer tint bumped from near-white to a clearly
+   visible indigo tint. Previous gradient
+   (rgba(220,220,230,0.4) → rgba(240,240,250,0.85)) read as nearly
+   invisible against the glass card surface — user reported "things
+   aren't showing as soon as you go in." New gradient sits between
+   indigo-100 and indigo-50 so each shimmer band visibly moves across
+   the placeholder against any glass surface. */
 .skeleton .shimmer {
   background: linear-gradient(
     90deg,
-    rgba(220, 220, 230, 0.4),
-    rgba(240, 240, 250, 0.85),
-    rgba(220, 220, 230, 0.4)
+    rgba(99, 102, 241, 0.10),
+    rgba(99, 102, 241, 0.22),
+    rgba(99, 102, 241, 0.10)
   );
   background-size: 220% 100%;
   animation: shimmer 2.2s linear infinite;
