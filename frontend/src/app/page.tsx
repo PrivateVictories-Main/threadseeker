@@ -802,6 +802,13 @@ export default function Home() {
                 style={{ ["--ts-sticky-shadow-opacity" as string]: stickyShadowOpacity }}
               >
                 <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
+                  {/* Brand mark — anchors the left edge of the sticky
+                      command bar. Inline variant drops the version chip
+                      so the bar doesn't feel chrome-heavy. Hidden below
+                      sm so the search has room on phones. */}
+                  <div className="hidden sm:flex items-center flex-shrink-0">
+                    <BrandMark variant="inline" />
+                  </div>
                   <div className="flex-1 min-w-0 sm:max-w-xl">
                     <SearchBar
                       onSearch={handleSearch}
@@ -816,47 +823,69 @@ export default function Home() {
                       }}
                     />
                   </div>
-                  <div className="hidden sm:flex items-center gap-3 text-[12.5px] text-slate-600 tabular-nums">
-                    <span>
+                  {/* Stats cluster — all monospace with `·` separators
+                      so it reads as a single technical readout instead
+                      of a sans-serif word salad. Tabular-nums everywhere
+                      that produces a number. */}
+                  <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] text-slate-500 tabular-nums uppercase tracking-[0.06em]">
+                    <span className="text-slate-700 font-semibold">
                       <CountUp value={view.length} />
-                      <span className="text-slate-500"> results</span>
                     </span>
+                    <span className="text-slate-400">results</span>
                     {isLoading && pendingSources > 0 && (
-                      <span className="inline-flex items-center gap-1.5 text-slate-500">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                        {pendingSources} loading
-                      </span>
+                      <>
+                        <span className="text-slate-300">·</span>
+                        <span className="inline-flex items-center gap-1.5 text-indigo-600">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" aria-hidden />
+                          {pendingSources} loading
+                        </span>
+                      </>
                     )}
                     {!isLoading && searchDurationMs !== null && (
-                      // Sub-second feels clinical with .toFixed(2) ("0.42s"
-                      // reads as ".42s"); >=1s is the "slow enough to
-                      // notice" band where one decimal is enough; >=2s the
-                      // user is already counting in their head, no decimal
-                      // needed. ms-only branch (<1000ms) drops the fraction
-                      // because at that scale the noise of the 100ms
-                      // setSearchDurationMs round-trip already wipes
-                      // sub-decimal precision.
-                      <span className="text-slate-500">
-                        {searchDurationMs < 1000
-                          ? `${searchDurationMs}ms`
-                          : searchDurationMs < 2000
-                            ? `${(searchDurationMs / 1000).toFixed(1)}s`
-                            : `${Math.round(searchDurationMs / 1000)}s`}
-                      </span>
+                      <>
+                        <span className="text-slate-300">·</span>
+                        <span className="text-slate-500">
+                          {searchDurationMs < 1000
+                            ? `${searchDurationMs}ms`
+                            : searchDurationMs < 2000
+                              ? `${(searchDurationMs / 1000).toFixed(1)}s`
+                              : `${Math.round(searchDurationMs / 1000)}s`}
+                        </span>
+                      </>
                     )}
                   </div>
                   <button
                     onClick={handleClear}
-                    className="text-[12.5px] text-slate-500 hover:text-indigo-700 font-medium transition-colors px-2 py-1.5 rounded-md hover:bg-white/60 flex-shrink-0"
+                    className="font-mono text-[11px] uppercase tracking-[0.08em] text-slate-500 hover:text-indigo-700 transition-colors px-2 py-1.5 rounded-md hover:bg-white/60 flex-shrink-0"
                     title="Clear search and return home"
                   >
                     Clear
                   </button>
                 </div>
-                {/* Thin progress bar along the bottom edge of the header */}
+                {/* Sticky progress bar.
+                    - When we have a real progress signal (pendingSources
+                      strictly between 0 and total) we render the
+                      determinate bar with the existing width transition.
+                    - When we're at the very start (every source still
+                      pending) or end (last source landed but state hasn't
+                      cleared yet) we swap to an indeterminate left-to-right
+                      shuttle so the user sees motion the whole time the
+                      sticky bar reads "loading" rather than a dead 4%
+                      stub. */}
                 {isLoading && (
-                  <div className="ts-sticky-progress" aria-hidden>
-                    <span style={{ width: `${progressPct}%` }} />
+                  <div
+                    className={`ts-sticky-progress${
+                      progressPct > 4 && progressPct < 100 ? "" : " indeterminate"
+                    }`}
+                    aria-hidden
+                  >
+                    <span
+                      style={
+                        progressPct > 4 && progressPct < 100
+                          ? { width: `${progressPct}%` }
+                          : undefined
+                      }
+                    />
                   </div>
                 )}
               </motion.header>
