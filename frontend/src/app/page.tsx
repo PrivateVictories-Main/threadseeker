@@ -201,6 +201,18 @@ export default function Home() {
     [0, 24, 120],
     [0, 0.18, 1],
   );
+  // Iter-19 / Track 4 — sticky header scroll-blur intensifies past 60px.
+  // At top of page the header shares the page's frosted-glass register;
+  // once the user scrolls into content the blur ramps to read as a real
+  // "this surface is in front of scrolling content" cue. Driven by
+  // useTransform so it's all rAF — no React re-renders. Returns a
+  // string with "px" suffix so it composes directly into the CSS
+  // backdrop-filter via the --ts-sticky-blur custom property.
+  const stickyBlurPx = useTransform(
+    scrollY,
+    [0, 60, 200],
+    ["24px", "32px", "40px"],
+  );
 
   // Mode = hero (landing) vs results. Once the user has searched, we never go
   // back to hero until they explicitly clear — that keeps the transition from
@@ -827,7 +839,14 @@ export default function Home() {
               <motion.header
                 className="sticky top-0 z-20 glass-sticky"
                 aria-label="Search and refine results"
-                style={{ ["--ts-sticky-shadow-opacity" as string]: stickyShadowOpacity }}
+                style={{
+                  ["--ts-sticky-shadow-opacity" as string]: stickyShadowOpacity,
+                  // Iter-19 — drives the dynamic backdrop blur ramp on
+                  // the sticky header (24px at scroll-top → 40px deep
+                  // in content). globals.css consumes via
+                  // backdrop-filter: blur(var(--ts-sticky-blur, 32px)).
+                  ["--ts-sticky-blur" as string]: stickyBlurPx,
+                }}
                 /* Overhaul D — sticky header floats down from the top on
                    mode-transition. opacity 0→1, y -16→0. springSoft so it
                    harmonizes with the rest of the result-mode entry. */

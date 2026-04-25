@@ -232,9 +232,16 @@ body > * {
   background: var(--ts-surface-sticky);
   /* Iter-19 — sticky surfaces in front of scrolling content also
      push saturate to 200% so the brand gradient reads through the
-     frost as the user scrolls long result lists. */
-  backdrop-filter: blur(var(--ts-blur-strong)) saturate(200%);
-  -webkit-backdrop-filter: blur(var(--ts-blur-strong)) saturate(200%);
+     frost as the user scrolls long result lists.
+
+     Track 4 — the blur radius is driven by --ts-sticky-blur (set
+     from page.tsx via useTransform on scrollY). At top of page
+     blur=24px (matches the rest of the page); deep in content
+     (200px+) blur=40px so the header reads as decisively in front
+     of the scroll. Falls back to the strong-glass token if the
+     custom property is unset (SSR / non-results pages). */
+  backdrop-filter: blur(var(--ts-sticky-blur, var(--ts-blur-strong))) saturate(200%);
+  -webkit-backdrop-filter: blur(var(--ts-sticky-blur, var(--ts-blur-strong))) saturate(200%);
   border-bottom: 1px solid var(--ts-border-soft);
   /* Shadow opacity is driven by --ts-sticky-shadow-opacity, fed from
      framer's useScroll/useTransform in page.tsx. At scroll-top the shadow
@@ -442,7 +449,11 @@ body > * {
 .ts-top .ts-bookmark {
   margin-left: auto;
   background: transparent; border: none; cursor: pointer;
-  color: var(--ts-text-faint); font-size: 22px; line-height: 1;
+  /* Iter-19 — at rest the bookmark heart picks up a faint indigo tint
+     (rgba(99,102,241,0.45)) instead of slate-400. Conveys "this is
+     interactive in the brand palette" without being loud. Hover/active
+     bumps to rose. */
+  color: rgba(99, 102, 241, 0.45); font-size: 22px; line-height: 1;
   /* Apple HIG / WCAG 2.5.5: minimum 44x44pt tap target. The visible
      heart glyph stays at 22px; padding inflates the hit area to 44x44
      so phones/tablets don't require pixel-perfect taps. Padding is
