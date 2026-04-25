@@ -372,22 +372,22 @@ body > * {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 24px 24px 20px;
-  /* Lit-from-above gradient — a faint white wash on the top third of
-     the card. Pairs with the .glass top-edge sheen (1px) to give the
-     card a real "the light source is above and slightly in front"
-     read, like Apple Maps cards. Sits as a layered background on top
-     of .glass's existing background fill. */
+  /* Iter-21 / Overhaul G — bumped section gap 12 → 14 for HF breathing
+     room. Padding goes square 24/24/24 (was 24/24/20) so the action row
+     no longer reads slightly cramped at the bottom edge — Spotify-style
+     symmetric padding. */
+  gap: 14px;
+  padding: 24px;
+  /* Lit-from-above gradient — a faint white wash on the top third. */
   background-image:
     linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 32%),
     linear-gradient(180deg, transparent 0%, rgba(99, 102, 241, 0.025) 100%);
-  /* Iter-15 overhaul — tighter min-height for info-density layout. The
-     old 340 floor left dead-air on cards with no description; the new
-     metric grid + popularity badge fills the vertical rhythm without
-     needing the buffer. 380 is the new tall floor (set on the comprehensive
-     branch below); 320 stays the sparse floor. */
-  min-height: 380px;
+  /* Iter-21 / Overhaul G — compact card is shorter than Overhaul-A/F's
+     380px floor because the mini-strip + metric grid + footer were
+     replaced by one stat row. 320 / 280 sparse mirrors the new HF-clean
+     density: every card carries information without the previous
+     vertical padding from the unused 5+3 cell stacks. */
+  min-height: 320px;
   height: 100%;
   color: var(--ts-text);
   transition: transform .35s cubic-bezier(0.32, 0.72, 0, 1),
@@ -412,34 +412,27 @@ body > * {
    right affordance. */
 @media (hover: hover) {
   .ts-card:hover {
-    /* Overhaul D / Iter-19 — deeper hover with all four glass-on-glass cues:
-         - translateY -6 (unchanged) + brief saturation pump for the
-           "the surface absorbs more light when raised"
-         - intensified specular top sheen (0.92 — almost mirror-bright)
-         - 1px indigo halo via outset accent ring
-         - layered ambient indigo glow underneath for spatial depth
-         - background alpha lifts 0.58 → 0.70 on hover so the surface
-           reads as becoming less translucent (gathering light)
-       Border-color picks up indigo at 0.36 (vs 0.22 rest) so the edge
-       reads as if the surface is now under a brighter spotlight. */
-    transform: translateY(-6px);
-    background-color: rgba(255, 255, 255, 0.70);
-    border-color: rgba(99, 102, 241, 0.36);
-    backdrop-filter: blur(var(--ts-blur)) saturate(210%);
-    -webkit-backdrop-filter: blur(var(--ts-blur)) saturate(210%);
+    /* Iter-21 / Overhaul G — gentler bubbly lift. translateY -6 → -4 so
+       the card "settles up" rather than jumps up; the bigger softer
+       shadow stack does most of the perceptual lift. Surface alpha 0.74
+       → 0.86 so the surface reads as gathering light. Indigo halo + rim
+       still kick in for the brand accent. */
+    transform: translateY(-4px);
+    background-color: rgba(255, 255, 255, 0.86);
+    border-color: rgba(99, 102, 241, 0.30);
+    backdrop-filter: blur(var(--ts-blur)) saturate(200%);
+    -webkit-backdrop-filter: blur(var(--ts-blur)) saturate(200%);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.92),
       var(--ts-glass-rim),
-      0 0 0 1px rgba(99, 102, 241, 0.18),
+      0 0 0 1px rgba(99, 102, 241, 0.16),
       var(--ts-shadow-hover),
-      0 32px 60px -20px rgba(99, 102, 241, 0.26);
+      0 32px 60px -20px rgba(99, 102, 241, 0.18);
   }
 }
-/* Sparse variant — description + topics both absent; shave ~80px of
-   baseline space. Row alignment stays intact because the grid is
-   auto-rows-fr and stretches every card to the tallest sibling. */
+/* Sparse variant — description + topics both absent. */
 .ts-card.ts-card-sparse {
-  min-height: 320px;
+  min-height: 280px;
 }
 
 .ts-top {
@@ -482,10 +475,10 @@ body > * {
   min-width: 0;
 }
 .ts-avatar {
-  /* Iter-15 — bumped 36 → 44 for proper visual weight. Title now reads
-     as the primary anchor with the avatar grounding it to the left
-     instead of the previous tiny-icon-next-to-text feel. */
-  width: 44px; height: 44px; border-radius: 50%;
+  /* Iter-21 / Overhaul G — bumped 44 → 48 to match HF model card avatar
+     size. The 48px target keeps the avatar grounding the row visually
+     without forcing the title to compete. */
+  width: 48px; height: 48px; border-radius: 50%;
   border: 2px solid rgba(99,102,241,0.18);
   background: var(--ts-surface-strong);
   object-fit: cover; flex: 0 0 auto;
@@ -508,17 +501,17 @@ body > * {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* 44px avatar warrants a slightly larger letter for visual weight. */
-  font-size: 17px;
+  /* 48px avatar — bigger glyph for the bigger circle. */
+  font-size: 19px;
   font-weight: 600;
   letter-spacing: -0.01em;
   border-color: transparent;
 }
 .ts-title {
   margin: 0;
-  /* Iter-15: 17 → 19 for the card title. Aligned with Linear/Vercel
-     density where the title carries 80% of the visual weight. */
-  font-size: 19px;
+  /* Iter-21 / Overhaul G — 19 → 20px for HF model-card-grade title weight.
+     font-semibold (600) per HF norm. */
+  font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.015em;
   color: var(--ts-text); line-height: 1.25;
@@ -577,15 +570,16 @@ body > * {
 
 .ts-desc {
   margin: 0;
-  /* Iter-15: 13.5 → 14 for legibility, line-clamp 2 → 3 for density.
-     min-height calc tracks the new 3-line floor so cards align. */
-  font-size: 14px; line-height: 1.55;
+  /* Iter-21 / Overhaul G — 3-line → 2-line clamp. HF cards show ~1-2
+     lines; less is more in the new compact card. line-height nudged
+     1.55 → 1.6 for HF-style relaxation. */
+  font-size: 14px; line-height: 1.6;
   color: var(--ts-text-muted);
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  min-height: calc(3 * 1.55em);
+  min-height: calc(2 * 1.6em);
 }
 /* Placeholder variant — italic + faint so it reads as "absence
    acknowledged" rather than content. Same line-clamp + min-height
@@ -714,13 +708,16 @@ button.topic-chip-interactive {
   height: 40px;
   font-size: 13px;
   font-weight: 600;
+  /* Iter-21 / Overhaul G — bubblier action-row buttons (12px > the
+     default --ts-radius-sm 10px). Spotify CTA radii. */
+  border-radius: var(--ts-radius-md);
 }
 .ts-actions .btn-primary {
-  flex: 1 1 60%;
+  flex: 1 1 auto;
   min-width: 0;
 }
 .ts-actions .btn-ghost {
-  flex: 1 1 40%;
+  flex: 0 1 auto;
   min-width: 0;
 }
 .ts-actions .btn-primary:only-child {
@@ -776,11 +773,10 @@ button.topic-chip-interactive {
   text-overflow: ellipsis;
 }
 
-/* Iter-15 — "why is this popular" badge. Top-right slot of the card,
-   adjacent to the bookmark button. Indigo-violet–rose–amber palette only.
-   Overhaul B: mono so it reads as a status flag (HOT, TRENDING) rather
-   than a generic uppercase label — visually paired with the metric-grid
-   labels and toolbar mono micro-text. */
+/* Iter-21 / Overhaul G — restrained popularity badge. Text-only `● HOT`
+   register; no boxed background, no border. HF/Spotify don't ship loud
+   pills — the dot + label sits on the card surface like a status
+   annotation rather than a competing affordance. */
 .ts-pop-badge {
   display: inline-flex;
   align-items: center;
@@ -790,53 +786,26 @@ button.topic-chip-interactive {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.10em;
-  padding: 4px 8px;
-  border-radius: var(--ts-radius-full);
   line-height: 1;
   white-space: nowrap;
-  border: 1px solid transparent;
-  /* Subtle scale boost when card is hovered — adds the parallax-feel
-     that says "the card is rising; everything on it rises slightly
-     more". 0.35s ease so it lines up with the card transform curve. */
+  background: transparent;
+  border: none;
+  padding: 0;
   transition: transform .35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.ts-pop-badge .ts-pop-badge-dot {
+  font-size: 7px;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: 1px;
+}
+.ts-pop-badge .ts-pop-badge-label {
+  /* per-class color set via inline style on the span itself */
 }
 @media (hover: hover) {
   .ts-card:hover .ts-pop-badge {
     transform: scale(1.04);
   }
-  .ts-card:hover .ts-activity-dot {
-    transform: scale(1.15);
-  }
-}
-.ts-activity-dot {
-  /* Match the badge transition curve so both elements respond in unison
-     to hover — see :hover rule above. */
-  transition: transform .35s cubic-bezier(0.32, 0.72, 0, 1);
-}
-.ts-pop-badge-hot {
-  color: #b45309;
-  background: rgba(245, 158, 11, 0.14);
-  border-color: rgba(245, 158, 11, 0.30);
-}
-.ts-pop-badge-trending {
-  color: #4f46e5;
-  background: rgba(99, 102, 241, 0.14);
-  border-color: rgba(99, 102, 241, 0.30);
-}
-.ts-pop-badge-rising {
-  color: #6d28d9;
-  background: rgba(124, 58, 237, 0.13);
-  border-color: rgba(124, 58, 237, 0.28);
-}
-.ts-pop-badge-new {
-  color: #0369a1;
-  background: rgba(14, 165, 233, 0.13);
-  border-color: rgba(14, 165, 233, 0.28);
-}
-.ts-pop-badge-established {
-  color: #047857;
-  background: rgba(16, 185, 129, 0.13);
-  border-color: rgba(16, 185, 129, 0.28);
 }
 
 /* Iter-15 — refined footer row: small relative-time on left, language +
@@ -1185,24 +1154,18 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   100% { opacity: 0; transform: translateY(380px); }
 }
 
-/* Pulse on Hot / Trending popularity badges — the "this is the rocket"
-   read. Slow, premium, almost imperceptible at glance but unmistakable
-   on attention. Reduced-motion users get a static badge. */
-.ts-card[data-pop="hot"] .ts-pop-badge,
-.ts-card[data-pop="trending"] .ts-pop-badge {
-  animation: ts-pop-pulse 2.6s ease-in-out infinite;
+/* Iter-21 / Overhaul G — the previous box-shadow pulse on hot/trending
+   popularity badges no longer applies because the badge is now
+   text-only (no fillable background to pulse around). Subtle dot-color
+   breath on hot/trending replaces it: just the leading dot brightens
+   over a 2.6s cycle. Reads as "live" without competing with content. */
+.ts-card[data-pop="hot"] .ts-pop-badge .ts-pop-badge-dot,
+.ts-card[data-pop="trending"] .ts-pop-badge .ts-pop-badge-dot {
+  animation: ts-pop-dot-pulse 2.6s ease-in-out infinite;
 }
-@keyframes ts-pop-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.0); }
-  50%      { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.18); }
-}
-.ts-card[data-pop="trending"] .ts-pop-badge {
-  /* Override the keyframe color for trending — indigo, not amber. */
-  animation-name: ts-pop-pulse-indigo;
-}
-@keyframes ts-pop-pulse-indigo {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.0); }
-  50%      { box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.20); }
+@keyframes ts-pop-dot-pulse {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
 }
 
 /* Mini-spec chip beneath the title — single mono row of license · lang
@@ -1581,8 +1544,8 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   .ts-hero-accent,
   .ts-activity-dot,
   .ts-scanline,
-  .ts-card[data-pop="hot"] .ts-pop-badge,
-  .ts-card[data-pop="trending"] .ts-pop-badge {
+  .ts-card[data-pop="hot"] .ts-pop-badge .ts-pop-badge-dot,
+  .ts-card[data-pop="trending"] .ts-pop-badge .ts-pop-badge-dot {
     animation: none !important;
   }
   .ts-hero-accent {
@@ -2040,4 +2003,338 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   display: block; height: 100%;
   background: linear-gradient(90deg, #6366f1, #8b5cf6, #0ea5e9);
   transition: width .3s ease-out;
+}
+
+/* =========================================================================
+   Iter-21 / Overhaul G — HF-clean unified stat row.
+   Single horizontal row of icon + number segments, faint middot
+   separators. Replaces the 3-cell metric grid + 5-cell mini-strip from
+   Overhaul A/F. Reads as one calm metadata strip per HF model card.
+   ========================================================================= */
+.ts-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 6px;
+  font-size: 12.5px;
+  color: var(--ts-text-muted);
+  padding: 8px 0;
+  border-top: 1px solid rgba(99, 102, 241, 0.08);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.08);
+  font-variant-numeric: tabular-nums;
+  /* Long stat rows (license + version + updated + downloads on a wide
+     card) wrap onto a second line cleanly. The middots only appear
+     between segments so wrapping looks correct. */
+}
+.ts-stat-row-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  min-width: 0;
+}
+.ts-stat-row-icon {
+  color: var(--ts-text-faint);
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.ts-stat-row-val {
+  font-weight: 500;
+  color: var(--ts-text-muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.005em;
+}
+.ts-stat-row-sep {
+  color: var(--ts-text-faint);
+  font-size: 11px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* =========================================================================
+   Iter-21 / Overhaul G — DetailDrawer (right-side slide-in panel).
+   Replaces the in-place expanded card. 480px desktop / full-width
+   mobile, slides from the right with springSoft. Backdrop dim + blur.
+   ========================================================================= */
+.ts-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(15, 23, 42, 0.40);
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+}
+.ts-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 71;
+  width: min(480px, 100vw);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--ts-border);
+  border-radius: 22px 0 0 22px;
+  /* Soft shadow on the inboard edge so the drawer reads as floating
+     above the dimmed backdrop, not seamed into the viewport edge. */
+  box-shadow:
+    -4px 0 24px rgba(30, 27, 75, 0.10),
+    -16px 0 64px rgba(30, 27, 75, 0.08);
+  overflow: hidden;
+}
+@media (max-width: 640px) {
+  .ts-drawer {
+    width: 100vw;
+    border-radius: 0;
+    border-left: none;
+  }
+}
+.ts-drawer-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.10);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.ts-drawer-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ts-drawer-close {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--ts-border-soft);
+  color: var(--ts-text-muted);
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+@media (hover: hover) {
+  .ts-drawer-close:hover {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: var(--ts-border);
+    color: var(--ts-accent-strong);
+  }
+}
+.ts-drawer-title-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ts-drawer-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgba(99, 102, 241, 0.18);
+  background: var(--ts-surface-strong);
+  object-fit: cover;
+  flex: 0 0 auto;
+  box-shadow: var(--ts-shadow-sm);
+}
+.ts-drawer-title-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ts-drawer-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  color: var(--ts-text);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ts-drawer-subline {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ts-text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ts-drawer-desc {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ts-text-muted);
+}
+.ts-drawer-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.ts-drawer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ts-drawer-h {
+  margin: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ts-accent-strong);
+  line-height: 1;
+}
+.ts-drawer-readme {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--ts-text-muted);
+  white-space: pre-wrap;
+}
+.ts-drawer-muted {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ts-text-subtle);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+.ts-drawer-releases {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ts-drawer-release {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+}
+.ts-drawer-release-v {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-weight: 600;
+  color: var(--ts-accent-strong);
+  font-variant-numeric: tabular-nums;
+}
+.ts-drawer-release-date {
+  color: var(--ts-text-faint);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11.5px;
+}
+.ts-drawer-release-link {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ts-accent-strong);
+  text-decoration: none;
+}
+.ts-drawer-release-link:hover { text-decoration: underline; }
+.ts-drawer-comments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ts-drawer-comment {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-left: 2px solid rgba(99, 102, 241, 0.30);
+  background: rgba(99, 102, 241, 0.04);
+  border-radius: 0 10px 10px 0;
+}
+.ts-drawer-comment-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+.ts-drawer-comment-author {
+  font-weight: 700;
+  color: var(--ts-accent-strong);
+}
+.ts-drawer-comment-score {
+  color: var(--ts-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.ts-drawer-comment-body {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ts-text-muted);
+  line-height: 1.55;
+}
+.ts-drawer-related {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ts-drawer-related-chip {
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+.ts-drawer-related-chip:hover {
+  transform: translateY(-1px);
+}
+.ts-drawer-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ts-drawer-qa {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: var(--ts-radius-sm);
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.20);
+  color: var(--ts-accent-strong);
+  text-decoration: none;
+  line-height: 1;
+  transition: background-color .15s ease, border-color .15s ease, transform .15s ease;
+}
+.ts-drawer-qa:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.36);
+  transform: translateY(-1px);
+}
+.ts-drawer-footer {
+  padding: 16px 24px 20px;
+  border-top: 1px solid rgba(99, 102, 241, 0.10);
+  flex-shrink: 0;
+}
+.ts-drawer-cta {
+  width: 100%;
+  height: 44px;
+  font-size: 14px;
+}
+
+/* Iter-21 / Overhaul G — Details ↗ button on the action row. Mono ghost
+   so it pairs with the metric-grid label register without competing
+   with the primary CTA. */
+.ts-details-btn {
+  flex: 0 0 auto !important;
+  min-width: 88px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 0 12px !important;
 }

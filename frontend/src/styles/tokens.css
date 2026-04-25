@@ -8,27 +8,20 @@
     hsl(calc(var(--ts-intent-hue) + 35), 80%, 90%) 100%
   );
 
-  /* Glass surfaces — Overhaul E: even more material presence.
-     Iter-19 surface alphas tuned slightly down so the gradient/depth
-     radials pull through more visibly. Strong + sticky gain the same
-     sheen + rim treatment but with brighter top-edge highlights so
-     overlay surfaces clearly stand off content. */
-  --ts-surface: rgba(255, 255, 255, 0.58);
-  --ts-surface-strong: rgba(255, 255, 255, 0.90);
-  --ts-surface-sticky: rgba(255, 255, 255, 0.72);
-  --ts-border: rgba(99, 102, 241, 0.22);
-  --ts-border-soft: rgba(99, 102, 241, 0.14);
-  /* Inner highlight + grounding rim — Iter-19 brighter sheen (0.65 →
-     0.85) so the specular top-edge reads at rest, not just on hover.
-     The grounding rim picks up a bit more indigo (0.06 → 0.10) so
-     bottom edge of every glass surface reads as anchored on the
-     gradient rather than floating ambiguously. */
+  /* Glass surfaces — Iter-21 / Overhaul G: HF-leaning. Cards mostly
+     opaque white with a light glass overlay (HF cards aren't translucent
+     panels). Bumped surface alpha 0.58 → 0.74; sticky kept slightly more
+     translucent so the scroll-pull reads. */
+  --ts-surface: rgba(255, 255, 255, 0.74);
+  --ts-surface-strong: rgba(255, 255, 255, 0.92);
+  --ts-surface-sticky: rgba(255, 255, 255, 0.78);
+  /* Iter-21 — softer card border at rest (was 0.22). The indigo halo
+     still kicks in on hover so the active state remains crisp. */
+  --ts-border: rgba(99, 102, 241, 0.16);
+  --ts-border-soft: rgba(99, 102, 241, 0.10);
+  /* Inner highlight + grounding rim. */
   --ts-glass-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.85);
   --ts-glass-rim:   inset 0 -1px 0 rgba(99, 102, 241, 0.10);
-  /* Iter-19 — outer hairline ring. Acts as a 1px outer-edge accent so
-     glass surfaces read with double-edge definition (bright sheen on
-     top + indigo hairline around). Composed alongside the sheen +
-     rim + drop shadow on every glass tier. */
   --ts-glass-ring: 0 0 0 1px rgba(99, 102, 241, 0.14);
 
   /* Accent stays indigo-violet family but tuned away from magenta. */
@@ -43,26 +36,28 @@
   --ts-text-subtle: #64748b;
   --ts-text-faint: #94a3b8;
 
-  --ts-radius-lg: 18px;
+  /* Iter-21 / Overhaul G — Spotify bubbly radii. Cards/sheets/drawer
+     bump 18 → 22; mid panels stay 12; small chrome bumps 8 → 10 so
+     buttons read as bubblier without losing the chip-vs-pill rhythm. */
+  --ts-radius-lg: 22px;
   --ts-radius-md: 12px;
-  --ts-radius-sm: 8px;
+  --ts-radius-sm: 10px;
   --ts-radius-full: 999px;
 
-  /* Layered shadows — softer near surface, progressively wider spread with
-     distance, so cards float without looking stamped-on. Iter-19 — three
-     stops on the rest stack (contact / ambient / depth) so cards visibly
-     "float" off the gradient at rest, not just on hover. */
+  /* Layered shadows — Iter-21 softer + more diffuse. Spotify shadows
+     are very low-contrast with very large blur, so each stop on the
+     stack carries lower alpha but wider spread than before. */
   --ts-shadow-sm:
     0 1px 2px rgba(30, 27, 75, 0.04),
     0 1px 3px rgba(30, 27, 75, 0.05);
   --ts-shadow-rest:
-    0 1px 1px rgba(30, 27, 75, 0.04),
-    0 4px 12px rgba(30, 27, 75, 0.07),
-    0 24px 48px rgba(30, 27, 75, 0.12);
+    0 1px 2px rgba(30, 27, 75, 0.04),
+    0 8px 24px rgba(30, 27, 75, 0.06),
+    0 32px 64px rgba(30, 27, 75, 0.10);
   --ts-shadow-hover:
-    0 2px 4px rgba(30, 27, 75, 0.06),
-    0 10px 28px rgba(30, 27, 75, 0.12),
-    0 32px 64px rgba(30, 27, 75, 0.16);
+    0 4px 12px rgba(30, 27, 75, 0.08),
+    0 16px 48px rgba(30, 27, 75, 0.12),
+    0 48px 96px rgba(30, 27, 75, 0.16);
   --ts-shadow-sticky:
     0 1px 0 rgba(99, 102, 241, 0.06),
     0 8px 20px rgba(30, 27, 75, 0.05);
