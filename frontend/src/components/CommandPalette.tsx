@@ -407,7 +407,7 @@ export function CommandPalette({
         >
           <motion.div
             onClick={(e) => e.stopPropagation()}
-            className="glass-strong w-full max-w-2xl rounded-[18px] overflow-hidden flex flex-col shadow-2xl"
+            className="glass-strong w-full max-w-2xl rounded-[22px] overflow-hidden flex flex-col shadow-2xl"
             style={{ maxHeight: "min(70vh, 560px)" }}
             variants={modalSurface}
             initial="hidden"

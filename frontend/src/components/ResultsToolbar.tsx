@@ -164,7 +164,7 @@ export function ResultsToolbar({
     SORT_OPTIONS.find((o) => o.value === sortMode)?.label ?? "Relevance";
 
   return (
-    <div className="ts-toolbar glass flex flex-col gap-2 px-4 py-2.5 rounded-xl">
+    <div className="ts-toolbar glass flex flex-col gap-2 px-4 py-2.5 rounded-2xl">
       {/* Two logical groups: [Sources + Sort] on the left, [MD/JSON/Share]
           on the right. Ghost dot dividers (·) separate logical clusters
           inside each group, so the toolbar reads as a sentence of related

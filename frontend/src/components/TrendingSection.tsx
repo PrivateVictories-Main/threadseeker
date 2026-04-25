@@ -241,7 +241,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="ts-trending-skeleton-row flex items-center gap-2.5 rounded-xl bg-indigo-50/70 border border-indigo-200/60 px-2.5 py-2 h-[42px] skeleton"
+                className="ts-trending-skeleton-row flex items-center gap-2.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/60 px-3 py-2 h-[44px] skeleton"
                 aria-hidden
               >
                 <span
@@ -291,7 +291,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
                     onQueryClick(r.name);
                   }
                 }}
-                className="group flex items-center gap-2.5 rounded-xl bg-white/70 hover:bg-white border border-indigo-100/70 hover:border-indigo-300 px-2.5 py-2 transition-colors hover:shadow-sm"
+                className="group flex items-center gap-2.5 rounded-2xl bg-white/70 hover:bg-white border border-indigo-100/70 hover:border-indigo-300 px-3 py-2 transition-colors hover:shadow-sm"
                 title={r.description ?? r.fullName}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
