@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
 import { SearchBar } from "@/components/SearchBar";
 import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
@@ -391,8 +391,27 @@ export default function Home() {
     [selectedSources]
   );
 
-  // Read ?q= and ?sources= from URL on first mount and auto-search.
-  useEffect(() => {
+  // Iter-15 / Track 3 — Read ?q= and ?sources= from URL on first mount.
+  //
+  // Uses useLayoutEffect so the state flips (history, selectedSources,
+  // sortMode, activeSourceFilter, hasSearched-via-handleSearch) happen
+  // synchronously BEFORE the browser commits the first paint. Effect
+  // takeaway: a user landing on /?q=react no longer sees the hero
+  // section flash for a frame before the results-mode skeleton — the
+  // initial paint goes straight to "Searching N sources" with the
+  // skeleton grid, the way a refresh on a live results URL should feel.
+  //
+  // useLayoutEffect is safe here because:
+  //   - We're guarded by initialLoadDone so it only runs once
+  //   - All the work is sync (URL parse + setState)
+  //   - The actual network call inside handleSearch is async — paint is
+  //     not blocked on the fetch, just on the mode-flip state update
+  //
+  // Wrapped in `typeof window !== 'undefined'` so the SSR pass (where
+  // useLayoutEffect logs a warning + no-ops) silently does nothing
+  // until hydration on the client.
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
     if (initialLoadDone.current) return;
     initialLoadDone.current = true;
     setHistory(loadHistory());

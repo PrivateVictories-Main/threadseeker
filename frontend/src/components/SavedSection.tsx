@@ -4,7 +4,7 @@
 // localStorage. Hidden entirely when there's nothing saved so the landing
 // stays clean for first-time visitors.
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import {
   getBookmarks,
   onBookmarksChanged,
@@ -20,8 +20,17 @@ const SHELF_LIMIT = 8;
 export function SavedSection() {
   const [items, setItems] = useState<StoredBookmark[]>([]);
 
-  useEffect(() => {
+  // Iter-15 / Track 3 — read bookmarks in useLayoutEffect so the saved
+  // shelf paints with content on the first frame after hydration
+  // instead of a one-frame "missing section" flash for returning
+  // visitors. The original useEffect-only path still owns the change
+  // subscription so cross-tab bookmark adds/removes update live.
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
     setItems(getBookmarks());
+  }, []);
+
+  useEffect(() => {
     return onBookmarksChanged(() => setItems(getBookmarks()));
   }, []);
 

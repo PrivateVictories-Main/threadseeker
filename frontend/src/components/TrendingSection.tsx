@@ -5,7 +5,7 @@
 // per language; result cached in sessionStorage for 30 min per language so
 // tabbing back & forth doesn't burn the 10-rpm rate limit.
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { Flame, Star, ArrowUpRight, RefreshCw } from "lucide-react";
 
 interface TrendingRepo {
@@ -106,6 +106,22 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
   const [errored, setErrored] = useState(false);
   // Bump to force a refetch (skipping the cache).
   const [retryNonce, setRetryNonce] = useState(0);
+
+  // Iter-15 / Track 3 — Layout-effect cache hydrate.
+  // The previous useEffect ran one frame after paint, so a returning
+  // visitor with a warm sessionStorage cache saw a one-frame skeleton
+  // flicker before the cached list snapped in. Reading the cache in a
+  // useLayoutEffect runs sync before paint commits, so cached data
+  // displays from the very first frame after hydration. The full
+  // useEffect below still owns the network fetch — this layer only
+  // handles the no-cost cache-warm path.
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    if (retryNonce !== 0) return;
+    const cached = loadCache(lang);
+    if (cached) setRepos(cached);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     setErrored(false);
