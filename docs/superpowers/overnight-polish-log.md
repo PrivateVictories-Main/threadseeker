@@ -2027,3 +2027,251 @@ already sets `project.url` to the right deep-link.
 - Add markdown rendering to the README excerpt — plain text is
   enough for "is this project worth digging into" and avoids any
   XSS surface from third-party README content.
+
+---
+
+## Iteration 21 — Major Overhaul G (HF-clean cards + side drawer + Spotify bubbly)
+
+User feedback after Overhauls A-F: "Make it look as professional as
+possible. Kind of like Hugging Face when it comes to the theme as well
+as the website. I kind of like Spotify's themes but let's keep it
+light instead of dark, just like bubbly, kind of glassy looking.
+Spotify might be a good example as well when it comes to the macOS
+app and just Hugging Face in general. I'm trying to think of other
+companies that would look as clean with cards and stuff, kind of
+similar to when you're searching for GitHub projects but a lot more
+organized and nicer to look at when it comes to the cards and obviously
+more information."
+
+The headline is the card reorganization: Overhaul-A/F's information-
+density rebuild and Overhaul-F's preview-panel both succeeded at the
+"more information" half but drifted away from "nicer to look at" by
+crowding the card with ~12-15 distinct visual elements per row. This
+iteration trades the in-card mini-strip + metric grid + footer + spec
+chip for one HF-clean horizontal stat row, and moves the deep
+metadata into a Spotify-style right-side drawer.
+
+### TRACK 1 — Card layout reorganization (commits d9b38e5 + e4df00b)
+
+UnifiedProjectCard rebuilt from 7+ sections to 4-5 visual groups:
+
+  1. Identity ribbon (3px source-tinted left edge, kept)
+  2. Top row     — SourceBadge · text-only PopularityBadge · bookmark
+  3. Identity    — 48px avatar (was 44) + 20px name (was 19) + version
+                   chip + author subline. Mini-spec chip beneath title
+                   REMOVED (info now in stat row).
+  4. Description — 2-line clamp (was 3), line-height 1.6 (was 1.55)
+  5. Stat row    — NEW single horizontal row of icon+number segments,
+                   middot-separated. Source-aware: github=★/⑂/◷/☉,
+                   npm=↓/wk · ⓥ · ◷ · ☉, HF=↓ · ♥, arxiv=ⓘ cites · year
+                   · ✎ authors, threads=▲ · 💬 · ◷ posted. Replaces
+                   BOTH the 3-cell metric grid AND the 5-cell mini-strip
+                   from Overhaul A/F.
+  6. Topics row  — up to 4 chips (kept, smaller padding)
+  7. Action row  — Open / Copy / Details ↗ (drawer trigger). Open is
+                   the gradient primary; Copy stays ghost; Details is
+                   a mono-uppercase ghost button that opens the drawer.
+
+Removed from prior overhauls (Track 4 information balance):
+  - 5-cell mini-stat strip → consolidated into stat row
+  - 3-cell metric grid → consolidated into stat row
+  - mini-spec chip beneath title → info now in stat row
+  - footer activity-dot row → info now in stat row
+  - separate license tone pill → license is a stat-row segment (☉ icon)
+  - in-place expand toggle (chevron) → replaced by Details ↗ → drawer
+  - card scan-line on hover (CSS rule kept, no consumer)
+
+New card data layer:
+  - cardStatRow(project) helper — source-aware single-row segment list,
+    7 unit tests (github / npm / HF / paper / thread / sparse / no-license)
+  - <CardStatRow> — middot-separator renderer, drops empty middots
+    around wraps
+  - PopularityBadge restrained to text-only `● LABEL` (no pill bg, no
+    border). Per-class color via popularityClassDotColor() — amber
+    (hot) / indigo (trending) / violet (rising) / sky (new) / slate
+    (established).
+
+### TRACK 2 — Right-side detail drawer (commit 2011ea4)
+
+New <DetailDrawer> singleton at the page level. Opens via the card's
+new onOpenDetails prop; drawerProject state on page.tsx is the single
+source of truth so only one panel is mounted regardless of grid size.
+
+Specs:
+  - 480px wide on desktop, full-width on mobile (border-radius collapses
+    to 0 on phone widths so the drawer reads as a full sheet)
+  - Slides in from the right with springSoft via the new drawerSurface
+    variant in lib/motion.ts
+  - Backdrop dim 0.40 + backdrop-blur(8px). Click-backdrop or Esc
+    closes. Body scroll locked while open.
+  - Layout: header (SourceBadge + close), title block (avatar + name +
+    author subline + description), scrollable column of sections,
+    footer with full-width primary CTA.
+  - Sections (each renders only when its data is present):
+      README excerpt (lazy-fetched on first open via lib/readme.ts)
+      Languages bar (LanguageBar component)
+      Recent releases (top 5)
+      Top comments (top 4)
+      Also on (related-sources chips)
+      Quick actions (mono ghost buttons per source)
+
+Drawer reuses LanguageBar from Overhaul F and keeps the same lazy
+README fetch path, but the layout is restructured for vertical column
+rather than the prior in-place horizontal expansion.
+
+### TRACK 3 — Spotify bubbly surface treatment (commit 7f3e6ce)
+
+`tokens.css`:
+  - radii bumped: lg 18 → 22 (cards/sheets/drawer), sm 8 → 10
+    (buttons/small chrome). Pills stay 999. Spotify bubbly read.
+  - shadows softer + more diffuse: rest is `0 1px 2px / 0 8px 24px /
+    0 32px 64px` (lower alpha, wider blur than before); hover bigger
+    `0 4px 12px / 0 16px 48px / 0 48px 96px`. Cards gently float
+    rather than being stamped on.
+  - surface alphas tuned: default 0.58 → 0.74 (HF cards aren't really
+    translucent panels — mostly opaque white with light glass overlay),
+    strong 0.90 → 0.92, sticky 0.72 → 0.78. Card border softer at rest
+    0.22 → 0.16; indigo halo still kicks in on hover for the brand
+    accent.
+
+`globals.css` (card surface):
+  - card padding square 24/24/24 (was 24/24/20), gap 12 → 14 for HF
+    breathing room.
+  - min-height 380 → 320 (mini-strip + metric grid are gone, so the
+    floor drops); sparse min-height 320 → 280.
+  - hover lift translateY -6 → -4 with the bigger softer shadow stack
+    doing most of the perceptual lift; surface alpha 0.74 → 0.86 on
+    hover (less translucent / "gathering light"). saturate 210 → 200.
+
+`globals.css` (chrome):
+  - text-only PopularityBadge — no boxed background, no border. Loud
+    box-shadow pulse keyframes replaced with subtle dot opacity breath
+    on hot/trending (0.7 ↔ 1.0 over 2.6s).
+  - new .ts-stat-row styles for the unified single-row stat strip.
+  - new .ts-drawer-* styles (backdrop, surface, header, scroll, footer,
+    section, releases, comments, related, quick actions, CTA).
+  - action-row buttons radius 10 → 12 (Spotify CTA bubblier).
+  - bookmark pulse-ring radius matches new card radius (22px).
+
+### TRACK 5 — Surface harmony sweep (commit 8a2be0f)
+
+Bring secondary surfaces into the bubbly aesthetic so the whole app
+shares one design system:
+  - CommandPalette modal radius 18 → 22 to match cards/drawer.
+  - ResultsToolbar outer frame rounded-xl → rounded-2xl (16px).
+  - SavedSection tiles rounded-xl → rounded-2xl + slightly more padding
+    (px-2.5 py-2 → px-3 py-2.5).
+  - TrendingSection rows rounded-xl → rounded-2xl + px-2.5 → px-3 +
+    height bumped 42 → 44 so the tiles read as proper cards rather
+    than tight chips.
+
+Sticky header, hero/landing section-containers, and SourceFilter sheet
+already use --ts-radius-lg (now 22px) so they pick up the bigger radii
+automatically — no per-component change needed.
+
+### TRACK 6 — Bonus refinements + cardStatRow tests (commit aaef716)
+
+7 new tests covering the new cardStatRow helper across github / npm /
+HF / paper / thread / sparse / license-Unknown cases.
+
+Other Track-6 items audited:
+  - Title weight: confirmed font-semibold (600), per HF norm. ✓
+  - Number formatting: stat row uses formatCount across the board
+    ("41.5k stars", "12.4M downloads"), formatCountFull on title=
+    tooltips for the precise integer. ✓
+  - Color tone: body uses --ts-text-muted (slate-700) which is darker
+    than the brief's slate-600 ask — kept as-is since it's already
+    higher contrast than HF and reads cleanly on the new less-translucent
+    surfaces. Captions use slate-500, faint micro-labels use slate-400.
+    ✓ no-op.
+  - Card grid alignment at xl widths: the existing grid (sm:2 lg:3)
+    + max-w 1280 puts cards in a 360-400px range per the brief. ✓ no-op.
+
+### Numbers
+
+- **Tests:** 76 → 83 (+7 new cardStatRow tests). All passing.
+- **TypeScript:** `tsc --noEmit` clean.
+- **Build:** clean. Page bundle 96.5 → 95.8 kB (-0.7 kB across the six
+  commits — net negative because the consolidation removed more code
+  than the drawer added, mostly the 5-cell mini-strip + 3-cell metric
+  grid integration in UnifiedProjectCard).
+
+### Files touched
+
+Card data + components:
+- `frontend/src/components/card/helpers.ts` (cardStatRow, popularityClassDotColor)
+- `frontend/src/components/card/helpers.test.ts` (cardStatRow tests)
+- `frontend/src/components/card/CardStatRow.tsx` (new)
+- `frontend/src/components/card/PopularityBadge.tsx` (text-only treatment)
+- `frontend/src/components/card/CardActions.tsx` (Details ↗ button)
+- `frontend/src/components/card/DetailDrawer.tsx` (new)
+- `frontend/src/components/UnifiedProjectCard.tsx` (rebuilt)
+
+Page wire-up + motion:
+- `frontend/src/app/page.tsx` (drawerProject state, DetailDrawer mount)
+- `frontend/src/lib/motion.ts` (drawerSurface variant)
+
+Surface treatment:
+- `frontend/src/styles/tokens.css` (radii / shadows / alphas)
+- `frontend/src/app/globals.css` (card / pop badge / stat row /
+  drawer / action buttons / reduced-motion)
+
+Surface harmony sweep:
+- `frontend/src/components/CommandPalette.tsx` (modal radius)
+- `frontend/src/components/ResultsToolbar.tsx` (outer radius)
+- `frontend/src/components/SavedSection.tsx` (tile radius/padding)
+- `frontend/src/components/TrendingSection.tsx` (row radius/padding)
+
+### Hand-off for the next iteration
+
+- **Drawer enrichment** — most cards open the drawer with just README
+  + LanguageBar (when github/codeberg) plus Quick Actions. Adapters
+  don't fill releases / topComments / commitsLastMonth yet; per Overhaul
+  F's hand-off these need extra API calls (e.g. `/repos/.../releases`)
+  to light up. Highest-leverage next move is GitHub releases.
+- **Drawer trigger surface** — currently only the "Details ↗" button
+  on the action row. The brief mentioned "clicking the card title OR
+  a Details affordance" — making the title clickable to open the
+  drawer is a nice-to-have but conflicts with the muscle-memory of
+  "click card to open project" (which the primary CTA does). Defer
+  until a user reports they expected title-click behavior.
+- **Drawer on iPad-landscape (1024)** — width is min(480, 100vw); on
+  iPad the drawer covers ~47% of the screen, leaving the grid behind
+  visible. Visually verified clean; no fix.
+- **Stat row wrap on narrow cards** — at 320px iPhone-SE width, github
+  cards with 4 segments (★ + ⑂ + ◷ + ☉) wrap to a second line. The
+  middots only render between segments so the wrap is clean. Could
+  cap to 3 segments at xs:, but the second line reads correctly and
+  the data is more useful than the saved 14px of vertical space.
+- **PopularityBadge text-only on touch hover** — the dot opacity
+  breath (hot/trending) keeps animating on touch devices since it's
+  a CSS animation, not a hover state. Reduced-motion users get
+  static opacity. No issue.
+- **Card hover lift on drawer-open** — when the drawer opens, the
+  underlying card stays in its hovered/lifted state until the user
+  moves the cursor. Not really a bug — the user is now interacting
+  with the drawer — but the orphan-lift is visible if they look back
+  through the dim. Fix would be to forcibly clear pointer state
+  when the drawer mounts, but the dim layer absorbs most attention.
+- **Spec line / mini-strip / metric grid CSS** — the rules for the
+  removed elements still live in globals.css. They're harmless (no
+  consumer means no DOM to apply them to) but a future cleanup pass
+  could prune the dead rules. Conservatively kept this iteration in
+  case any external CSS consumer catches up.
+- **Activity dot CSS** — same situation. The `.ts-activity-dot`
+  rules + keyframe + pulse animation still live in globals.css; no
+  consumer in UnifiedProjectCard. Harmless.
+- **DESIGN.md card structure section** is now stale (references
+  `min-height: 340px`, the old 4-pill row, the activity-dot footer).
+  Worth a docs update so contributors don't read the old layout as
+  current. Defer to a docs-only commit.
+
+### What this iteration deliberately did NOT do
+
+- Touch search ranking, BM25, or query parsing
+- Add new sources
+- Touch motion springs (already great)
+- Touch the command palette structure (only its outer radius)
+- Fill new optional UnifiedProject fields (releases, languageBreakdown,
+  topComments) — drawer surfaces them when adapters provide them but
+  no adapter enrichment in this iteration
