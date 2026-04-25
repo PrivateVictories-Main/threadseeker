@@ -674,7 +674,7 @@ export default function Home() {
                     cluster reads as a code-comment hint rather than a
                     sans-serif "Try:" instruction. */}
                 <div className="mt-7 flex flex-wrap justify-center items-center gap-x-2 gap-y-1.5">
-                  <span className="ts-section-header mr-1">// Try</span>
+                  <span className="ts-section-header mr-1">{"// Try"}</span>
                   {EXAMPLE_QUERIES.map((eq) => (
                     <button
                       key={eq}
@@ -701,10 +701,12 @@ export default function Home() {
                     aria-expanded={sourceFilterOpen}
                   >
                     {sourceFilterOpen ? (
-                      <>// Hide sources</>
+                      <>{"// Hide sources"}</>
                     ) : (
                       <>
-                        // Sources <strong>{activeSources}</strong>/{ALL_SOURCES.length}
+                        {"// Sources "}
+                        <strong>{activeSources}</strong>
+                        {`/${ALL_SOURCES.length}`}
                       </>
                     )}
                   </button>
@@ -732,7 +734,7 @@ export default function Home() {
                   >
                     <div className="flex items-center justify-center gap-1.5 mb-4 ts-section-header">
                       <Clock className="w-3 h-3" aria-hidden />
-                      // Recent
+                      {"// Recent"}
                       <button
                         onClick={() => {
                           setHistory([]);
@@ -1061,7 +1063,7 @@ export default function Home() {
                       return (
                         <div className="pt-6 mt-2">
                           <div className="text-center ts-section-header mb-2.5">
-                            // More from
+                            {"// More from"}
                           </div>
                           <div className="flex flex-wrap justify-center gap-2">
                             {top.map((src) => {

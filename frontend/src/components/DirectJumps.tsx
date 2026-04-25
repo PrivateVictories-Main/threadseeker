@@ -89,7 +89,7 @@ export function DirectJumps({ query }: Props) {
           ≤sm so iPhone-SE 320px doesn't need to truncate the name. */}
       <div className="md:hidden flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-[12px] text-slate-500">
         <span className="inline-flex items-center gap-x-1.5 basis-full sm:basis-auto">
-          <span className="ts-section-header">// Jump to</span>
+          <span className="ts-section-header">{"// Jump to"}</span>
           <span className="font-mono text-slate-700 truncate">{q}</span>
         </span>
         {hits.map((r) => {
@@ -110,7 +110,7 @@ export function DirectJumps({ query }: Props) {
       </div>
       <div className="hidden md:block">
         <h3 className="ts-section-header mb-3">
-          // Jump to{" "}
+          {"// Jump to "}
           <span className="font-mono normal-case tracking-normal text-slate-700">
             {q}
           </span>

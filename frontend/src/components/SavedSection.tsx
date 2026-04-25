@@ -50,7 +50,7 @@ export function SavedSection() {
       <div className="relative flex items-center justify-center mb-3">
         <h2 className="ts-section-header flex items-center gap-2 m-0">
           <BookmarkCheck className="w-3 h-3 text-rose-500" aria-hidden />
-          // Saved <strong>{items.length}</strong>
+          {"// Saved "}<strong>{items.length}</strong>
         </h2>
         {/* Clear-all sits on the right, ghost-weight so it reads as an
             affordance only once you notice it. */}

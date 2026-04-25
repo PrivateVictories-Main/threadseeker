@@ -159,26 +159,63 @@ For repository topics in `UnifiedProjectCard`. The interactive variant (`.topic-
 
 ## Typography scale
 
-| Use | px | Tailwind |
+| Use | px | Tailwind / class |
 | --- | --- | --- |
-| Hero h1 | 40 / 44 / 60 / 72 | `text-[40px] xs:text-[44px] sm:text-6xl lg:text-7xl` |
-| Hero subtitle | 16 / 17 | `text-[16px] sm:text-[17px]` |
-| Card title | 17 | `.ts-title` |
-| Card description | 13.5 | `.ts-desc` |
+| Hero caption (mono) | 11 | `.ts-hero-caption` |
+| Hero h1 | 44 / 52 / 64 / 72 | `.ts-hero-headline` |
+| Hero subtitle | 15 / 16 | `text-[15px] sm:text-[16px]` |
+| Stat strip value | 18 | `.ts-stat-value` |
+| Stat strip label (mono) | 10 | `.ts-stat-label` |
+| Card title | 19 | `.ts-title` |
+| Card description | 14 | `.ts-desc` |
+| Card metric value | 15 | `.ts-metric-value` |
 | Body | 13 | `text-[13px]` / `btn` font-size |
 | UI chrome | 12.5 | `text-[12.5px]` |
 | Secondary chrome | 12 | `text-[12px]` |
 | Caption / micro-label | 11 / 11.5 | `text-[11px]` / `text-[11.5px]` |
-| Uppercase track-label | 10 / 10.5 / 11 | `uppercase tracking-[0.12–0.14em]` |
+| Mono micro-label | 10 / 10.5 / 11 | `font-mono uppercase tracking-[0.12–0.16em]` |
+
+### Sans vs. mono — when to reach for which
+
+ThreadSeeker has two type registers; pick the right one or the page
+loses its dev-tool-grade aesthetic.
+
+- **Sans (`Inter`)** — content. Project titles, descriptions, taglines,
+  button labels, recent search history. Anything the user is reading
+  for meaning rather than for system context.
+- **Mono (`ui-monospace, SF Mono, Menlo`)** — system. Section headers
+  (`// TRENDING`), stat strip labels, sticky-header readouts (`45 results
+  · 142ms`), source badges (`[GITHUB]`), popularity badges (`HOT`),
+  metric grid labels (`STARS`, `FORKS`), version chips (`v1.4.2`),
+  toolbar Sources / Sort labels, footer metadata. Anything the user
+  is reading as a system / technical signal.
+
+Numbers use `tabular-nums` whenever they participate in a column
+alignment (counts, durations, popularity) or change frequently (live
+readouts). Numbers in mono micro-text inherit it from the mono font;
+numbers inside sans content explicitly opt in.
 
 Letter-spacing convention:
 
-- Headlines (display weight) → `tracking-tight` (-0.025em)
-- Card title / subtitle → `letter-spacing: -0.01em`
-- Uppercase micro-labels → `tracking-[0.12em]` to `tracking-[0.14em]`
+- Headlines (display weight) → `tracking-tight` (-0.025em) or `letter-spacing: -0.03em` for the hero
+- Card title / subtitle → `letter-spacing: -0.01em` to `-0.015em`
+- Uppercase mono micro-labels → `tracking-[0.10em]` to `tracking-[0.16em]`
+- Uppercase sans micro-labels (rare — mono is preferred) → `tracking-[0.12em]` to `tracking-[0.14em]`
 - Body / chrome → default
 
-Numbers use `tabular-nums` whenever they participate in a column alignment (counts, durations, popularity) or change frequently (live readouts).
+### Section header vocabulary
+
+Every "this is the start of a section" header on the page renders via
+`.ts-section-header` so they share one typographic anchor:
+
+```html
+<h2 class="ts-section-header">// Trending <strong>this week</strong></h2>
+```
+
+The visible `//` is part of the printed text (not a pseudo-element)
+so screen readers receive the full label. The `<strong>` carries the
+indigo accent — used for the actual content noun (count, label,
+section subject).
 
 ---
 

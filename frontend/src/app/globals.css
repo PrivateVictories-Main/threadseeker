@@ -808,14 +808,12 @@ button.topic-chip-interactive {
   padding: 24px;
   margin-bottom: 16px;
 }
-.section-title {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--ts-text-faint);
-  margin: 0 0 12px;
-}
+/* Legacy `.section-title` removed in Overhaul B — call sites all migrated
+   to `.ts-section-header` which uses the mono `// LABEL` vocabulary
+   shared with the hero, sticky stats, and toolbar dividers. Add a new
+   class here if you need a different section-header treatment, but
+   prefer extending `.ts-section-header` (modifier classes) so the
+   page keeps a single typographic anchor for "section starts here". */
 
 .shortcut-modal {
   padding: 24px 28px;
