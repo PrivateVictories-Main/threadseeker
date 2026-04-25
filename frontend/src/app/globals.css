@@ -197,32 +197,44 @@ body > * {
        hairline coexist cleanly. */
 .glass {
   background: var(--ts-surface);
-  backdrop-filter: blur(var(--ts-blur)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--ts-blur)) saturate(180%);
+  /* Iter-19 — saturate baseline 180 → 190 so the indigo undertone in
+     the gradient pulls through the frost more visibly. The chromatic
+     read is what separates "real frosted glass" from "translucent
+     white panel." */
+  backdrop-filter: blur(var(--ts-blur)) saturate(190%);
+  -webkit-backdrop-filter: blur(var(--ts-blur)) saturate(190%);
   border: 1px solid var(--ts-border);
   border-radius: var(--ts-radius-lg);
   box-shadow:
     var(--ts-glass-sheen),
     var(--ts-glass-rim),
+    var(--ts-glass-ring),
     var(--ts-shadow-rest);
   transition: backdrop-filter .25s ease, box-shadow .25s ease, transform .25s ease, border-color .25s ease;
 }
 .glass-strong {
   background: var(--ts-surface-strong);
-  backdrop-filter: blur(var(--ts-blur-strong)) saturate(190%);
-  -webkit-backdrop-filter: blur(var(--ts-blur-strong)) saturate(190%);
+  /* Iter-19 — overlay surfaces (modals, sheets, palette) push to
+     saturate(200%) + max blur so they clearly stand off page content
+     beneath them. */
+  backdrop-filter: blur(var(--ts-blur-strong)) saturate(200%);
+  -webkit-backdrop-filter: blur(var(--ts-blur-strong)) saturate(200%);
   border: 1px solid var(--ts-border);
   border-radius: var(--ts-radius-lg);
   box-shadow:
     var(--ts-glass-sheen),
     var(--ts-glass-rim),
+    var(--ts-glass-ring),
     var(--ts-shadow-rest);
   transition: backdrop-filter .25s ease, box-shadow .25s ease, transform .25s ease, border-color .25s ease;
 }
 .glass-sticky {
   background: var(--ts-surface-sticky);
-  backdrop-filter: blur(var(--ts-blur-strong)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--ts-blur-strong)) saturate(180%);
+  /* Iter-19 — sticky surfaces in front of scrolling content also
+     push saturate to 200% so the brand gradient reads through the
+     frost as the user scrolls long result lists. */
+  backdrop-filter: blur(var(--ts-blur-strong)) saturate(200%);
+  -webkit-backdrop-filter: blur(var(--ts-blur-strong)) saturate(200%);
   border-bottom: 1px solid var(--ts-border-soft);
   /* Shadow opacity is driven by --ts-sticky-shadow-opacity, fed from
      framer's useScroll/useTransform in page.tsx. At scroll-top the shadow
@@ -393,24 +405,27 @@ body > * {
    right affordance. */
 @media (hover: hover) {
   .ts-card:hover {
-    /* Overhaul D — deeper hover with all four glass-on-glass cues:
+    /* Overhaul D / Iter-19 — deeper hover with all four glass-on-glass cues:
          - translateY -6 (unchanged) + brief saturation pump for the
            "the surface absorbs more light when raised"
-         - intensified specular top sheen
+         - intensified specular top sheen (0.92 — almost mirror-bright)
          - 1px indigo halo via outset accent ring
          - layered ambient indigo glow underneath for spatial depth
-       Border-color picks up indigo at 0.32 (vs 0.22 rest) so the edge
+         - background alpha lifts 0.58 → 0.70 on hover so the surface
+           reads as becoming less translucent (gathering light)
+       Border-color picks up indigo at 0.36 (vs 0.22 rest) so the edge
        reads as if the surface is now under a brighter spotlight. */
     transform: translateY(-6px);
-    border-color: rgba(99, 102, 241, 0.32);
-    backdrop-filter: blur(var(--ts-blur)) saturate(200%);
-    -webkit-backdrop-filter: blur(var(--ts-blur)) saturate(200%);
+    background-color: rgba(255, 255, 255, 0.70);
+    border-color: rgba(99, 102, 241, 0.36);
+    backdrop-filter: blur(var(--ts-blur)) saturate(210%);
+    -webkit-backdrop-filter: blur(var(--ts-blur)) saturate(210%);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92),
       var(--ts-glass-rim),
-      0 0 0 1px rgba(99, 102, 241, 0.10),
+      0 0 0 1px rgba(99, 102, 241, 0.18),
       var(--ts-shadow-hover),
-      0 32px 60px -20px rgba(99, 102, 241, 0.22);
+      0 32px 60px -20px rgba(99, 102, 241, 0.26);
   }
 }
 /* Sparse variant — description + topics both absent; shave ~80px of
