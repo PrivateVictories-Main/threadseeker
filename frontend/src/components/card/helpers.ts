@@ -23,6 +23,51 @@ export function formatCount(n: number): string {
   return String(n);
 }
 
+// Iter-20 / Overhaul F — comma-separated full count for the title-attribute
+// hover ("45,231 stars"). Pairs with formatCount(): the chip displays
+// "45.2k", the title shows the precise integer.
+export function formatCountFull(n: number): string {
+  if (!Number.isFinite(n) || n < 0) return "0";
+  return Math.round(n).toLocaleString("en-US");
+}
+
+// Compact "1y 3mo" style age formatter for the mini-spec chip beneath the
+// title. Returns "" when the input is missing/invalid; caller guards.
+export function formatAge(iso: string | undefined): string {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  const days = Math.max(0, (Date.now() - t) / 86_400_000);
+  if (days < 30) return `${Math.round(days)}d old`;
+  if (days < 365) {
+    const months = Math.round(days / 30);
+    return `${months}mo old`;
+  }
+  const years = Math.floor(days / 365);
+  const months = Math.round((days - years * 365) / 30);
+  if (months > 0) return `${years}y ${months}mo old`;
+  return `${years}y old`;
+}
+
+// Iter-20 / Overhaul F — license vocabulary classification. Drives the
+// license icon + tone in the footer pill. Returns one of three buckets:
+//   - permissive: MIT/Apache/BSD/ISC/Unlicense — green tint, scale icon
+//   - copyleft:   GPL/AGPL/LGPL/MPL — amber tint, lock icon
+//   - other:      everything else (incl. Unknown) — slate, dashed-line icon
+export type LicenseTone = "permissive" | "copyleft" | "other";
+
+export function licenseTone(raw: string | null | undefined): LicenseTone {
+  if (!raw) return "other";
+  const l = raw.toLowerCase();
+  if (/^(mit|apache|bsd|isc|unlicense|cc-?by|cc0|0bsd|wtfpl|zlib)/.test(l)) {
+    return "permissive";
+  }
+  if (/(agpl|lgpl|gpl|mpl|epl|copyleft)/.test(l)) {
+    return "copyleft";
+  }
+  return "other";
+}
+
 export function licenseBucket(raw: string | null | undefined): string {
   if (!raw) return "Unknown";
   const l = raw.toLowerCase();
@@ -364,6 +409,143 @@ export function metricsForProject(p: UnifiedProject): MetricCell[] {
       break;
   }
   return cells.slice(0, 3);
+}
+
+// Iter-20 / Overhaul F — mini stat strip (5 compact tiles between
+// description and metric grid). Source-aware. Each entry returns a label
+// + a value (already formatted, mono-friendly). Empty values drop. The
+// strip never renders more than 5; if a source produces fewer it just
+// shows what it has.
+export interface MiniStat {
+  label: string;
+  value: string;
+  title?: string;
+}
+
+export function miniStatsForProject(p: UnifiedProject): MiniStat[] {
+  const out: MiniStat[] = [];
+  const push = (label: string, value: string | number | undefined, title?: string) => {
+    if (value === undefined || value === null) return;
+    if (typeof value === "string" && !value) return;
+    if (typeof value === "number" && (!Number.isFinite(value) || value < 0)) return;
+    out.push({
+      label,
+      value: typeof value === "number" ? formatCount(value) : value,
+      title,
+    });
+  };
+
+  const isRepo =
+    p.source === "github" || p.source === "gitlab" || p.source === "codeberg";
+
+  if (isRepo) {
+    push("CREATED", p.createdAt ? formatRelativeShort(p.createdAt) : undefined, p.createdAt);
+    push("UPDATED", p.updatedAt ? formatRelativeShort(p.updatedAt) : undefined, p.updatedAt);
+    push("ISSUES", p.openIssues);
+    push("WATCH", p.watchers);
+    push("FORKS", p.forks);
+  } else if (
+    p.source === "npm" ||
+    p.source === "pypi" ||
+    p.source === "crates" ||
+    p.source === "rubygems" ||
+    p.source === "packagist" ||
+    p.source === "jsr" ||
+    p.source === "nuget" ||
+    p.source === "conda" ||
+    p.source === "maven"
+  ) {
+    push("VERSION", p.version || undefined);
+    push("PUBLISHED", p.lastPublished ? formatRelativeShort(p.lastPublished) : undefined, p.lastPublished);
+    push("WEEKLY", p.weeklyDownloads);
+    push("TOTAL", p.downloads);
+  } else if (p.source === "huggingface") {
+    push("DOWNLOADS", p.downloads);
+    push("LIKES", p.upvotes ?? p.stars);
+    push("FORMAT", p.language || undefined);
+    push("UPDATED", p.updatedAt ? formatRelativeShort(p.updatedAt) : undefined, p.updatedAt);
+  } else if (p.source === "arxiv" || p.source === "paperswithcode" || p.source === "zenodo") {
+    push("YEAR", p.paperYear !== undefined ? String(p.paperYear) : undefined);
+    push("CITATIONS", p.citations);
+    push("AUTHORS", p.paperAuthors?.length || undefined);
+  } else if (
+    p.source === "hackernews" ||
+    p.source === "reddit" ||
+    p.source === "lobsters" ||
+    p.source === "stackoverflow" ||
+    p.source === "devto"
+  ) {
+    push("UPVOTES", p.upvotes ?? p.stars);
+    push("COMMENTS", p.comments ?? p.commentsCount);
+    push("POSTED", p.createdAt ? formatRelativeShort(p.createdAt) : undefined, p.createdAt);
+  } else {
+    // Generic fallback for the remaining sources.
+    push("DOWNLOADS", p.downloads);
+    push("VERSION", p.version || undefined);
+    push("UPDATED", p.updatedAt ? formatRelativeShort(p.updatedAt) : undefined, p.updatedAt);
+    push("STARS", p.stars);
+  }
+  return out.slice(0, 5);
+}
+
+// Iter-20 / Overhaul F — quick-action row (expanded state only). Mono
+// ghost buttons that link out to common follow-ups. Source-aware: repos
+// get clone/issues/star-history; packages get registry pages, etc.
+//
+// Each action is { label, href, title? }. Caller renders as <a target="_blank">.
+// Empty list → row hides.
+export interface QuickAction {
+  label: string;
+  href: string;
+  title?: string;
+}
+
+export function quickActionsForProject(p: UnifiedProject): QuickAction[] {
+  const out: QuickAction[] = [];
+  const isRepo =
+    p.source === "github" || p.source === "gitlab" || p.source === "codeberg";
+
+  if (isRepo) {
+    if (p.source === "github") {
+      // GitHub-specific: issues page + star-history third-party tracker.
+      out.push({ label: "ISSUES", href: `${p.url}/issues`, title: "Open issues tab" });
+      out.push({
+        label: "STAR HISTORY",
+        href: `https://star-history.com/#${p.fullName}&Date`,
+        title: "Star growth chart on star-history.com",
+      });
+      if (p.homepage) {
+        out.push({ label: "HOMEPAGE", href: p.homepage, title: "Project homepage" });
+      }
+    } else {
+      out.push({ label: "ISSUES", href: `${p.url}/issues`, title: "Open issues tab" });
+      if (p.homepage) {
+        out.push({ label: "HOMEPAGE", href: p.homepage, title: "Project homepage" });
+      }
+    }
+  } else if (p.source === "npm") {
+    out.push({ label: "REGISTRY", href: p.url, title: "npm registry page" });
+    if (p.homepage) {
+      out.push({ label: "DOCS", href: p.homepage, title: "Project docs" });
+    }
+  } else if (
+    p.source === "pypi" ||
+    p.source === "crates" ||
+    p.source === "rubygems" ||
+    p.source === "packagist" ||
+    p.source === "nuget" ||
+    p.source === "jsr"
+  ) {
+    out.push({ label: "REGISTRY", href: p.url, title: "Registry page" });
+    if (p.homepage) {
+      out.push({ label: "DOCS", href: p.homepage, title: "Project docs" });
+    }
+  } else if (p.source === "arxiv" || p.source === "paperswithcode" || p.source === "zenodo") {
+    if (p.homepage) {
+      out.push({ label: "CODE", href: p.homepage, title: "Reference implementation" });
+    }
+  }
+  return out;
 }
 
 export function copyItemsForSource(p: UnifiedProject): CopyItem[] {

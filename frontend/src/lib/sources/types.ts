@@ -106,6 +106,29 @@ export interface UnifiedProject {
   // Birth date — used by popularityClass() to detect "new" / "trending"
   // (high stars in short window) vs "established" (long-running).
   createdAt?: string;
+
+  // --- Iteration 20 / Overhaul F: expanded-card preview-panel data. ---
+  // All optional. Adapters fill what they can; the card hides empty
+  // sections rather than showing placeholders. None of these trigger a
+  // mandatory upstream call — the card may also fetch some on-expand
+  // (e.g. readmeExcerpt for github) so the field can stay blank at first
+  // paint and populate when the user opens the panel.
+
+  // Recent releases — newest first. Currently unfilled by adapters; the
+  // expanded panel reserves space and hides the section if empty.
+  releases?: Array<{ version: string; date: string; url?: string }>;
+  // Top languages by percent. e.g. { "TypeScript": 64.2, "CSS": 21.0 }
+  languageBreakdown?: Record<string, number>;
+  // Plain-text README excerpt (markdown stripped). Filled lazily on
+  // expand for github/codeberg via lib/readme.ts; never blocks first
+  // paint of the card.
+  readmeExcerpt?: string;
+  // Top comments / answers (HN, Reddit, SO). Each carries body + author.
+  topComments?: Array<{ author: string; body: string; score?: number }>;
+  // Subscribers / followers / watchers — distinct from `watchers` which
+  // historically meant "GitHub stargazer pre-2012". Reserved for
+  // subreddit/community subscriber counts.
+  subscribersCount?: number;
 }
 
 export interface SearchResult {
