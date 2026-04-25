@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion"
 import { SearchBar } from "@/components/SearchBar";
 import { BrandMark } from "@/components/BrandMark";
 import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
+import { DetailDrawer } from "@/components/card/DetailDrawer";
 import { SourceFilter } from "@/components/SourceFilter";
 import { ResultsToolbar, SortMode, applyResultsView } from "@/components/ResultsToolbar";
 import { TrendingSection } from "@/components/TrendingSection";
@@ -175,6 +176,10 @@ export default function Home() {
   // throw a TypeError at runtime instead of dispatching a sonner toast.
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [sourceFilterOpen, setSourceFilterOpen] = useState(false);
+  // Iter-21 / Overhaul G — singleton detail drawer at the page level. Each
+  // card opens it for itself; the page owns the open project so only one
+  // panel is mounted regardless of grid size.
+  const [drawerProject, setDrawerProject] = useState<UnifiedProject | null>(null);
   const initialLoadDone = useRef(false);
   const searchRunIdRef = useRef(0);
   const resultsGridRef = useRef<HTMLDivElement | null>(null);
@@ -611,6 +616,13 @@ export default function Home() {
         {liveAnnouncement}
       </div>
       <ShortcutHelpModal />
+      {/* Iter-21 / Overhaul G — right-side detail drawer. Singleton at
+          page level; cards open it via the onOpenDetails prop. */}
+      <DetailDrawer
+        project={drawerProject}
+        open={!!drawerProject}
+        onClose={() => setDrawerProject(null)}
+      />
       {/* ⌘K command palette — global trigger; can be opened from
           anywhere via the COMMAND_PALETTE_OPEN_EVENT custom event. The
           floating "press ⌘K" chip in the sticky header dispatches it. */}
@@ -1107,7 +1119,8 @@ export default function Home() {
                           index={idx}
                           onToast={showToast}
                           onTopicClick={(topic) => handleSearch(topic)}
-                          outerClassName={`transition-shadow rounded-[18px] ${
+                          onOpenDetails={(p) => setDrawerProject(p)}
+                          outerClassName={`transition-shadow rounded-[22px] ${
                             focusedIdx === idx
                               ? "ring-2 ring-indigo-500/60 ring-offset-2 ring-offset-transparent"
                               : ""

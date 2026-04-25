@@ -84,3 +84,13 @@ export const modalSurface: Variants = {
   visible: { opacity: 1, scale: 1, y: 0, transition: springSoft },
   exit:    { opacity: 0, scale: 0.96, y: -6, transition: { duration: 0.16 } },
 };
+
+// Iter-21 / Overhaul G — right-side slide-in drawer (DetailDrawer).
+// Drawer mounts off-screen at x: 100% and slides to x: 0; backdrop fades
+// concurrently. Spotify macOS / Apple-adjacent springSoft so the surface
+// reads as confidently arriving rather than zipping in.
+export const drawerSurface: Variants = {
+  hidden:  { x: "100%", opacity: 0 },
+  visible: { x: 0, opacity: 1, transition: { ...springSoft, mass: 0.85 } },
+  exit:    { x: "100%", opacity: 0, transition: { duration: 0.26, ease: [0.32, 0.72, 0, 1] } },
+};
