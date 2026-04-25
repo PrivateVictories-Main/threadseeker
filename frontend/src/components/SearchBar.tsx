@@ -14,7 +14,25 @@ interface SearchBarProps {
   /** Optional external value binding so the sticky header stays in sync with the
    * hero query when the user transitions between modes. Not required. */
   initialValue?: string;
+  /**
+   * Active source count. When provided on the hero variant, drives the trailing
+   * mono indicator pill (e.g. `28 sources · ~80ms`). Decorative — no behavior.
+   */
+  sourceCount?: number;
 }
+
+// Overhaul B — rotating placeholders. The hero bar cycles through curated
+// queries every ~4s while unfocused so the bar reads as a "command surface"
+// inviting input rather than a static text field. The list is intentionally
+// short and ordered to surface different intent shapes (free-text, ecosystem,
+// concept).
+const HERO_PLACEHOLDERS = [
+  "Search 28 platforms…",
+  "Try `mcp server`",
+  "Try `react state management`",
+  "Try `local llm runtime`",
+  "Try `rust http framework`",
+];
 
 export function SearchBar({
   onSearch,
@@ -23,9 +41,12 @@ export function SearchBar({
   debounceMs = 350,
   size = "hero",
   initialValue = "",
+  sourceCount,
 }: SearchBarProps) {
   const [query, setQuery] = useState(initialValue);
   const [pulseKey, setPulseKey] = useState(0);
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Sync external value changes (mode switch, browser history, clear) back
@@ -67,9 +88,23 @@ export function SearchBar({
   }, []);
 
   const isCompact = size === "compact";
+
+  // Rotate the hero placeholder every ~4s while the bar is unfocused and
+  // empty. Pauses on focus / once the user has typed anything so it
+  // doesn't fight live input. Skipped on the compact variant entirely
+  // (sticky header has no room for marketing copy).
+  useEffect(() => {
+    if (isCompact) return;
+    if (focused || query.length > 0) return;
+    const handle = setInterval(() => {
+      setPlaceholderIdx((i) => (i + 1) % HERO_PLACEHOLDERS.length);
+    }, 4000);
+    return () => clearInterval(handle);
+  }, [isCompact, focused, query]);
+
   const placeholder = isCompact
     ? "Search open source…"
-    : "Search across 28 open source platforms…";
+    : HERO_PLACEHOLDERS[placeholderIdx];
   const iconSize = isCompact ? "w-4 h-4" : "w-5 h-5";
 
   return (
@@ -96,7 +131,21 @@ export function SearchBar({
             />
           )}
         </AnimatePresence>
-        <div className="relative pl-0.5">
+
+        {/* Leading command-hint pill — the long-standing `/` keyboard
+            shortcut surfaced visually as a system indicator. Only on the
+            hero variant; the compact bar is too tight. */}
+        {!isCompact && (
+          <span
+            className="ts-cmd-hint relative"
+            aria-hidden
+            title="Press / to focus search"
+          >
+            /
+          </span>
+        )}
+
+        <div className="relative pl-0.5 flex items-center">
           <Search className={`${iconSize} text-indigo-500/75`} aria-hidden />
         </div>
         <input
@@ -105,9 +154,11 @@ export function SearchBar({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => {
+            setFocused(true);
             if (isCompact) return;
             setPulseKey((k) => k + 1);
           }}
+          onBlur={() => setFocused(false)}
           placeholder={placeholder}
           aria-label="Search query"
           autoComplete="off"
@@ -127,6 +178,18 @@ export function SearchBar({
             <X className={isCompact ? "w-3.5 h-3.5" : "w-4 h-4"} aria-hidden />
           </button>
         )}
+
+        {/* Trailing mono meta — sources count + average timing. Hidden on
+            phone widths to keep the bar compact (the `/` hint already
+            anchors the left edge). */}
+        {!isCompact && typeof sourceCount === "number" && !query && (
+          <span className="ts-cmd-meta relative" aria-hidden>
+            <span>{sourceCount} sources</span>
+            <span className="ts-cmd-meta-dot" />
+            <span>~80ms</span>
+          </span>
+        )}
+
         <button
           type="submit"
           disabled={!query.trim() || isLoading}

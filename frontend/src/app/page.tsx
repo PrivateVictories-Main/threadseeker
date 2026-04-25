@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
 import { SearchBar } from "@/components/SearchBar";
+import { BrandMark } from "@/components/BrandMark";
 import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
 import { SourceFilter } from "@/components/SourceFilter";
 import { ResultsToolbar, SortMode, applyResultsView } from "@/components/ResultsToolbar";
@@ -608,15 +609,26 @@ export default function Home() {
               variants={modeVariants}
               className="px-4 sm:px-6"
             >
-              <div className="max-w-4xl mx-auto pt-16 sm:pt-24 lg:pt-28 pb-16">
-                <div className="text-center mb-12">
-                  <h1 className="text-balance text-[40px] xs:text-[44px] sm:text-6xl lg:text-7xl font-semibold tracking-tight text-slate-900 mb-6 leading-[1.04]">
-                    Search open source{" "}
-                    <span className="ts-hero-accent">everywhere</span>
+              {/* Brand mark — top-left of the page on hero only. Inline
+                  in the sticky results header below; here it gives the
+                  landing page the same anchor without competing with the
+                  centered headline. */}
+              <div className="max-w-[1280px] mx-auto pt-6 sm:pt-7 px-1">
+                <BrandMark variant="hero" />
+              </div>
+
+              <div className="max-w-4xl mx-auto pt-10 sm:pt-16 lg:pt-20 pb-16">
+                <div className="text-center mb-10">
+                  <span className="ts-hero-caption" aria-hidden>
+                    Open-Source Index
+                  </span>
+                  <h1 className="ts-hero-headline text-balance">
+                    Find what&apos;s worth{" "}
+                    <span className="ts-hero-accent">building on.</span>
                   </h1>
-                  <p className="text-[16px] sm:text-[17px] text-slate-500 max-w-xl mx-auto leading-relaxed">
-                    One query, {activeSources} platforms — repositories,
-                    packages, models, and community threads.
+                  <p className="mt-5 text-[15px] sm:text-[16px] text-slate-500 max-w-xl mx-auto leading-relaxed">
+                    One query across {activeSources} platforms — repositories,
+                    packages, models, and community threads. No accounts.
                   </p>
                 </div>
 
@@ -624,6 +636,7 @@ export default function Home() {
                   onSearch={handleSearch}
                   isLoading={isLoading}
                   size="hero"
+                  sourceCount={activeSources}
                   onDebouncedChange={(v) => {
                     const trimmed = v.trim();
                     if (!trimmed) return;
@@ -632,21 +645,43 @@ export default function Home() {
                   }}
                 />
 
-                {/* Try row — pill rhythm + arrow-slide hover that mirrors
-                    Recent below. Slightly softer chrome (bg-white/70 vs
-                    Recent's /80) keeps suggestions fainter than history.
-                    The label sits in its own non-shrinkable cluster so it
-                    doesn't get marooned across a wrap. */}
-                <div className="mt-6 flex flex-wrap justify-center items-center gap-x-2 gap-y-1.5">
-                  <span className="text-[11px] text-slate-400 uppercase tracking-[0.14em] font-semibold mr-1">
-                    Try
-                  </span>
+                {/* Stat strip — four monospace cells. Decorative trust
+                    signals at the top of the funnel: how many sources we
+                    cover, how big the index is, what to expect on speed,
+                    and the no-account promise. The middle two values are
+                    static placeholders — see overhaul-log iter 16. */}
+                <div className="ts-stat-strip" aria-label="ThreadSeeker stats">
+                  <div className="ts-stat-cell">
+                    <span className="ts-stat-label">Sources</span>
+                    <span className="ts-stat-value">{ALL_SOURCES.length}</span>
+                  </div>
+                  <div className="ts-stat-cell">
+                    <span className="ts-stat-label">Repos indexed</span>
+                    <span className="ts-stat-value">2.3M+</span>
+                  </div>
+                  <div className="ts-stat-cell">
+                    <span className="ts-stat-label">Avg search</span>
+                    <span className="ts-stat-value">~80ms</span>
+                  </div>
+                  <div className="ts-stat-cell">
+                    <span className="ts-stat-label">Accounts</span>
+                    <span className="ts-stat-value">0</span>
+                  </div>
+                </div>
+
+                {/* Curated try-row — keeps the same Apple-style pill chrome
+                    but the leading label is now monospace `// Try` so the
+                    cluster reads as a code-comment hint rather than a
+                    sans-serif "Try:" instruction. */}
+                <div className="mt-7 flex flex-wrap justify-center items-center gap-x-2 gap-y-1.5">
+                  <span className="ts-section-header mr-1">// Try</span>
                   {EXAMPLE_QUERIES.map((eq) => (
                     <button
                       key={eq}
                       onClick={() => handleSearch(eq)}
                       className="group inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-600 hover:text-indigo-700 bg-white/70 hover:bg-white border border-indigo-200/80 hover:border-indigo-300 rounded-full px-3 py-1.5 transition-all"
                     >
+                      <span className="font-mono text-indigo-400/70 text-[11px] mr-0.5" aria-hidden>›</span>
                       <span>{eq}</span>
                       <ArrowRight
                         className="w-3 h-3 text-indigo-400 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all"
@@ -656,16 +691,22 @@ export default function Home() {
                   ))}
                 </div>
 
-                {/* Source filter — restrained, under a small disclosure row */}
+                {/* Source filter — restrained, under a small disclosure row.
+                    Disclosure label is now monospace + uses `·` separators
+                    for technical density consistent with the rest of the hero. */}
                 <div className="mt-8 flex flex-col items-center gap-2">
                   <button
                     onClick={() => setSourceFilterOpen((v) => !v)}
-                    className="text-[11px] uppercase tracking-[0.14em] text-slate-400 hover:text-indigo-600 font-semibold transition-colors"
+                    className="ts-section-header hover:!text-indigo-600 transition-colors"
                     aria-expanded={sourceFilterOpen}
                   >
-                    {sourceFilterOpen
-                      ? `Hide sources`
-                      : `Sources · ${activeSources}/${ALL_SOURCES.length}`}
+                    {sourceFilterOpen ? (
+                      <>// Hide sources</>
+                    ) : (
+                      <>
+                        // Sources <strong>{activeSources}</strong>/{ALL_SOURCES.length}
+                      </>
+                    )}
                   </button>
                   {sourceFilterOpen && (
                     <SourceFilter
@@ -689,9 +730,9 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.32, ease: [0.22, 0.61, 0.36, 1] }}
                   >
-                    <div className="flex items-center justify-center gap-1.5 mb-4 text-[11px] uppercase tracking-[0.14em] text-slate-400 font-semibold">
+                    <div className="flex items-center justify-center gap-1.5 mb-4 ts-section-header">
                       <Clock className="w-3 h-3" aria-hidden />
-                      Recent
+                      // Recent
                       <button
                         onClick={() => {
                           setHistory([]);

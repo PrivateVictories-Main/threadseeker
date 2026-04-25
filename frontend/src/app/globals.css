@@ -994,6 +994,236 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   50% { background-position: 100% center; }
 }
 
+/* Overhaul B — brand mark + command-center hero typography.
+   Brand mark sits top-left of the page, monospace logotype with a small
+   accent dot. Stays visible on hero and inline in the sticky header so
+   the same typographic anchor follows the user from landing to results.
+   The version chip is intentionally inline-flex with tabular-nums so it
+   sits flush against the wordmark like a build identifier. */
+.ts-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ts-text);
+  text-decoration: none;
+  line-height: 1;
+}
+.ts-brand-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--ts-accent-gradient);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 1px 2px rgba(99, 102, 241, 0.30);
+}
+.ts-brand-name {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.ts-brand-name strong {
+  font-weight: 700;
+  color: var(--ts-text);
+}
+.ts-brand-version {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ts-text-faint);
+  border: 1px solid var(--ts-border-soft);
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: rgba(255, 255, 255, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hero command-center headline.
+   Two-line composition: a small monospace caption on top sets the
+   register ("OPEN-SOURCE INDEX") and the main headline below carries
+   the actual statement. Caption uses tracked uppercase mono; headline
+   uses a tighter font-weight (medium, not bold) so it reads decisive
+   rather than shouty — Linear / Vercel-grade aesthetic. */
+.ts-hero-caption {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--ts-accent-strong);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ts-hero-caption::before,
+.ts-hero-caption::after {
+  content: "";
+  width: 22px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.45), transparent);
+}
+.ts-hero-headline {
+  margin: 18px 0 0;
+  font-size: 44px;
+  line-height: 1.04;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: var(--ts-text);
+}
+@media (min-width: 400px) {
+  .ts-hero-headline { font-size: 52px; }
+}
+@media (min-width: 640px) {
+  .ts-hero-headline { font-size: 64px; line-height: 1.02; }
+}
+@media (min-width: 1024px) {
+  .ts-hero-headline { font-size: 72px; }
+}
+
+/* Stat strip — small monospace tiles below hero. Decorative trust signals
+   (28 sources, etc.). Mono uppercase labels, larger numeric value below.
+   Each tile is a transparent ghost cell separated by 1px indigo-soft
+   dividers so the row reads as a unified data strip rather than four
+   isolated pills. */
+.ts-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 28px;
+  background: rgba(99, 102, 241, 0.14);
+  border: 1px solid var(--ts-border-soft);
+  border-radius: var(--ts-radius-md);
+  overflow: hidden;
+}
+@media (min-width: 640px) {
+  .ts-stat-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.ts-stat-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.62);
+  text-align: left;
+}
+.ts-stat-label {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ts-text-faint);
+  line-height: 1;
+}
+.ts-stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ts-text);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mono section header — replaces plain "TRENDING" / "SAVED" sans labels.
+   Reads as a code-comment-style annotation, like "// TRENDING" in a dev
+   tool. The leading two slashes are part of the printed text (not a
+   pseudo-element) so screen readers receive the full label. */
+.ts-section-header {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ts-text-faint);
+}
+.ts-section-header strong {
+  color: var(--ts-accent-strong);
+  font-weight: 600;
+}
+
+/* Search bar command-surface accents. Leading "/" hint pill on the left
+   and trailing source/timing badge on the right both anchor the bar as
+   a command surface. Both use mono so they read as system metadata
+   rather than content. The "/" is the long-standing keyboard-focus
+   shortcut; the badge counts active sources + a static average timing. */
+.ts-cmd-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  min-width: 26px;
+  padding: 0 8px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ts-text-subtle);
+  background: rgba(99, 102, 241, 0.10);
+  border: 1px solid var(--ts-border-soft);
+  border-radius: 6px;
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+.ts-cmd-meta {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 4px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ts-text-subtle);
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .ts-cmd-meta { display: inline-flex; }
+}
+.ts-cmd-meta-dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ts-text-faint);
+}
+
+/* Indeterminate sticky progress bar — when source count keeps the bar
+   honest at <100% but we want to communicate "still working", swap to a
+   left-to-right looping shimmer. Uses the same gradient palette as the
+   determinate variant. */
+.ts-sticky-progress.indeterminate { overflow: hidden; }
+.ts-sticky-progress.indeterminate > span {
+  width: 30%;
+  animation: ts-sticky-progress-loop 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transition: none;
+}
+@keyframes ts-sticky-progress-loop {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(440%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ts-sticky-progress.indeterminate > span {
+    animation: none;
+    transform: none;
+    width: 100%;
+    opacity: 0.55;
+  }
+}
+
 /* Sticky results-mode progress bar — thin animated gradient under the
    sticky header, full-width of the header. */
 .ts-sticky-progress {
