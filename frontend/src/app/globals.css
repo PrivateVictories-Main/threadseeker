@@ -487,14 +487,19 @@ button.topic-chip-interactive {
    Color per source keeps the grid scannable at a glance. */
 .ts-source {
   display: inline-flex; align-items: center;
-  font-size: 11px; font-weight: 600;
-  padding: 3px 8px; border-radius: var(--ts-radius-full);
+  /* Overhaul B — mono source badge. Reads as a label tag (e.g. `[NPM]`,
+     `[GITHUB]`) rather than sans-serif content. Tight uppercase letter-
+     spacing keeps the per-source color palette legible. */
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px; border-radius: 6px;
   background: rgba(99,102,241,0.10);
   color: var(--ts-accent-strong);
   border: 1px solid rgba(99,102,241,0.20);
   line-height: 1;
   white-space: nowrap;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.06em;
 }
 .ts-source-github       { color: #1f2937; background: rgba(31,41,55,0.08);  border-color: rgba(31,41,55,0.18); }
 .ts-source-huggingface  { color: #b45309; background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.25); }
@@ -590,10 +595,13 @@ button.topic-chip-interactive {
   min-width: 0;
 }
 .ts-metric-label {
+  /* Overhaul B — mono tracked label so the label/value contrast reads as
+     metric:value (technical) rather than just a small caption. */
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   color: var(--ts-text-faint);
   line-height: 1;
 }
@@ -613,15 +621,19 @@ button.topic-chip-interactive {
 }
 
 /* Iter-15 — "why is this popular" badge. Top-right slot of the card,
-   adjacent to the bookmark button. Indigo-violet–rose–amber palette only. */
+   adjacent to the bookmark button. Indigo-violet–rose–amber palette only.
+   Overhaul B: mono so it reads as a status flag (HOT, TRENDING) rather
+   than a generic uppercase label — visually paired with the metric-grid
+   labels and toolbar mono micro-text. */
 .ts-pop-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 10.5px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.10em;
   padding: 4px 8px;
   border-radius: var(--ts-radius-full);
   line-height: 1;
