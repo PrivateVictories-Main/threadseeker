@@ -7,6 +7,7 @@ import {
   popularityClassLabel,
   formatRelativeShort,
   metricsForProject,
+  cardStatRow,
 } from "./helpers";
 import type { UnifiedProject } from "@/lib/sources/types";
 import type { SourceType } from "@/lib/sources/types";
@@ -303,5 +304,100 @@ describe("metricsForProject", () => {
       watchers: 50,
     });
     expect(metricsForProject(p).length).toBeLessThanOrEqual(3);
+  });
+});
+
+describe("cardStatRow (Iter-21 / Overhaul G unified single-row stat strip)", () => {
+  it("github cards return star + fork + updated + license segments", () => {
+    const p = makeProject({
+      source: "github",
+      stars: 41500,
+      forks: 2300,
+      license: "MIT",
+      updatedAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+    });
+    const segs = cardStatRow(p);
+    const icons = segs.map((s) => s.icon);
+    expect(icons).toContain("★");
+    expect(icons).toContain("⑂");
+    expect(icons).toContain("◷");
+    expect(icons).toContain("☉");
+    // value formats — stars use formatCount → "41.5k"
+    expect(segs.find((s) => s.icon === "★")?.value).toBe("41.5k");
+  });
+
+  it("npm cards return downloads/wk + version + published + license segments", () => {
+    const p = makeProject({
+      source: "npm",
+      weeklyDownloads: 2_100_000,
+      version: "4.2.1",
+      lastPublished: new Date(Date.now() - 5 * 86_400_000).toISOString(),
+      license: "Apache-2.0",
+    });
+    const segs = cardStatRow(p);
+    expect(segs.find((s) => s.icon === "↓")?.value).toMatch(/\/wk$/);
+    expect(segs.find((s) => s.icon === "ⓥ")?.value).toBe("v4.2.1");
+    expect(segs.find((s) => s.icon === "☉")?.value).toBe("Apache-2.0");
+  });
+
+  it("HF cards return downloads + likes (not stars) + license", () => {
+    const p = makeProject({
+      source: "huggingface",
+      downloads: 12_400_000,
+      upvotes: 234,
+      license: "Apache-2.0",
+    });
+    const segs = cardStatRow(p);
+    expect(segs.find((s) => s.icon === "↓")?.value).toBe("12.4M");
+    expect(segs.find((s) => s.icon === "♥")?.value).toBe("234");
+  });
+
+  it("paper cards return citations + year + authors", () => {
+    const p = makeProject({
+      source: "arxiv",
+      citations: 142,
+      paperYear: 2024,
+      paperAuthors: ["A", "B", "C", "D"],
+    });
+    const segs = cardStatRow(p);
+    expect(segs.find((s) => s.icon === "ⓘ")?.value).toMatch(/142/);
+    expect(segs.find((s) => s.icon === "◷")?.value).toBe("2024");
+    expect(segs.find((s) => s.icon === "✎")?.value).toBe("4 authors");
+  });
+
+  it("thread cards return upvotes + comments + posted", () => {
+    const p = makeProject({
+      source: "hackernews",
+      upvotes: 234,
+      comments: 89,
+      createdAt: new Date(Date.now() - 2 * 3_600_000).toISOString(),
+    });
+    const segs = cardStatRow(p);
+    expect(segs.find((s) => s.icon === "▲")?.value).toBe("234");
+    expect(segs.find((s) => s.icon === "💬")?.value).toBe("89");
+    expect(segs.find((s) => s.icon === "◷")?.value).toMatch(/^posted /);
+  });
+
+  it("drops empty segments — sparse cards return short rows", () => {
+    const p = makeProject({
+      source: "github",
+      stars: 0,
+      forks: 0,
+      license: null,
+      updatedAt: "",
+    });
+    const segs = cardStatRow(p);
+    // Nothing real to surface
+    expect(segs.length).toBe(0);
+  });
+
+  it("license-Unknown drops the license segment instead of rendering 'Unknown'", () => {
+    const p = makeProject({
+      source: "github",
+      stars: 100,
+      license: "",
+    });
+    const segs = cardStatRow(p);
+    expect(segs.some((s) => s.icon === "☉")).toBe(false);
   });
 });
