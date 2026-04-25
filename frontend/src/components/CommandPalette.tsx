@@ -40,7 +40,7 @@ import {
   ArrowRight,
   type LucideIcon,
 } from "lucide-react";
-import { springSoft } from "@/lib/motion";
+import { modalBackdrop, modalSurface } from "@/lib/motion";
 import { SHORTCUT_HELP_EVENT } from "@/components/ShortcutHelpModal";
 import { getBookmarks, type StoredBookmark } from "@/lib/bookmarks";
 import { getSourceConfig, type SourceType } from "@/lib/sources";
@@ -395,22 +395,24 @@ export function CommandPalette({
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[60] flex items-start justify-center bg-indigo-950/45 backdrop-blur-sm p-4 pt-[12vh]"
+          className="fixed inset-0 z-[60] flex items-start justify-center bg-indigo-950/45 backdrop-blur-md p-4 pt-[12vh]"
           onClick={() => setOpen(false)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="command-palette-title"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
-          exit={{ opacity: 0, transition: { duration: 0.14, ease: [0.32, 0.72, 0, 1] } }}
+          variants={modalBackdrop}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
         >
           <motion.div
             onClick={(e) => e.stopPropagation()}
             className="glass-strong w-full max-w-2xl rounded-[18px] overflow-hidden flex flex-col shadow-2xl"
             style={{ maxHeight: "min(70vh, 560px)" }}
-            initial={{ opacity: 0, scale: 0.96, y: -6 }}
-            animate={{ opacity: 1, scale: 1, y: 0, transition: springSoft }}
-            exit={{ opacity: 0, scale: 0.96, y: -4, transition: { duration: 0.14 } }}
+            variants={modalSurface}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
           >
             <h2 id="command-palette-title" className="sr-only">
               Command palette

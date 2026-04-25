@@ -821,6 +821,15 @@ export default function Home() {
                 className="sticky top-0 z-20 glass-sticky"
                 aria-label="Search and refine results"
                 style={{ ["--ts-sticky-shadow-opacity" as string]: stickyShadowOpacity }}
+                /* Overhaul D — sticky header floats down from the top on
+                   mode-transition. opacity 0→1, y -16→0. springSoft so it
+                   harmonizes with the rest of the result-mode entry. */
+                initial={{ opacity: 0, y: -16 }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  transition: { type: "spring", stiffness: 190, damping: 24, mass: 0.9, delay: 0.05 },
+                }}
               >
                 <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
                   {/* Brand mark — anchors the left edge of the sticky

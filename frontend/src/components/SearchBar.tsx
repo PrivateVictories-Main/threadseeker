@@ -134,15 +134,29 @@ export function SearchBar({
 
         {/* Leading command-hint pill — the long-standing `/` keyboard
             shortcut surfaced visually as a system indicator. Only on the
-            hero variant; the compact bar is too tight. */}
+            hero variant; the compact bar is too tight. Overhaul D — the
+            chip subtly scales + shifts indigo when the bar is focused so
+            the leading edge of the search reads as "alive" alongside
+            the existing radial focus pulse. */}
         {!isCompact && (
-          <span
+          <motion.span
             className="ts-cmd-hint relative"
             aria-hidden
             title="Press / to focus search"
+            animate={{
+              scale: focused ? 1.06 : 1,
+              backgroundColor: focused
+                ? "rgba(99, 102, 241, 0.18)"
+                : "rgba(99, 102, 241, 0.10)",
+              borderColor: focused
+                ? "rgba(99, 102, 241, 0.32)"
+                : "rgba(99, 102, 241, 0.14)",
+              color: focused ? "#4f46e5" : "var(--ts-text-subtle)",
+            }}
+            transition={{ type: "spring", stiffness: 360, damping: 24 }}
           >
             /
-          </span>
+          </motion.span>
         )}
 
         <div className="relative pl-0.5 flex items-center">
