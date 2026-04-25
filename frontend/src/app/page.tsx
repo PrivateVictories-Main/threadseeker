@@ -10,6 +10,9 @@ import { SourceFilter } from "@/components/SourceFilter";
 import { ResultsToolbar, SortMode, applyResultsView } from "@/components/ResultsToolbar";
 import { TrendingSection } from "@/components/TrendingSection";
 import { SavedSection } from "@/components/SavedSection";
+import { CategoryNav, CATEGORY_DEFS, type CategoryKey } from "@/components/CategoryNav";
+import { StatTiles } from "@/components/StatTiles";
+import { FeaturedProjects } from "@/components/FeaturedProjects";
 import { DirectJumps } from "@/components/DirectJumps";
 import { CardSkeleton } from "@/components/CardSkeleton";
 import { ShortcutHelpModal, ShortcutHelpButton } from "@/components/ShortcutHelpModal";
@@ -176,6 +179,12 @@ export default function Home() {
   // throw a TypeError at runtime instead of dispatching a sonner toast.
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [sourceFilterOpen, setSourceFilterOpen] = useState(false);
+  // Iter-22 / Overhaul H — Track 1: active category pill on the landing nav.
+  // "all" is the default (every source selected); switching to a category
+  // narrows selectedSources to that category's source list. The pill is
+  // visual-only on results mode (the active category derives from the
+  // current selectedSources, but we keep the user's explicit pick).
+  const [activeCategory, setActiveCategory] = useState<CategoryKey>("all");
   // Iter-21 / Overhaul G — singleton detail drawer at the page level. Each
   // card opens it for itself; the page owns the open project so only one
   // panel is mounted regardless of grid size.
@@ -483,6 +492,26 @@ export default function Home() {
     setTimeout(() => setToastMessage(null), 1500);
   }, []);
 
+  // Iter-22 / Overhaul H — Track 1: clicking a category pill narrows the
+  // active source set to that category. "All" resets to every source.
+  // The narrowed selection is what gets passed to handleSearch when the
+  // user submits a query, so the category is sticky across searches.
+  const handleCategoryChange = useCallback((key: CategoryKey) => {
+    setActiveCategory(key);
+    const def = CATEGORY_DEFS.find((c) => c.key === key);
+    if (!def) return;
+    if (def.sources === "all") {
+      setSelectedSources(ALL_SOURCES);
+    } else {
+      // Intersect requested sources with our master ALL_SOURCES list to
+      // guarantee no stray entries leak in if registry shifts.
+      const next = def.sources.filter((s): s is SourceType =>
+        (ALL_SOURCES as string[]).includes(s),
+      );
+      if (next.length > 0) setSelectedSources(next);
+    }
+  }, []);
+
   const handleSourceToggle = (source: SourceType) => {
     setSelectedSources((prev) => {
       const next = prev.includes(source)
@@ -661,62 +690,69 @@ export default function Home() {
               </div>
 
               <div className="max-w-4xl mx-auto pt-10 sm:pt-16 lg:pt-20 pb-16">
-                {/* Overhaul D — rhythm scale conformance: mb-10 (40) → mb-12
-                    (48) so the headline cluster has the generous breathing
-                    room appropriate for a hero. mt-5 (20) → mt-6 (24) on
-                    the subtitle. */}
-                <div className="text-center mb-12">
-                  <span className="ts-hero-caption" aria-hidden>
-                    Open-Source Index
-                  </span>
-                  <h1 className="ts-hero-headline text-balance">
-                    Find what&apos;s worth{" "}
-                    <span className="ts-hero-accent">building on.</span>
-                  </h1>
-                  <p className="mt-6 text-[15px] sm:text-[16px] text-slate-600 max-w-xl mx-auto leading-relaxed">
-                    One query across {activeSources} platforms — repositories,
-                    packages, models, and community threads. No accounts.
-                  </p>
+                {/* Iter-22 / Overhaul H — hero stage wraps the headline,
+                    search bar, category nav, and stat tiles. The stage's
+                    decorative blobs (ts-hero-blob) and 1px grid overlay
+                    (ts-hero-grid) sit at z=-1 so the content above
+                    catches the soft light without intercepting clicks. */}
+                <div className="ts-hero-stage">
+                  <div className="ts-hero-grid" aria-hidden />
+                  <div className="ts-hero-blob is-tr" aria-hidden />
+                  <div className="ts-hero-blob is-bl" aria-hidden />
+                  <div className="ts-hero-blob is-tl" aria-hidden />
+
+                  {/* Overhaul D — rhythm scale conformance: mb-10 (40) → mb-12
+                      (48) so the headline cluster has the generous breathing
+                      room appropriate for a hero. mt-5 (20) → mt-6 (24) on
+                      the subtitle. */}
+                  <div className="text-center mb-12">
+                    <span className="ts-hero-caption" aria-hidden>
+                      Open-Source Index
+                    </span>
+                    <h1 className="ts-hero-headline text-balance">
+                      Find what&apos;s worth{" "}
+                      <span className="ts-hero-accent">building on.</span>
+                    </h1>
+                    <p className="mt-6 text-[15px] sm:text-[16px] text-slate-600 max-w-xl mx-auto leading-relaxed">
+                      One query across {activeSources} platforms — repositories,
+                      packages, models, and community threads. No accounts.
+                    </p>
+                  </div>
+
+                  <SearchBar
+                    onSearch={handleSearch}
+                    isLoading={isLoading}
+                    size="hero"
+                    sourceCount={activeSources}
+                    onDebouncedChange={(v) => {
+                      const trimmed = v.trim();
+                      if (!trimmed) return;
+                      if (trimmed === lastSubmittedRef.current) return;
+                      handleSearch(trimmed);
+                    }}
+                  />
+
+                  {/* Iter-22 / Overhaul H — Track 1: HF-style category nav. */}
+                  <CategoryNav
+                    activeKey={activeCategory}
+                    onChange={handleCategoryChange}
+                  />
+
+                  {/* Iter-22 / Overhaul H — Track 3: glass tile rework
+                      replacing the old flat ts-stat-strip. Four tinted
+                      tiles, each with an icon + value + label. */}
+                  <StatTiles sourceCount={ALL_SOURCES.length} />
                 </div>
 
-                <SearchBar
-                  onSearch={handleSearch}
-                  isLoading={isLoading}
-                  size="hero"
-                  sourceCount={activeSources}
-                  onDebouncedChange={(v) => {
-                    const trimmed = v.trim();
-                    if (!trimmed) return;
-                    if (trimmed === lastSubmittedRef.current) return;
-                    handleSearch(trimmed);
-                  }}
+                {/* Iter-22 / Overhaul H — Track 2: featured projects row,
+                    the headline visible change. 3 curated repos visible
+                    immediately on landing. Reuses UnifiedProjectCard so
+                    the design vocabulary stays consistent. */}
+                <FeaturedProjects
+                  onTopicClick={(t) => handleSearch(t)}
+                  onOpenDetails={(p) => setDrawerProject(p)}
+                  onToast={showToast}
                 />
-
-                {/* Stat strip — four monospace cells. Iter-19 — replaced
-                    the two fake metric placeholders ("2.3M+", "~80ms")
-                    with honest text values. Fake numbers on a polished
-                    app read worse than honest copy. The four cells now
-                    each carry a real, verifiable promise: 28 sources,
-                    no paid APIs (we only use free tiers), no account
-                    requirement, fully local (no telemetry). */}
-                <div className="ts-stat-strip" aria-label="ThreadSeeker stats">
-                  <div className="ts-stat-cell">
-                    <span className="ts-stat-label">Sources</span>
-                    <span className="ts-stat-value">{ALL_SOURCES.length}</span>
-                  </div>
-                  <div className="ts-stat-cell">
-                    <span className="ts-stat-label">Paid APIs</span>
-                    <span className="ts-stat-value">0</span>
-                  </div>
-                  <div className="ts-stat-cell">
-                    <span className="ts-stat-label">Accounts</span>
-                    <span className="ts-stat-value">0</span>
-                  </div>
-                  <div className="ts-stat-cell">
-                    <span className="ts-stat-label">Tracking</span>
-                    <span className="ts-stat-value">None</span>
-                  </div>
-                </div>
 
                 {/* Curated try-row — keeps the same Apple-style pill chrome
                     but the leading label is now monospace `// Try` so the

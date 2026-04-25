@@ -1862,6 +1862,330 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   }
 }
 
+/* ---------------------------------------------------------------------
+ * Iter-22 / Overhaul H — Category navigation strip (Track 1)
+ *
+ * Horizontal pill row that filters the search to a content category
+ * (Repos / Packages / AI Models / Papers / Threads / All). Glass-strong
+ * pill rail wrapping six chips. Active chip carries the indigo
+ * gradient + soft glow; inactive chips are ghost-glass with mono caps.
+ * --------------------------------------------------------------------- */
+.ts-category-nav {
+  margin-top: 28px;
+  display: flex;
+  justify-content: center;
+}
+.ts-category-nav-inner {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--ts-border-soft);
+  border-radius: var(--ts-radius-full);
+  backdrop-filter: blur(var(--ts-blur)) saturate(190%);
+  -webkit-backdrop-filter: blur(var(--ts-blur)) saturate(190%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 4px 16px rgba(30, 27, 75, 0.06),
+    0 12px 28px rgba(30, 27, 75, 0.05);
+  max-width: 100%;
+}
+.ts-category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: var(--ts-radius-full);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--ts-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  white-space: nowrap;
+}
+@media (hover: hover) {
+  .ts-category-pill:hover:not(.is-active) {
+    background: rgba(99, 102, 241, 0.10);
+    color: var(--ts-accent-strong);
+    border-color: rgba(99, 102, 241, 0.18);
+  }
+}
+.ts-category-pill.is-active {
+  background: var(--ts-accent-gradient);
+  color: #ffffff;
+  border-color: rgba(99, 102, 241, 0.50);
+  box-shadow:
+    0 4px 12px rgba(99, 102, 241, 0.32),
+    0 8px 24px rgba(139, 92, 246, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.30);
+}
+.ts-category-pill.is-active svg {
+  color: #ffffff;
+}
+@media (min-width: 640px) {
+  .ts-category-pill {
+    height: 40px;
+    padding: 0 16px;
+    font-size: 11.5px;
+  }
+}
+
+/* ---------------------------------------------------------------------
+ * Iter-22 / Overhaul H — Stat tile rework (Track 3)
+ *
+ * Replaces the flat 4-cell ts-stat-strip with four glass tiles, each
+ * with a colored icon, a numeric value, and a tracked mono label.
+ * Tiles read as four distinct visual elements rather than a unified
+ * data row — closer to a marketing trust strip than a code readout.
+ * --------------------------------------------------------------------- */
+.ts-stat-tiles {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .ts-stat-tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+.ts-stat-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 18px;
+  background: var(--ts-surface);
+  border: 1px solid var(--ts-border-soft);
+  border-radius: 22px;
+  backdrop-filter: blur(var(--ts-blur)) saturate(190%);
+  -webkit-backdrop-filter: blur(var(--ts-blur)) saturate(190%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 4px 12px rgba(30, 27, 75, 0.05),
+    0 10px 22px rgba(30, 27, 75, 0.04);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  overflow: hidden;
+}
+.ts-stat-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ts-tile-tint, transparent);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 0;
+}
+.ts-stat-tile > * {
+  position: relative;
+  z-index: 1;
+}
+@media (hover: hover) {
+  .ts-stat-tile:hover {
+    transform: translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.28);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      0 8px 18px rgba(30, 27, 75, 0.07),
+      0 16px 32px rgba(30, 27, 75, 0.06);
+  }
+}
+.ts-stat-tile-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--ts-tile-icon-bg, rgba(99, 102, 241, 0.14));
+  color: var(--ts-tile-icon-color, var(--ts-accent-strong));
+  flex-shrink: 0;
+}
+.ts-stat-tile-value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ts-text);
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 640px) {
+  .ts-stat-tile-value {
+    font-size: 24px;
+  }
+}
+.ts-stat-tile-label {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ts-text-subtle);
+  line-height: 1;
+}
+.ts-stat-tile-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Stat-tile color variants — tint colours sit at very low alpha so
+   the tile still reads as glass; the icon background carries the
+   stronger version of the same hue. */
+.ts-stat-tile[data-tone="indigo"] {
+  --ts-tile-tint: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0.04));
+  --ts-tile-icon-bg: rgba(99, 102, 241, 0.18);
+  --ts-tile-icon-color: #4f46e5;
+}
+.ts-stat-tile[data-tone="emerald"] {
+  --ts-tile-tint: linear-gradient(135deg, rgba(16, 185, 129, 0.10), rgba(16, 185, 129, 0.04));
+  --ts-tile-icon-bg: rgba(16, 185, 129, 0.18);
+  --ts-tile-icon-color: #047857;
+}
+.ts-stat-tile[data-tone="violet"] {
+  --ts-tile-tint: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(139, 92, 246, 0.04));
+  --ts-tile-icon-bg: rgba(139, 92, 246, 0.18);
+  --ts-tile-icon-color: #6d28d9;
+}
+.ts-stat-tile[data-tone="amber"] {
+  --ts-tile-tint: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.04));
+  --ts-tile-icon-bg: rgba(245, 158, 11, 0.20);
+  --ts-tile-icon-color: #b45309;
+}
+
+/* ---------------------------------------------------------------------
+ * Iter-22 / Overhaul H — Featured Projects row (Track 2)
+ *
+ * Curated 3-card row of known-good projects, sits directly below the
+ * hero. Reuses UnifiedProjectCard for the cards themselves; the
+ * ts-featured-* classes wrap the section + skeletons + view-all link.
+ * --------------------------------------------------------------------- */
+.ts-featured {
+  margin-top: 48px;
+}
+.ts-featured-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+.ts-featured-link {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--ts-text-subtle);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.22s ease;
+}
+@media (hover: hover) {
+  .ts-featured-link:hover {
+    color: var(--ts-accent-strong);
+  }
+}
+.ts-featured-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 768px) {
+  .ts-featured-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .ts-featured-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+  }
+}
+
+/* ---------------------------------------------------------------------
+ * Iter-22 / Overhaul H — Hero decorative blobs + grid overlay (Track 4)
+ *
+ * Two large blurred radial blobs floating behind the hero, plus a
+ * subtle 1px grid overlay. The blobs sit in the hero only (not body-
+ * wide like the depth radials) so they don't follow the user as they
+ * scroll past the fold.
+ * --------------------------------------------------------------------- */
+.ts-hero-stage {
+  position: relative;
+  isolation: isolate;
+}
+.ts-hero-blob {
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(80px);
+  border-radius: 50%;
+  opacity: 0.48;
+}
+.ts-hero-blob.is-tr {
+  top: -20px;
+  right: -60px;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.85) 0%, rgba(99, 102, 241, 0.0) 70%);
+}
+.ts-hero-blob.is-bl {
+  bottom: -40px;
+  left: -50px;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.70) 0%, rgba(139, 92, 246, 0.0) 70%);
+  opacity: 0.36;
+}
+.ts-hero-blob.is-tl {
+  top: 80px;
+  left: -80px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.55) 0%, rgba(168, 85, 247, 0.0) 70%);
+  opacity: 0.28;
+}
+.ts-hero-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.07) 1px, transparent 1px);
+  background-size: 40px 40px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 70%);
+          mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 70%);
+}
+
+/* Section divider — 1px gradient hairline used between landing
+   sections for breathing-room cues. Renders as a horizontal fade
+   (transparent → indigo-soft → transparent). */
+.ts-section-divider {
+  height: 1px;
+  margin: 32px auto;
+  max-width: 480px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(99, 102, 241, 0.22) 50%,
+    transparent
+  );
+}
+
 /* Mono section header — replaces plain "TRENDING" / "SAVED" sans labels.
    Reads as a code-comment-style annotation, like "// TRENDING" in a dev
    tool. The leading two slashes are part of the printed text (not a
