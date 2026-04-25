@@ -683,3 +683,181 @@ The polish track is approaching declared-shipped status. Remaining items are all
 - **iPad-landscape 3-col density at 1024.** Cards ~315 wide which is on the tight side. Could keep 2-col through xl:1280 and bump 3-col only at xl. Design judgment call; left as-is.
 
 **Iter-15 prompt:** the realistic next move is "declare shipped" — close out the overnight polish run and let the remaining defer-class items sit until someone reports actual UX regression. If iter 15 *does* run, the highest-value targets are real-browser cross-device QA (Toast + intent-hue + print + close-button on Safari/Firefox/iOS Safari on a 120Hz device) and the touch-aware tagline disambiguation, both of which need a user device + manual eyes rather than another close-reading pass.
+
+---
+
+## Iteration 15 — Major Overhaul A (info-density card rebuild)
+
+User feedback after viewing the live local build: "The cards just do not
+look good at all. I want it to be more futuristic, more meta, more clean
+looking… every single card should look very very professional with all
+the information provided… it's kind of like a complete overhaul to be
+honest." Tracks 1-3 below tackle the three pieces of that feedback —
+data density, comprehensive metadata, and first-paint feel.
+
+### TRACK 1 — Card info-density rebuild (commit 642fc50)
+
+Replaced the iter-14 sparse card (source / title / desc / 4-pill row /
+2-button row, 340px min-height) with a comprehensive 7-section card at
+380px min-height:
+
+  1. Top row     — SourceBadge · **PopularityBadge** · Bookmark
+  2. Title row   — 44px avatar (was 36) + 19px title (was 17) + version chip + subline
+  3. Description — 3-line clamp (was 2)
+  4. **Metric grid** — 3 source-aware cells (Stars/Forks/Issues for repos,
+                       Downloads/Version/Published for packages, Upvotes/
+                       Comments/Posted for threads, Year/Authors for papers)
+  5. Topics row  — up to 4 chips (was 3)
+  6. **Footer row** — activity-pulse dot + relative time (left), language +
+                      license pills (right)
+  7. Action row  — full-width primary CTA + ghost copy (60/40 split, h-40)
+
+New components shipped under `frontend/src/components/card/`:
+  - `CardMetricGrid.tsx` — 3-cell grid renderer with empty-cell drop
+  - `PopularityBadge.tsx` — Hot / Trending / Rising / New / Established
+
+Visual refinements:
+  - **Inset specular sheen** on top edge (`inset 0 1px 0 rgba(255,255,255,0.6)`)
+    that mimics how physical glass picks up light at its top edge — reads
+    differently from the previous flat layered shadow
+  - Hover lift `translateY(-4)` → `-6`, deeper shadow + new ambient indigo
+    glow underneath (`0 32px 60px -20px rgba(99,102,241,0.18)`)
+  - Action buttons `h-36` → `h-40` with explicit 60/40 flex split
+  - Activity dot pulses green for active maintenance, amber for recent,
+    static slate/red for stale/abandoned (reduced-motion users get static)
+  - Topic count 3 → 4 (more category surface)
+  - Description 13.5px → 14px / line-height stays 1.55
+
+### TRACK 2 — Adapter enrichment + popularityClass (commit 593bd82)
+
+Extended `UnifiedProject` type with optional rich-metric fields so the
+new card has data to display:
+
+```
+forks?, openIssues?, watchers?,            // repo hosts
+weeklyDownloads?, lastPublished?,           // package registries
+contributors?, commitsLastMonth?,           // repo activity (deferred fill)
+citations?, paperYear?, paperAuthors?,      // papers
+upvotes?, comments?,                        // threads (explicit aliases)
+createdAt?,                                 // drives popularityClass
+```
+
+Adapters enriched (no new requests — fields filled from existing API
+responses):
+  - `searchGitHub` — `forks_count`, `open_issues_count`, `watchers_count`, `created_at`
+  - `searchGitLab` — `forks_count`, `open_issues_count`, `created_at`
+  - `searchCodeberg` — `forks_count`, `open_issues_count`, `created_at`
+  - `searchHuggingFace` — explicit `upvotes` alias, `createdAt`
+  - `searchNpm` — `weeklyDownloads`, `lastPublished`
+  - `searchPyPI` — real `upload_time_iso_8601` for `updatedAt` + `lastPublished`
+  - `searchCrates` / `searchRubyGems` — `lastPublished`, `createdAt`
+  - `searchHackerNews` / `searchReddit` (api-client) / `searchLobsters` /
+    `searchStackOverflow` / `searchDevTo` — explicit `upvotes`/`comments`/`createdAt`
+  - `searchArxiv` / `searchPapersWithCode` — `paperYear`, `paperAuthors`
+
+`card/helpers.ts` gained:
+  - `popularityClass(project)` — returns `hot|trending|rising|established|new|null`
+    with rule order: hot supersedes trending supersedes rising; established
+    needs >10k stars + >3y; new is the catch-all <60d band
+  - `popularityClassLabel(cls)` — human label for the badge
+  - `formatRelativeShort(iso)` — compact relative for metric grid
+    ("today", "3d", "5w", "2y")
+  - `metricsForProject(project)` — per-source 3-cell projection that
+    drives `<CardMetricGrid />`. Drops empty cells at the data layer so
+    sparse adapters render 1-2 cells rather than padding with "—"
+
+22 new tests covering popularityClass (5 classes + null cases), labels,
+formatRelativeShort, and metricsForProject (per-source projection +
+3-cell cap + empty-drop). Test count 59 → 81.
+
+### TRACK 3 — First-paint flicker fix (commit 90c6d79)
+
+User: "as soon as I went to local, some things didn't load… I had to
+refresh the page with everything loaded in."
+
+**Diagnosis:** not a network bug. Three pieces of post-hydration state
+read from localStorage / sessionStorage in plain useEffect, which fires
+one frame AFTER the browser's first paint. Returning visitors with
+warm caches saw an empty section flash before the cached content
+snapped in.
+
+**Fix:** convert the cache-warm reads to `useLayoutEffect` so they run
+synchronously before the first paint commits. The fix is purely about
+the cached / URL-driven paths — fetches that genuinely take time still
+take however long they take.
+
+  - **page.tsx** — `?q=` URL parsing + auto-search now flips
+    `hasSearched=true` before paint, so a `/?q=react` deep-link goes
+    straight to "Searching N sources" with the skeleton grid instead of
+    flashing the hero for a frame
+  - **TrendingSection** — layout-effect reads sessionStorage cache
+    (the 30-min warm cache); the network fetch effect still owns
+    first-visit + retry paths
+  - **SavedSection** — layout-effect reads bookmarks; the
+    change-subscription effect still owns live updates
+
+Each is guarded by `typeof window` to skip on SSR. No fetches in any
+layout-effect — those stay in useEffect.
+
+### TRACK ALSO — CardSkeleton geometry alignment (commit 89ee011)
+
+Updated `CardSkeleton` to mirror the new card structure: 44px avatar,
+metric-grid placeholder rows, h-40 action buttons. Without this update
+the loading skeleton was shorter than the real card and the grid would
+reflow vertically when results landed. `Shimmer` gained an optional
+`style` prop for inline width/height since the metric-grid cells need
+custom dimensions.
+
+### Numbers
+
+- **Tests:** 59 → 81 (+22 covering popularityClass, formatRelativeShort,
+  metricsForProject). All 81 passing.
+- **TS:** `tsc --noEmit` clean.
+- **Build:** clean. Page bundle 88.1 → 89.6 kB (+1.5 kB across the four
+  Track 1 / Track 3 commits). New components: `CardMetricGrid`,
+  `PopularityBadge`.
+
+### Files touched
+
+- `frontend/src/lib/sources/types.ts` (rich-metric fields on UnifiedProject)
+- `frontend/src/lib/sources/adapters.ts` (per-adapter enrichment)
+- `frontend/src/lib/api-client.ts` (Reddit thread enrichment)
+- `frontend/src/components/card/helpers.ts` (popularityClass, metricsForProject, formatRelativeShort)
+- `frontend/src/components/card/helpers.test.ts` (22 new tests)
+- `frontend/src/components/card/CardMetricGrid.tsx` (NEW)
+- `frontend/src/components/card/PopularityBadge.tsx` (NEW)
+- `frontend/src/components/UnifiedProjectCard.tsx` (rebuild)
+- `frontend/src/components/CardSkeleton.tsx` (geometry alignment)
+- `frontend/src/components/motion/Shimmer.tsx` (style prop)
+- `frontend/src/app/globals.css` (.ts-card / .ts-metric-grid /
+  .ts-pop-badge / .ts-footer-row / .ts-activity-dot styles)
+- `frontend/src/app/page.tsx` (useLayoutEffect for URL-driven autosearch)
+- `frontend/src/components/TrendingSection.tsx` (layout-effect cache)
+- `frontend/src/components/SavedSection.tsx` (layout-effect bookmarks)
+
+### What landed but couldn't deepen this pass (handoff for Overhaul B)
+
+- **CardPills component is now orphaned** from UnifiedProjectCard but
+  retained for its independent unit tests + future reuse. Could be
+  removed in a follow-up cleanup if no other consumer materializes.
+- **Activity-bar with sparkline** (was a Track-1 stretch). Surfaced as
+  the simpler activity-dot + relative time line for scope; a real
+  per-month commit sparkline would need a `/stats/commit_activity`
+  call per repo (latency cost, rate-limit sensitive). Defer.
+- **`contributors` / `commitsLastMonth`** type-shape landed but no
+  adapter fills them — GitHub's stats endpoint requires a separate
+  per-repo call. Defer.
+- **paperswithcode citations** — type field added, adapter doesn't fill
+  (PWC's API doesn't expose a citation count on the search response).
+  Could be filled from a per-paper enrichment later.
+- **Thread-card metric grid for Reddit specifically** — Reddit cards
+  often have long titles eating into the metric row's horizontal space.
+  Visual judgment at 320px width: still readable, but tight.
+- **Hover-state QA at 120Hz** — the new translateY(-6) + ambient glow
+  was tuned at 60Hz; should look fine but a real-device pass on a 120Hz
+  Mac/iPad would catch any frame-pacing issues.
+- **Empty-state of the metric grid** — when an adapter returns 0 cells
+  (rare but possible — homebrew with no version), the grid component
+  short-circuits and the card jumps from desc → topics directly. That
+  reads as intentional, but the missing visual rule could be replaced
+  with a thin indigo-soft divider for visual rhythm.
