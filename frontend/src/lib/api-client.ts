@@ -36,24 +36,30 @@ export async function searchRedditViaBackend(
     if (!response.ok) return [];
     const data = await response.json();
     const threads = (data.results || []) as Array<Record<string, any>>;
-    return threads.map((t, idx) => ({
-      id: `reddit-${idx}-${encodeURIComponent(t.url || "")}`,
-      source: "reddit" as const,
-      name: t.title || "Reddit Thread",
-      fullName: `r/${t.subreddit || "unknown"}`,
-      description: t.selftext || null,
-      url: t.url,
-      stars: t.score || 0,
-      commentsCount: t.num_comments || 0,
-      language: null,
-      topics: [],
-      author: { name: `r/${t.subreddit || "unknown"}`, avatar: "" },
-      updatedAt: t.created_utc
+    return threads.map((t, idx) => {
+      const created = t.created_utc
         ? new Date(t.created_utc * 1000).toISOString()
-        : new Date().toISOString(),
-      sentiment: t.community_sentiment,
-      warning: t.has_warning ? t.warning_reason : undefined,
-    }));
+        : new Date().toISOString();
+      return {
+        id: `reddit-${idx}-${encodeURIComponent(t.url || "")}`,
+        source: "reddit" as const,
+        name: t.title || "Reddit Thread",
+        fullName: `r/${t.subreddit || "unknown"}`,
+        description: t.selftext || null,
+        url: t.url,
+        stars: t.score || 0,
+        commentsCount: t.num_comments || 0,
+        language: null,
+        topics: [],
+        author: { name: `r/${t.subreddit || "unknown"}`, avatar: "" },
+        updatedAt: created,
+        sentiment: t.community_sentiment,
+        warning: t.has_warning ? t.warning_reason : undefined,
+        upvotes: t.score || 0,
+        comments: t.num_comments || 0,
+        createdAt: created,
+      };
+    });
   } catch (error) {
     console.error("searchReddit failed:", error);
     return [];

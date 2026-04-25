@@ -70,6 +70,42 @@ export interface UnifiedProject {
   // Same underlying project on other platforms (e.g. the npm package + the
   // GitHub repo + the PyPI binding). Populated by mergeRelatedProjects().
   relatedSources?: RelatedSource[];
+
+  // --- Iteration 15 overhaul: richer metadata for the info-density card. ---
+  // Each field is optional and adapters fill what they can; the card's
+  // metric-grid renderer skips empty cells rather than padding with "—".
+
+  // Repo-shape metrics (github / gitlab / codeberg)
+  forks?: number;
+  openIssues?: number;
+  watchers?: number;
+
+  // Package-shape metrics (npm / pypi / etc)
+  weeklyDownloads?: number;
+  // Latest publish timestamp (ISO). Distinct from `updatedAt` which on
+  // package registries usually mirrors the latest release; some sources
+  // expose both, some only one.
+  lastPublished?: string;
+
+  // Repo-activity signals (currently only github exposes these readily;
+  // future enrichments can fill from a /stats endpoint)
+  contributors?: number;
+  commitsLastMonth?: number;
+
+  // Paper-shape metrics (arxiv / paperswithcode / zenodo)
+  citations?: number;
+  paperYear?: number;
+  paperAuthors?: string[];
+
+  // Thread-shape metrics (hn / reddit / lobsters / so / devto). `upvotes`
+  // duplicates `stars` for thread sources (where stars semantically *is*
+  // upvotes), but having an explicit field clarifies intent in the card.
+  upvotes?: number;
+  comments?: number;
+
+  // Birth date — used by popularityClass() to detect "new" / "trending"
+  // (high stars in short window) vs "established" (long-running).
+  createdAt?: string;
 }
 
 export interface SearchResult {

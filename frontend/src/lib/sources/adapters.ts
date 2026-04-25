@@ -125,6 +125,13 @@ export async function searchGitHub(
       updatedAt: item.updated_at,
       license: item.license?.name || item.license?.spdx_id,
       homepage: item.homepage || undefined,
+      // Iter-15 enrichment: forks / open issues / watchers light up the
+      // metric grid. created_at gates the "new" / "trending" / "established"
+      // popularity-class badge derivation.
+      forks: item.forks_count,
+      openIssues: item.open_issues_count,
+      watchers: item.watchers_count,
+      createdAt: item.created_at,
     })),
     totalCount: allResults.length,
     source: "github",
@@ -180,6 +187,9 @@ export async function searchGitLab(
         avatar: item.namespace?.avatar_url || item.owner?.avatar_url || "",
       },
       updatedAt: item.last_activity_at,
+      forks: item.forks_count,
+      openIssues: item.open_issues_count,
+      createdAt: item.created_at,
     })),
     totalCount: allResults.length,
     source: "gitlab",
@@ -211,6 +221,9 @@ export async function searchCodeberg(query: string): Promise<SearchResult> {
           avatar: r.owner?.avatar_url || "",
         },
         updatedAt: r.updated_at,
+        forks: r.forks_count,
+        openIssues: r.open_issues_count,
+        createdAt: r.created_at,
       })),
       totalCount: repos.length,
       source: "codeberg",
@@ -279,6 +292,11 @@ export async function searchHuggingFace(
       },
       updatedAt: item.lastModified || new Date().toISOString(),
       license: item.license,
+      // Iter-15: explicit fields make the metric-grid renderer
+      // unambiguous on HF — `stars` doubles as `upvotes` on thread
+      // sources, but here it's literally a "likes" count, so surface it.
+      upvotes: item.likes || 0,
+      createdAt: item.createdAt,
     })),
     totalCount: allItems.length,
     source: "huggingface",
@@ -290,22 +308,34 @@ export async function searchArxiv(query: string): Promise<SearchResult> {
   if (!data) return { projects: [], totalCount: 0, source: "arxiv" };
   const results = data.results || [];
   return {
-    projects: results.map((p: any) => ({
-      id: `arxiv-${p.id}`,
-      source: "arxiv" as const,
-      name: p.title,
-      fullName: p.id.replace(/^https?:\/\/arxiv\.org\/abs\//, "arXiv:"),
-      description: p.summary || null,
-      url: p.url,
-      stars: 0,
-      language: null,
-      topics: p.categories || [],
-      author: {
-        name: Array.isArray(p.authors) && p.authors.length ? p.authors[0] : "unknown",
-        avatar: "",
-      },
-      updatedAt: p.published || p.updated || new Date().toISOString(),
-    })),
+    projects: results.map((p: any) => {
+      const published = p.published || p.updated || new Date().toISOString();
+      const year = (() => {
+        const d = new Date(published);
+        return Number.isNaN(d.getTime()) ? undefined : d.getUTCFullYear();
+      })();
+      const authors = Array.isArray(p.authors) ? (p.authors as string[]) : [];
+      return {
+        id: `arxiv-${p.id}`,
+        source: "arxiv" as const,
+        name: p.title,
+        fullName: p.id.replace(/^https?:\/\/arxiv\.org\/abs\//, "arXiv:"),
+        description: p.summary || null,
+        url: p.url,
+        stars: 0,
+        language: null,
+        topics: p.categories || [],
+        author: {
+          name: authors[0] || "unknown",
+          avatar: "",
+        },
+        updatedAt: published,
+        // Iter-15: paper-shape metrics for the metric grid.
+        paperYear: year,
+        paperAuthors: authors,
+        createdAt: published,
+      };
+    }),
     totalCount: results.length,
     source: "arxiv",
   };
@@ -321,22 +351,37 @@ export async function searchPapersWithCode(query: string): Promise<SearchResult>
     const data = await response.json();
     const results = data.results || [];
     return {
-      projects: results.slice(0, 30).map((p: any) => ({
-        id: `pwc-${p.id}`,
-        source: "paperswithcode" as const,
-        name: p.title,
-        fullName: p.id,
-        description: p.abstract ? String(p.abstract).slice(0, 300) : null,
-        url: p.url_abs || p.url_pdf || `https://paperswithcode.com/paper/${p.id}`,
-        stars: 0,
-        language: null,
-        topics: [],
-        author: {
-          name: (Array.isArray(p.authors) ? p.authors[0] : p.authors) || "unknown",
-          avatar: "",
-        },
-        updatedAt: p.published || new Date().toISOString(),
-      })),
+      projects: results.slice(0, 30).map((p: any) => {
+        const published = p.published || new Date().toISOString();
+        const year = (() => {
+          const d = new Date(published);
+          return Number.isNaN(d.getTime()) ? undefined : d.getUTCFullYear();
+        })();
+        const authors = Array.isArray(p.authors)
+          ? (p.authors as string[])
+          : typeof p.authors === "string"
+            ? [p.authors]
+            : [];
+        return {
+          id: `pwc-${p.id}`,
+          source: "paperswithcode" as const,
+          name: p.title,
+          fullName: p.id,
+          description: p.abstract ? String(p.abstract).slice(0, 300) : null,
+          url: p.url_abs || p.url_pdf || `https://paperswithcode.com/paper/${p.id}`,
+          stars: 0,
+          language: null,
+          topics: [],
+          author: {
+            name: authors[0] || "unknown",
+            avatar: "",
+          },
+          updatedAt: published,
+          paperYear: year,
+          paperAuthors: authors,
+          createdAt: published,
+        };
+      }),
       totalCount: results.length,
       source: "paperswithcode",
     };
@@ -394,6 +439,18 @@ export async function searchNpm(
       license: item.package.license,
       version: item.package.version,
       homepage: item.package.links?.homepage || item.package.links?.repository,
+      // Iter-15 enrichment: npm's search response carries `downloads.weekly`
+      // (sometimes nested as `item.downloads`); surface both as we encounter
+      // them. Last-published mirrors `package.date` semantically — same
+      // upstream timestamp, but the metric-grid renderer keys off the
+      // explicit `lastPublished` field for the "LAST PUBLISH" cell.
+      weeklyDownloads:
+        typeof item.downloads === "object"
+          ? item.downloads?.weekly
+          : typeof item.downloads === "number"
+            ? item.downloads
+            : item.package.downloads?.weekly,
+      lastPublished: item.package.date,
     })),
     totalCount: allResults.length,
     source: "npm",
@@ -431,33 +488,54 @@ export async function searchPyPI(
   }
 
   return {
-    projects: allResults.map((data) => ({
-      id: `pypi-${data.info.name}`,
-      source: "pypi" as const,
-      name: data.info.name,
-      fullName: data.info.name,
-      description: data.info.summary,
-      url:
-        data.info.project_url ||
-        data.info.home_page ||
-        `https://pypi.org/project/${data.info.name}`,
-      stars: 0,
-      downloads: 0,
-      language: "Python",
-      topics:
-        data.info.keywords
-          ?.split(",")
-          .map((k: string) => k.trim())
-          .filter(Boolean) || [],
-      author: {
-        name: data.info.author || "Unknown",
-        avatar: "",
-      },
-      updatedAt: new Date().toISOString(),
-      license: data.info.license,
-      version: data.info.version,
-      homepage: data.info.home_page || undefined,
-    })),
+    projects: allResults.map((data) => {
+      // Latest release timestamp — PyPI exposes per-release file lists at
+      // `releases[version]` with each file carrying `upload_time_iso_8601`.
+      // Pick the latest version's first file's timestamp; fall back to
+      // urls[0].upload_time_iso_8601 (newer-style) before defaulting to
+      // "now" so cards don't lie with a fake "just now" timestamp.
+      const v = data.info?.version;
+      let latest: string | undefined;
+      const release = v && Array.isArray(data.releases?.[v]) ? data.releases[v][0] : null;
+      if (release) {
+        latest = release.upload_time_iso_8601 || release.upload_time;
+      }
+      if (!latest && Array.isArray(data.urls) && data.urls[0]) {
+        latest = data.urls[0].upload_time_iso_8601 || data.urls[0].upload_time;
+      }
+      return {
+        id: `pypi-${data.info.name}`,
+        source: "pypi" as const,
+        name: data.info.name,
+        fullName: data.info.name,
+        description: data.info.summary,
+        url:
+          data.info.project_url ||
+          data.info.home_page ||
+          `https://pypi.org/project/${data.info.name}`,
+        stars: 0,
+        downloads: 0,
+        language: "Python",
+        topics:
+          data.info.keywords
+            ?.split(",")
+            .map((k: string) => k.trim())
+            .filter(Boolean) || [],
+        author: {
+          name: data.info.author || "Unknown",
+          avatar: "",
+        },
+        // Iter-15: when we have a real upload timestamp, use it for both
+        // updatedAt (drives maintenance pill) and lastPublished (metric
+        // grid). Fall back to "" (not Date.now) so the caption suppresses
+        // cleanly instead of lying with "just now" — matches homebrew.
+        updatedAt: latest || "",
+        license: data.info.license,
+        version: data.info.version,
+        homepage: data.info.home_page || undefined,
+        lastPublished: latest,
+      };
+    }),
     totalCount: allResults.length,
     source: "pypi",
   };
@@ -489,6 +567,8 @@ export async function searchCrates(query: string): Promise<SearchResult> {
         license: c.license,
         version: c.max_stable_version || c.newest_version,
         homepage: c.homepage || c.documentation || c.repository,
+        lastPublished: c.updated_at,
+        createdAt: c.created_at,
       })),
       totalCount: crates.length,
       source: "crates",
@@ -563,6 +643,7 @@ export async function searchRubyGems(query: string): Promise<SearchResult> {
         license: Array.isArray(g.licenses) ? g.licenses.join(", ") : g.licenses,
         version: g.version,
         homepage: g.homepage_uri || g.source_code_uri,
+        lastPublished: g.version_created_at,
       })),
       totalCount: Array.isArray(gems) ? gems.length : 0,
       source: "rubygems",
@@ -1049,6 +1130,9 @@ export async function searchHackerNews(query: string): Promise<SearchResult> {
           author: { name: h.author || "anonymous", avatar: "" },
           updatedAt: h.created_at,
           commentsCount: h.num_comments || 0,
+          upvotes: h.points || 0,
+          comments: h.num_comments || 0,
+          createdAt: h.created_at,
         })),
       totalCount: hits.length,
       source: "hackernews",
@@ -1098,6 +1182,9 @@ export async function searchLobsters(query: string): Promise<SearchResult> {
           avatar: s.submitter_user?.avatar_url || "",
         },
         updatedAt: s.created_at || new Date().toISOString(),
+        upvotes: s.score || 0,
+        comments: s.comment_count || 0,
+        createdAt: s.created_at,
       })),
       totalCount: stories.length,
       source: "lobsters",
@@ -1136,6 +1223,11 @@ export async function searchStackOverflow(query: string): Promise<SearchResult> 
         updatedAt: q.last_activity_date
           ? new Date(q.last_activity_date * 1000).toISOString()
           : new Date().toISOString(),
+        upvotes: q.score || 0,
+        comments: q.answer_count || 0,
+        createdAt: q.creation_date
+          ? new Date(q.creation_date * 1000).toISOString()
+          : undefined,
       })),
       totalCount: items.length,
       source: "stackoverflow",
@@ -1173,6 +1265,9 @@ export async function searchDevTo(query: string): Promise<SearchResult> {
           avatar: a.user?.profile_image_90 || a.user?.profile_image || "",
         },
         updatedAt: a.published_at || a.created_at || new Date().toISOString(),
+        upvotes: a.public_reactions_count || a.positive_reactions_count || 0,
+        comments: a.comments_count || 0,
+        createdAt: a.created_at || a.published_at,
       })),
       totalCount: items.length,
       source: "devto",
