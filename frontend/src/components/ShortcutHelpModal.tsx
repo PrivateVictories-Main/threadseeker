@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { HelpCircle, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { sheetVariants } from "@/lib/motion";
+import { modalBackdrop, modalSurface } from "@/lib/motion";
 
 const SHORTCUTS: Array<{ keys: string[]; label: string }> = [
   { keys: ["⌘K", "Ctrl+K"], label: "Open the command palette" },
@@ -56,19 +56,20 @@ export function ShortcutHelpModal() {
         // momentary "naked" modal as it scaled out. Backdrop fade is short
         // (0.18s ease-out) so it leads the modal out by a beat.
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-950/40 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-950/40 backdrop-blur-md p-4"
           onClick={() => setOpen(false)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="shortcut-help-title"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { duration: 0.18, ease: [0.32, 0.72, 0, 1] } }}
-          exit={{ opacity: 0, transition: { duration: 0.18, ease: [0.32, 0.72, 0, 1] } }}
+          variants={modalBackdrop}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
         >
           <motion.div
             onClick={(e) => e.stopPropagation()}
             className="glass-strong shortcut-modal w-full"
-            variants={sheetVariants}
+            variants={modalSurface}
             initial="hidden"
             animate="visible"
             exit="exit"

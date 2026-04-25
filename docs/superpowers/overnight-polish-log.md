@@ -1289,3 +1289,272 @@ flagged one quick-fix and three "ship as-is" calls:
 - Re-flow the empty-state action pills onto a single row (would
   require either truncating copy or introducing a horizontal scroll
   treatment; the current 2-row wrap is acceptable)
+
+---
+
+## Iteration 18 — Major Overhaul D (visual-quality overhaul)
+
+User feedback after Overhauls A/B/C: "more professional, cleaner UI,
+very nice animations, very glassy looking, as professional as
+possible." Functional structure is solid (rich card metric grid, mono
+command-center hero, ⌘K palette). What's left is the visual-refinement
+layer — glass depth, motion finesse, the kind of polish that makes
+apps feel expensive. Reference quality bar: Apple Maps (glass depth,
+layered shadows), Linear (mono-system rhythm, decisive motion),
+Raycast (palette interactions, density), Vercel dashboard (typography,
+glass surfaces), Cursor / Arc (motion finesse).
+
+### TRACK 1 — Glass: real depth, real material (commit fdd1cf4)
+
+`tokens.css`:
+
+- Surface alphas tuned for richer translucency:
+  `--ts-surface` 0.78 → 0.62, `--ts-surface-strong` 0.92 → 0.86,
+  `--ts-surface-sticky` 0.82 → 0.74. The lower alphas + stronger
+  backdrop-saturate let the gradient + radial spotlights show through
+  honestly so the surfaces read as real frosted glass instead of flat
+  translucent panels.
+- New `--ts-glass-sheen` (inset top sheen, 1px white at 0.65) and
+  `--ts-glass-rim` (inset bottom indigo rim at 0.06) tokens. Composed
+  into every glass tier so cards / sheets / modals all share the
+  light-on-glass register.
+- Blur tokens up: `--ts-blur` 20 → 24, `--ts-blur-strong` 28 → 30.
+  Subtle but the surfaces now sit more visibly in front of the
+  gradient.
+
+`globals.css`:
+
+- `.glass / .glass-strong / .glass-sticky` rebuilt to layer:
+    1. Translucent fill (the new surface alphas).
+    2. backdrop-filter blur + saturate(180%) base / saturate(190%)
+       on strong / saturate(180%) on sticky (was 140/160/160).
+    3. Inset specular sheen on top edge.
+    4. Inset indigo grounding rim on bottom edge.
+    5. Layered drop shadow (rest, hover, sticky scroll-driven).
+- New generic hover affordance for any anchor/button using `.glass`:
+  saturate pumps to 200%, border picks up indigo at 0.32, translateY -2.
+- Body atmospheric layer expanded from two to four radial spotlights —
+  added a top-right (intent − 20°, medium) and bottom-left (intent +
+  45°, smaller) spot so the gradient has four-corner ambient depth
+  rather than two opposing spots.
+- Body `::after` grain overlay: inline SVG turbulence, 1.5% opacity,
+  mix-blend overlay. Imperceptible but kills the flat-plastic-plane
+  read. Threaded between depth layer (z-0) and surfaces (z-1) so it
+  modulates without intercepting clicks.
+- Cards (`.ts-card`) now layer a subtle "lit from above" gradient
+  (white wash on top 32% + faint indigo vertical wash) on top of the
+  `.glass` translucent fill. Cards inherit the sheen / rim from
+  `.glass`, no duplicate inset shadow.
+- Card hover: now also shifts border-color 0.22 → 0.32 (indigo
+  brightening), bumps `backdrop-filter saturate(200%)`, intensifies
+  inset top sheen to 0.78, adds 1px outset indigo halo, and
+  deepens the ambient indigo glow underneath. Reads as physically
+  hovering with the surface absorbing more light.
+- Card transition curve switched from `ease-out` to the app's
+  standard cubic-bezier `[0.32, 0.72, 0, 1]` for motion consistency
+  with the intent-hue body transition + AnimatedCard layout curve.
+- `::selection / ::-moz-selection` — indigo-soft background (0.22 of
+  accent) with `--ts-text` foreground so highlighted text reads in
+  the brand palette rather than the OS default.
+
+### TRACK 2 — Motion: premium transitions (commit 4968469)
+
+`motion.ts`:
+
+- `gridContainer.staggerChildren` 0.025 → 0.035, `delayChildren`
+  0.05 → 0.06. The first ~6 cards land card-by-card (deliberate),
+  the rest catch up.
+- `cardVariants.hidden` adds `scale: 0.985` — tiny "settle in" feel
+  alongside the y translate. Stays inside the < 2% budget so reduced-
+  motion users get an instant snap via the global `MotionConfig
+  reducedMotion="user"` provider.
+- `cardVariants.hover` is now a no-op spring — CSS owns the hover
+  transform (translateY(-6px) on `.ts-card:hover`) for one-frame
+  tactile response without framer's measure-then-animate latency.
+  whileHover still fires children variants (badge / dot scale boosts).
+- `modeVariants.heroExit` y -24 → -32, duration 0.22 → 0.32. Hero
+  floats up and out rather than zipping out. Motion curve
+  standardized to `[0.32, 0.72, 0, 1]`.
+- `modeVariants.resultsEnter` y 16 → 24, `resultsShow` gets explicit
+  0.42s duration so the entry slide reads as deliberate "arriving from
+  below."
+- New shared `modalBackdrop / modalSurface` variants. Backdrop fades
+  0.18s, modal scales 0.92 → 1 + drifts y 12 → 0 with springSoft.
+
+`CommandPalette` + `ShortcutHelpModal`:
+
+- Migrated to the shared `modalBackdrop / modalSurface` variants.
+  Backdrop blur-sm → blur-md for richer scrim. Lower duplication and
+  consistent vocabulary across every modal in the app.
+
+`SearchBar`:
+
+- Leading `/` chip on the hero variant is now framer-driven: scale
+  1.06, indigo bg (0.10 → 0.18), border (0.14 → 0.32), and color
+  (subtle → indigo-strong) all spring to focused state. Pairs with the
+  existing radial pulse so the search bar reads as decisively "live"
+  on focus rather than just gaining an outline.
+
+`page.tsx`:
+
+- Sticky header has its own initial/animate (opacity 0→1, y -16→0,
+  springSoft + 0.05s delay) instead of inheriting the section-level
+  entry. Floats down from the top of the viewport when results-mode
+  mounts.
+
+`globals.css`:
+
+- Card hover propagates a subtle scale boost into descendant
+  `.ts-pop-badge` (1.04) and `.ts-activity-dot` (1.15) so the
+  card-rises read carries through the visual hierarchy.
+
+### TRACK 3 — Spacing & precision rhythm
+
+Walked the hero rhythm against DESIGN.md's strict 4 / 8 / 12 / 16 /
+24 / 32 / 48 ladder; fixed the off-scale offenders:
+
+- Hero headline cluster `mb-10` (40px, off-scale) → `mb-12` (48px).
+- Hero subtitle `mt-5` (20px) → `mt-6` (24px).
+- Try-row `mt-7` (28px, off-scale) → `mt-8` (32px).
+- "More from" header `mb-2.5` (10px, off-scale) → `mb-3` (12px).
+
+Other spacing audited and approved as-is:
+
+- Card internal: `padding 24/24/20`, `gap 12` — on rhythm.
+- Sticky header: `py-3 px-4 sm:px-6 gap-3 sm:gap-4` — tight 12/16/24
+  rhythm, on scale.
+- Toolbar: `gap-2 px-4 py-2.5` — `py-2.5` is 10px off-scale but the
+  toolbar height drives the search-grid alignment; bumping would push
+  the toolbar off the row that the source filter expansion sits in.
+  Trade-off, leaving as-is.
+- Footer: `gap-3 md:gap-6 py-6` — on scale.
+
+### TRACK 4 — Subtle premium touches (commit c4bf66b)
+
+`globals.css`:
+
+- Scrollbar thinned 8px → 6px width, 1px transparent border-padding
+  for the glass-character feel. Hover thumb alpha 0.38 → 0.42 with a
+  0.2s background transition for cleaner discoverability.
+- `caret-color: var(--ts-accent)` on every `input/textarea/[contenteditable]`
+  so the cursor sits in the brand palette.
+- Global `:active` scale 0.985 on every `button / a / [role="button"]`
+  — CSS-only tactile feedback, one-frame fast. No framer overhead.
+  Disabled under reduced-motion.
+- `.btn-primary / .sb-submit` gain inset-top sheen (rgba 255 255 255 /
+  0.28-0.30 rest, 0.32-0.36 hover) so the gradient reads as "lit from
+  above" the same way cards do. Layered with the existing indigo drop
+  shadow.
+- Search bar focus halo upgraded to layered: inset top sheen at 0.78,
+  4px indigo accent-soft ring (crisp), 32px ambient indigo blur at
+  0.14 (atmospheric reach), and the rest shadow underneath. Bar gains
+  real depth on focus rather than just an outline.
+- `::selection` (Track 1) — indigo-soft with brand foreground, also
+  premium-touch class.
+- `:focus-visible` already global (2px indigo + 2px offset) — audited,
+  no change needed.
+
+### TRACK 5 — Critical-eye final review (commit 60da348)
+
+After Tracks 1-4, walked the user journey mentally:
+
+- **Hero on first land** — premium. Four-radial atmospheric layer +
+  grain + new layered glass shadows give it real depth.
+- **Type a query → transition** — hero floats up -32px in 0.32s,
+  results slide in 24px with 0.42s springSoft. Reads as "deliberate."
+- **Cards stream in** — 0.035s stagger over scale 0.985 + y 10 +
+  opacity. "Choreographed."
+- **Hover a card** — translateY -6, indigo border halo, saturation
+  200%, deeper shadow, badge/dot scale boost. "Substantial."
+- **Open ⌘K** — modalBackdrop (0.18s fade) + modalSurface (scale
+  0.92 → 1, y 12 → 0, springSoft) + backdrop-blur-md scrim.
+- **Toggle a filter** — already springSnappy on backgroundColor
+  with `.filter-pill` hover translateY(-1).
+- **Bookmark something** — bookmarkVariants pulse + ring overlay,
+  reduced-motion branch preserved.
+- **Scroll** — sticky shadow opacity already reactive via useScroll.
+
+Fixes applied:
+
+- Reduced-motion block now also disables transitions on `.glass /
+  .glass-strong / .ts-pop-badge / .ts-activity-dot`, and short-circuits
+  the global `:active` scale press so reduced-motion users get an
+  instant transform-free response. Two-layer reduced-motion contract
+  preserved (CSS @media + framer MotionConfig).
+- The four hero-rhythm fixes above (Track 3 grouped into commit 60da348
+  alongside this).
+
+### Numbers
+
+- **Tests:** 76 → 76 (no test changes; pure visual layer).
+- **TS:** `tsc --noEmit` clean.
+- **Build:** clean. Page bundle 93.1 → 93.3 kB (+0.2 kB across the
+  four commits — most weight is CSS, which sits in the prerender
+  output not the JS bundle).
+- **Visual delta:** materially substantial. Glass surfaces now read as
+  frosted material, not flat translucent panels. Motion choreography
+  reads as deliberate not mechanical. Buttons / cards / search bar
+  share one "lit from above" register.
+
+### Files touched
+
+- `frontend/src/styles/tokens.css`
+- `frontend/src/app/globals.css`
+- `frontend/src/lib/motion.ts`
+- `frontend/src/app/page.tsx`
+- `frontend/src/components/CommandPalette.tsx`
+- `frontend/src/components/SearchBar.tsx`
+- `frontend/src/components/ShortcutHelpModal.tsx`
+
+### Hand-off for the next iteration
+
+- **Atmospheric depth at 120Hz** — the new four-radial body::before +
+  grain layer was tuned at 60Hz. Should look fine but a real-device
+  pass on a 120Hz display would catch any frame-pacing issues with
+  the transition cadence.
+- **`.glass` hover is generic** but currently only fires on
+  `a.glass` / `button.glass`. If a future component uses `.glass` as
+  a clickable surface via `onClick` on a `<div role="button">`, add
+  the role to the hover selector or wrap in a real button.
+- **Card lit-from-above gradient** is a fixed linear at 0.06 white +
+  0.025 indigo. On the dark-glass-strong (0.86) sticky/dropdown
+  variants the highlight is barely visible; if a future iteration
+  wants the same lit register on those tiers, the gradient stop
+  alphas need a small bump (~0.10 / 0.04) on `.glass-strong`.
+- **Toolbar `py-2.5`** flagged as off-scale (10px) but kept because
+  bumping it pushes the toolbar off the row alignment with the source
+  filter expansion. If a future iteration restructures the toolbar
+  surface (e.g. matching toolbar height to button h-8 + clean 12px
+  padding), revisit.
+- **Body grain SVG turbulence** is a single 200x200 tile via inline
+  data URL. Could be promoted to a real `.svg` file under
+  `frontend/public/` if a future iteration wants to vary the grain
+  density per breakpoint, but the current single tile is the right
+  call for "atmospheric, not decorative."
+- **Sticky header entry animation** plays once per mode-switch (hero
+  → results); on subsequent searches within results mode it doesn't
+  re-fire because it's the same motion node. Confirmed on close
+  reading; behavior is correct.
+- **Modal vocabulary unification** caught CommandPalette +
+  ShortcutHelpModal but didn't touch the SourceFilter sheet (which
+  uses `sheetVariants` for the in-page expansion). Sheet semantics
+  are deliberately different (in-flow expand-down, not modal
+  overlay-up); leave the sheetVariants vocabulary in place.
+- **Card hover on touch** — gated by `@media (hover: hover)` per
+  DESIGN.md; the new border + saturate boost only paints on real-mouse
+  pointers. iOS Safari touch-tap won't sticky-fire the lift. Verified
+  by code reading.
+- **Stat strip middle cells** still placeholders (`2.3M+`, `~80ms`)
+  per Overhaul B's hand-off — needs a real telemetry pipeline.
+
+### What this iteration deliberately did NOT do
+
+- Change adapters or search ranking
+- Change palette structure or content
+- Add new sources
+- Change `tokens.css` color palette (indigo–violet–rose–amber–teal
+  preserved; only the glass mix + depth layers + new sheen/rim
+  tokens)
+- Add a real telemetry pipeline behind the stat strip middle cells
+- Refactor any component structurally — this was a visual-polish
+  layer over the structurally-shipped Overhauls A/B/C
