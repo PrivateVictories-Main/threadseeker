@@ -221,14 +221,49 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
           </button>
         </div>
       ) : !repos ? (
-        <div className="grid gap-1.5 sm:grid-cols-2 max-w-2xl mx-auto">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[42px] rounded-xl bg-white/50 border border-indigo-100 animate-pulse"
-            />
-          ))}
-        </div>
+        <>
+          {/* Iter-19 / Track 1 — visible loading affordance.
+              Caption tells the user the section is fetching (was silent
+              before; just bare skeleton frames). Mono register matches
+              the rest of the page's system-state vocabulary. */}
+          <p
+            className="text-center font-mono text-[10.5px] uppercase tracking-[0.14em] text-indigo-500/80 mb-2"
+            aria-live="polite"
+          >
+            {"// Fetching trending"}<span className="ts-loading-dots" aria-hidden />
+          </p>
+          <div className="grid gap-1.5 sm:grid-cols-2 max-w-2xl mx-auto">
+            {/* Iter-19 / Track 1 — skeletons mirror real row geometry
+                (avatar circle + name bar + description bar + count chip)
+                and tint indigo-50 so they visibly read as placeholders
+                against the parent .glass card instead of the previous
+                near-invisible bg-white/50 rows. */}
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="ts-trending-skeleton-row flex items-center gap-2.5 rounded-xl bg-indigo-50/70 border border-indigo-200/60 px-2.5 py-2 h-[42px] skeleton"
+                aria-hidden
+              >
+                <span
+                  className="shimmer shimmer-circle flex-shrink-0"
+                  style={{ width: "20px", height: "20px" }}
+                />
+                <span
+                  className="shimmer flex-shrink-0"
+                  style={{ width: "30%", height: "11px" }}
+                />
+                <span
+                  className="shimmer flex-1"
+                  style={{ height: "10px" }}
+                />
+                <span
+                  className="shimmer flex-shrink-0"
+                  style={{ width: "32px", height: "11px" }}
+                />
+              </div>
+            ))}
+          </div>
+        </>
       ) : (
         <div className="grid gap-1.5 sm:grid-cols-2 max-w-2xl mx-auto">
           {repos.slice(0, 6).map((r) => {
