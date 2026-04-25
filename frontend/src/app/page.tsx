@@ -637,7 +637,11 @@ export default function Home() {
               </div>
 
               <div className="max-w-4xl mx-auto pt-10 sm:pt-16 lg:pt-20 pb-16">
-                <div className="text-center mb-10">
+                {/* Overhaul D — rhythm scale conformance: mb-10 (40) → mb-12
+                    (48) so the headline cluster has the generous breathing
+                    room appropriate for a hero. mt-5 (20) → mt-6 (24) on
+                    the subtitle. */}
+                <div className="text-center mb-12">
                   <span className="ts-hero-caption" aria-hidden>
                     Open-Source Index
                   </span>
@@ -645,7 +649,7 @@ export default function Home() {
                     Find what&apos;s worth{" "}
                     <span className="ts-hero-accent">building on.</span>
                   </h1>
-                  <p className="mt-5 text-[15px] sm:text-[16px] text-slate-500 max-w-xl mx-auto leading-relaxed">
+                  <p className="mt-6 text-[15px] sm:text-[16px] text-slate-500 max-w-xl mx-auto leading-relaxed">
                     One query across {activeSources} platforms — repositories,
                     packages, models, and community threads. No accounts.
                   </p>
@@ -691,8 +695,9 @@ export default function Home() {
                 {/* Curated try-row — keeps the same Apple-style pill chrome
                     but the leading label is now monospace `// Try` so the
                     cluster reads as a code-comment hint rather than a
-                    sans-serif "Try:" instruction. */}
-                <div className="mt-7 flex flex-wrap justify-center items-center gap-x-2 gap-y-1.5">
+                    sans-serif "Try:" instruction.
+                    Overhaul D: mt-7 (28) → mt-8 (32) for rhythm. */}
+                <div className="mt-8 flex flex-wrap justify-center items-center gap-x-2 gap-y-1.5">
                   <span className="ts-section-header mr-1">{"// Try"}</span>
                   {EXAMPLE_QUERIES.map((eq) => (
                     <button
@@ -1109,7 +1114,7 @@ export default function Home() {
                       if (top.length === 0) return null;
                       return (
                         <div className="pt-6 mt-2">
-                          <div className="text-center ts-section-header mb-2.5">
+                          <div className="text-center ts-section-header mb-3">
                             {"// More from"}
                           </div>
                           <div className="flex flex-wrap justify-center gap-2">

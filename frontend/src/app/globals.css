@@ -1050,8 +1050,19 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   .topic-chip,
   .btn,
   .btn-primary,
-  .sb-submit {
+  .sb-submit,
+  .glass,
+  .glass-strong,
+  .ts-pop-badge,
+  .ts-activity-dot {
     transition: none !important;
+  }
+  /* Drop the global :active scale press so reduced-motion users don't
+     get a one-frame transform pop on every click. */
+  button:active:not(:disabled),
+  a:active,
+  [role="button"]:active {
+    transform: none;
   }
 }
 
