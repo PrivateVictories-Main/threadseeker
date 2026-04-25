@@ -1558,3 +1558,206 @@ Fixes applied:
 - Add a real telemetry pipeline behind the stat strip middle cells
 - Refactor any component structurally — this was a visual-polish
   layer over the structurally-shipped Overhauls A/B/C
+
+---
+
+## Iteration 19 — Major Overhaul E (loading visibility + glass material + cleanliness)
+
+User feedback after Overhaul D: "Looks a little bit better and you're
+leaning in the right direction but they definitely need more cleanup
+when it comes to UI. More glassiness, just cleaner overall." Plus:
+"Just things aren't showing as soon as you go in. They definitely need
+more cleaner, heavier work done when it comes to the front end UI."
+
+The "things aren't showing" was a real bug — TrendingSection's loading
+skeletons used `bg-white/50` over a white-tinted glass card so the rows
+were nearly invisible. The page on first paint read as an empty card
+frame. Add to that the universal `.skeleton .shimmer` gradient
+(rgba 220/220/230 → 240/240/250) which barely shows against any glass
+surface, and the user's instinct that "things aren't showing" was
+correct, not a misread.
+
+### TRACK 1 — Loading-state visibility (commits 140148d + 3e658db + 1df9adb)
+
+`TrendingSection.tsx`:
+- Inner skeleton rows: `bg-white/50` (invisible) → `bg-indigo-50/70`
+  with `border-indigo-200/60`. Geometry now mirrors the real row
+  (avatar circle + name bar + description bar + count chip) so
+  data-in is geometric continuity, not a visual pop.
+- New `// FETCHING TRENDING…` mono caption above the skeleton grid
+  with animated trailing dots so the section reads as actively
+  fetching from the very first paint.
+
+`globals.css`:
+- `.skeleton .shimmer` gradient bumped from near-white
+  (rgba 220/220/230 → 240/240/250) to clearly visible indigo
+  (rgba 99/102/241/0.10 → 0.22). Now every CardSkeleton stripe and
+  TrendingSection row visibly shimmers against any glass surface —
+  the page reads "active" on first paint instead of "ghost frames."
+- New `.ts-loading-dots` utility: width-animated
+  `0 → 1.4em → "..."` cycle on `::after` (switched off the
+  content-property animation path for cross-browser reliability after
+  the first commit). Reduced-motion drops to a static "...".
+
+`page.tsx`:
+- Results-mode loading caption: "Searching M sources" → "Searching
+  **N** of **M** sources …". Live N tracks `activeSources -
+  pendingSources` so the user sees source-by-source progress
+  accumulate even before the first card paints. Pulsing indigo dot
+  leads the line; `.ts-loading-dots` trails it.
+
+### TRACK 2 — Glass material push (commit c950872)
+
+`tokens.css`:
+- Surface alphas: 0.62/0.86/0.74 → 0.58/0.90/0.72. Default glass
+  goes lower (more gradient pull-through); strong glass goes higher
+  (overlays clearly stand off content beneath them).
+- Sheen: 0.65 → 0.85 (specular top-edge now reads at rest, not just
+  on hover).
+- Rim: 0.06 → 0.10 (bottom-edge anchors more visibly in indigo).
+- New `--ts-glass-ring`: `0 0 0 1px rgba(99,102,241,0.14)` outer
+  hairline composed alongside sheen + rim + drop shadow. Cards now
+  carry a true double-edge: bright specular top + indigo hairline
+  around. This was the single biggest "it now looks like real frosted
+  glass" win — a 1px ring at very low alpha that's just barely
+  visible at rest.
+- Shadow rest: tighter contact + ambient + deeper depth stack
+  (1px contact / 4-12px ambient / 24-48px depth). Hover proportionally
+  deepens (32x64px). Cards visibly "float" off the gradient at rest,
+  not just on hover.
+- Blur-strong: 30 → 32px.
+
+`globals.css`:
+- Saturate baseline: 180% → 190% on `.glass`; 190% → 200% on
+  `.glass-strong` and `.glass-sticky`. Indigo undertone in the
+  gradient now reads through the frost more chromatically — the
+  surfaces visibly carry color, not just translucency.
+- Card hover: background-color lifts 0.58 → 0.70 (surface "gathers
+  light" when raised), saturate 200% → 210%, border 0.32 → 0.36,
+  inner sheen 0.78 → 0.92 (near-mirror), indigo accent ring 0.10 →
+  0.18, ambient indigo glow underneath 0.22 → 0.26. Hovered cards
+  now read as decisively "lit up" rather than just lifted.
+
+### TRACK 3 — Cleanliness sweep (commit d07106c)
+
+Strip visual weakness, strengthen what stays.
+
+`page.tsx`:
+- Stat strip: dropped two fake placeholder values ("2.3M+" repos
+  indexed, "~80ms" avg search). Replaced with honest cells: Sources /
+  Paid APIs / Accounts / Tracking — all real, verifiable promises.
+  This was Overhaul B / D's noted hand-off; finally addressed when
+  the brief said "fake metrics on a polished app reads worse than
+  honest text."
+- Hero subtitle contrast: slate-500 → slate-600.
+- All standalone middot separators: slate-300 → slate-400.
+- Recent-search clear-X: slate-300 → slate-400.
+- Footer top-border: indigo-100/70 → indigo-200/60.
+
+`globals.css`:
+- `.ts-stat-value`: 18 → 20px on desktop, switched to monospace so
+  the values pair properly with the small mono labels above. User
+  feedback: "values feel small". 18px sans read closer to body text
+  than to a metric; 20px mono reads as a confident dev-tool readout
+  (Linear / Vercel register).
+
+`SavedSection` / `TrendingSection`:
+- Tile/row borders strengthened: indigo-100 → indigo-200/70 (Saved),
+  transparent → indigo-100/70 (Trending). Hover bumps to indigo-400/
+  300 with a small `shadow-md`/`shadow-sm` so the tiles read as real
+  elevated affordances, not flat shapes inside a card.
+
+### TRACK 4 — Premium small touches (commits 2a25d79 + 1df9adb)
+
+`globals.css`:
+- Bookmark heart at rest: `var(--ts-text-faint)` (slate-400) →
+  `rgba(99,102,241,0.45)` (indigo-tinted). Conveys "this is interactive
+  in the brand palette" without being loud. Hover/active still bump
+  to rose-500 unchanged.
+- `.glass-sticky` `backdrop-filter` now driven by `--ts-sticky-blur`
+  custom property (with strong-glass token as fallback for SSR).
+
+`page.tsx`:
+- New `stickyBlurPx` framer `useTransform` on `scrollY`: blur ramps
+  from 24px (top of page) → 32px (60px scrolled) → 40px (200px+
+  deep). Sticky header now reads decisively in front of scrolling
+  content the further down the user goes. All rAF — no React
+  re-renders. Composes alongside the existing `--ts-sticky-shadow-
+  opacity` which already drove the depth shadow ramp.
+
+### Numbers
+
+- **Tests:** 76 → 76 (no test changes; pure visual layer + token
+  tweaks).
+- **TS:** `tsc --noEmit` clean.
+- **Build:** clean. Page bundle 93.3 → 93.5 kB (+0.2 kB across all
+  six commits — most weight is CSS, which lives in the prerender
+  output not the JS bundle).
+- **Visual delta:** the loading state is now unambiguously visible
+  (the user's specific complaint), the glass surfaces clearly read
+  as "frosted glass" with depth + sheen + indigo rim rather than
+  "white cards", and the page is free of fake numbers + weak
+  separators that were eroding the polish read.
+
+### Files touched
+
+- `frontend/src/styles/tokens.css`
+- `frontend/src/app/globals.css`
+- `frontend/src/app/page.tsx`
+- `frontend/src/components/TrendingSection.tsx`
+- `frontend/src/components/SavedSection.tsx`
+
+### Hand-off for the next iteration
+
+- **Sticky-blur ramp on Safari** — `useTransform` on `scrollY`
+  produces a string "24px / 32px / 40px" that's applied as a CSS
+  variable. Safari sometimes lags applying CSS-variable changes to
+  `backdrop-filter`. Visually verified during build but worth a real-
+  device pass on iOS Safari + macOS Safari to confirm the ramp is
+  smooth and not a step-jump.
+- **Honest stat strip** — `Sources 28 / Paid APIs 0 / Accounts 0 /
+  Tracking None` is honest but a touch redundant (Accounts and
+  Tracking both lean "we don't ask for anything"). When real telemetry
+  ships (request count, cache hit rate, ranked-result count) those
+  cells should land in those slots so the strip carries product
+  signal, not just promises.
+- **Bookmark heart indigo tint at rest** — picked indigo because
+  it's the brand color. If the visual signal "this is rose on tap"
+  becomes confused with "is this already saved?" (which is also rose),
+  consider a slate-400 → indigo-400 mid-state for "I'm hoverable"
+  and reserve full rose for "I'm bookmarked." Not observed in user
+  testing yet; left as-is.
+- **`.skeleton .shimmer` gradient** — the new indigo gradient is
+  visibly readable, but on a card already filled with indigo accent
+  pills (popularity badge etc.) the shimmer bands could compete with
+  the real content for attention. The current alphas (0.10 → 0.22)
+  are below any pill background tint so it should read as background
+  pulse, not foreground content. Re-audit after a long search session
+  to confirm the read holds.
+- **Stat strip mono switch** — the values are now monospace at 20px.
+  This is a register shift from the previous 18px sans. `.ts-title`
+  (card title) and `.ts-hero-headline` are still sans, which is
+  correct (content). The stat strip values are system-readout, mono
+  is right. But it does mean the hero now has three type registers
+  visible at once: hero headline (sans bold), subtitle (sans regular),
+  stat strip (mono bold), "// Try" caption (mono medium). All three
+  are intentional and obey the Sans=content / Mono=system rule. If a
+  future iteration adds a fourth register inside the hero, the
+  composition will start fragmenting.
+- **Glass ring at low alpha** — the new `--ts-glass-ring` is
+  rgba(99,102,241,0.14) which is faint but consistently visible.
+  On retina displays it reads as a clean 1px hairline; on low-DPR
+  monitors it could antialias into a half-pixel haze. If we ever add
+  high-contrast mode, this token wants a `@media (prefers-contrast:
+  more)` branch that bumps to 0.35.
+
+### What this iteration deliberately did NOT do
+
+- Touch search ranking, adapters, or query parsing
+- Add new sources
+- Restructure the command palette
+- Change motion springs or modal variants
+- Add a real telemetry pipeline (the honest-stat-strip swap above
+  is the right interim — next iteration's job to ship telemetry)
+- Refactor any component (purely visual + token + small JSX change
+  surface area)
