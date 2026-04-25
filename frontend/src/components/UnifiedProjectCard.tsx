@@ -2,8 +2,9 @@
 
 import type { UnifiedProject } from "@/lib/sources/types";
 import { SourceBadge } from "./card/SourceBadge";
-import { CardPills } from "./card/CardPills";
 import { CardActions, type CopyItem } from "./card/CardActions";
+import { CardMetricGrid } from "./card/CardMetricGrid";
+import { PopularityBadge } from "./card/PopularityBadge";
 import { AnimatedCard } from "./motion/AnimatedCard";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { bookmarkVariants } from "@/lib/motion";
@@ -15,7 +16,9 @@ import {
   copyItemsForSource,
   avatarFallbackHue,
   openLabelForSource,
-  popularityForProject,
+  popularityClass,
+  metricsForProject,
+  formatCount,
 } from "./card/helpers";
 
 interface Props {
@@ -34,26 +37,29 @@ interface Props {
   outerClassName?: string;
 }
 
+// Iter-15 overhaul — info-density card.
+//
+// Top-to-bottom structure:
+//   1. Top row   — SourceBadge · PopularityBadge · Bookmark (push-right)
+//   2. Title row — Avatar(44px) + h3 title + version chip + subline
+//   3. Description — 3-line clamp (italic placeholder when absent)
+//   4. Metric grid — 3 source-aware metric cells (Stars/Forks/Issues etc.)
+//   5. Topics row — up to 4 clickable topic chips (refine search)
+//   6. Footer row — activity dot + relative-time (left), language + license (right)
+//   7. Action row — full-width primary CTA + ghost copy button (60/40 split)
+//
+// The card is significantly denser than the iter-14 version, but every
+// sub-component drops itself when the corresponding upstream field is
+// absent, so package cards (no language pill, no description) and
+// thread cards (no version, no metric grid for github-style metrics)
+// still look intentional rather than padded with placeholders.
 export function UnifiedProjectCard({ project, onToast, onTopicClick, index, outerClassName }: Props) {
   const { isBookmarked, toggle } = useBookmark(project);
   const bookmarkControls = useAnimationControls();
-  // Per-card pulse-ring overlay triggered after a bookmark add/remove.
-  // Indigo on add (delight), neutral slate on remove (acknowledged but
-  // quieter). Renders as an absolutely-positioned sibling ring that
-  // fades 0 → 1 → 0 over ~600ms — does NOT touch the card's existing
-  // glass box-shadow / hover-lift, so we don't fight the .ts-card:hover
-  // transform. Under reduced-motion the animated 0→1→0 cycle would
-  // auto-collapse via the global MotionConfig provider, leaving no
-  // visible affordance — so we branch on `useReducedMotion` and play a
-  // static "hold-then-fade" instead so the user still gets a clear
-  // "you did it" signal.
+  // Bookmark-pulse ring overlay — see the original component history for
+  // the rationale on the dual reduced-motion / animated branch.
   const pulseControls = useAnimationControls();
   const reducedMotion = useReducedMotion();
-
-  // Source-aware popularity: threads (HN/Reddit/Lobsters) get an upvote
-  // triangle + a comments glyph; everything else keeps the star or
-  // download arrow. Pure-data swap — pills/layout unchanged.
-  const popularity = popularityForProject(project);
 
   const copyItems: CopyItem[] = copyItemsForSource(project);
   const openLabel = openLabelForSource(project.source);
@@ -63,7 +69,10 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
     project.source === "gitlab" ||
     project.source === "codeberg";
 
-  const topics = (project.topics ?? []).slice(0, 3);
+  // Iter-15: 4 topics instead of 3 — gives the card a richer category
+  // surface without overflowing on the standard 3-col grid.
+  const topics = (project.topics ?? []).slice(0, 4);
+
   const avatar = project.author?.avatar;
   const subline = isRepo
     ? project.fullName.includes("/")
@@ -73,10 +82,9 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
       ? project.fullName
       : "";
 
-  // Source-aware version chip — shown only for package registries where the
-  // upstream exposes a stable "latest version" string. Repos (github / gitlab
-  // / codeberg) and model hubs (huggingface) have weaker version semantics
-  // (tags, branches, commit shas) so we omit the chip there to avoid noise.
+  // Source-aware version chip — same source set as before. Repos and
+  // model hubs lack stable "latest version" semantics so the chip
+  // suppresses there.
   const VERSION_SOURCES = new Set<UnifiedProject["source"]>([
     "npm",
     "pypi",
@@ -93,10 +101,26 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
   const showVersion =
     !!project.version && VERSION_SOURCES.has(project.source);
 
-  // Sparse cards (no description AND no topics) get a lower min-height so a
-  // row of them doesn't waste vertical space. auto-rows-fr still aligns all
-  // cards in a row to the tallest, so grid geometry stays correct.
+  // Sparse cards (no description, no topics) get a lower min-height so a
+  // row of them doesn't waste vertical space. auto-rows-fr still aligns
+  // all cards in a row to the tallest, so grid geometry stays correct.
   const isSparse = !project.description && topics.length === 0;
+
+  const popClass = popularityClass(project);
+  const popReason = (() => {
+    if (!popClass) return undefined;
+    const stars = formatCount(project.stars || 0);
+    if (popClass === "hot") return `${stars} stars in under a month`;
+    if (popClass === "trending") return `${stars} stars · trending`;
+    if (popClass === "rising") return `${stars} stars · rising`;
+    if (popClass === "new") return "Created recently";
+    if (popClass === "established") return `${stars} stars · long-running`;
+    return undefined;
+  })();
+
+  const metrics = metricsForProject(project);
+  const maint = maintenanceState(project.updatedAt);
+  const license = licenseBucket(project.license);
 
   return (
     <AnimatedCard
@@ -107,39 +131,32 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
       resultUrl={project.url}
     >
       <article className={`ts-card glass${isSparse ? " ts-card-sparse" : ""}`}>
-        {/* Bookmark-pulse ring — absolutely positioned overlay so it
-            fades over the card without disturbing the existing glass
-            box-shadow or hover-lift. borderColor is animated to indigo
-            on add and slate on remove. */}
+        {/* Bookmark-pulse ring */}
         <motion.span
           aria-hidden
           className="pointer-events-none absolute inset-0 rounded-[18px] border-[2px] border-transparent"
           initial={{ opacity: 0 }}
           animate={pulseControls}
         />
+
+        {/* TOP ROW — source · popularity-class · bookmark */}
         <div className="ts-top">
           <SourceBadge source={project.source} />
+          {popClass && <PopularityBadge cls={popClass} reason={popReason} />}
           <motion.button
             className={`ts-bookmark ${isBookmarked ? "bookmarked" : ""}`}
             variants={bookmarkVariants}
             animate={bookmarkControls}
             onClick={() => {
-              // Determine the post-toggle state from the current one —
-              // useBookmark is sync, but reading the pre-toggle isBookmarked
-              // + flipping gives us the correct after-state without an
-              // extra render.
               const willBeBookmarked = !isBookmarked;
               toggle();
               bookmarkControls
                 .start("tapped")
                 .then(() => bookmarkControls.start("rest"));
               const color = willBeBookmarked
-                ? "rgba(99, 102, 241, 0.7)"   // indigo-500/70
-                : "rgba(148, 163, 184, 0.55)"; // slate-400/55
+                ? "rgba(99, 102, 241, 0.7)"
+                : "rgba(148, 163, 184, 0.55)";
               if (reducedMotion) {
-                // Static "you did it" — snap on for ~1.5s, then snap off.
-                // No animated transition so prefers-reduced-motion users
-                // still get a clear signal without any moving pixels.
                 pulseControls.set({ opacity: 1, borderColor: color });
                 window.setTimeout(() => {
                   pulseControls.set({ opacity: 0 });
@@ -162,6 +179,7 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
           </motion.button>
         </div>
 
+        {/* TITLE ROW — avatar + name + version + subline */}
         <div className="ts-title-row">
           {avatar ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -173,13 +191,6 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
               referrerPolicy="no-referrer"
             />
           ) : (
-            // Plain colored circle fallback was identity-less. Rendering
-            // the first letter of the project name gives the fallback
-            // something to read as — matches GitHub/Gravatar default
-            // avatars without requiring a network call. Hue is hashed
-            // from project.id so a row of avatarless cards shows
-            // subtle indigo→violet→sky variation instead of identical
-            // gradient circles, without leaving the accent palette.
             <div
               className="ts-avatar ts-avatar-fallback"
               aria-hidden
@@ -201,43 +212,19 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
           </h3>
         </div>
 
+        {/* DESCRIPTION — 3-line clamp */}
         {project.description ? (
           <p className="ts-desc">{project.description}</p>
         ) : (
-          // Subtle italic placeholder when the upstream doesn't ship a
-          // description (common on obscure GitHub repos, AUR packages,
-          // some HF models). Better than empty space because:
-          //   - the card retains its 2-line vertical rhythm so a row of
-          //     mixed-description cards aligns instead of stair-stepping
-          //   - the user understands "this card has no description" vs
-          //     "this card has a bug" — the absence is intentional
-          // Tone: italic + faint slate, never reads as content.
           <p className="ts-desc ts-desc-empty" aria-hidden>
             No description provided.
           </p>
         )}
 
-        {project.updatedAt && (() => {
-          // Native title tooltip surfaces the exact ISO date on hover so a
-          // user who hovers "updated 11 months ago" gets the precise
-          // timestamp without having to dig — accessibility + utility
-          // win. Falls back gracefully if the value isn't a valid date.
-          // Skip the caption entirely when the upstream doesn't expose a
-          // real timestamp (e.g. homebrew sets `updatedAt: ""`) — better
-          // to omit than to lie with "just now".
-          const iso = (() => {
-            const d = new Date(project.updatedAt);
-            return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
-          })();
-          const rel = formatRelativeTime(project.updatedAt);
-          if (!rel) return null;
-          return (
-            <p className="ts-caption" title={iso || undefined}>
-              updated {rel}
-            </p>
-          );
-        })()}
+        {/* METRIC GRID — source-aware 3-cell snapshot */}
+        <CardMetricGrid cells={metrics} />
 
+        {/* TOPICS — up to 4 clickable chips */}
         {topics.length > 0 && (
           <div className="ts-topics">
             {topics.map((t) =>
@@ -260,12 +247,44 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
           </div>
         )}
 
-        <CardPills
-          popularity={popularity}
-          language={project.language}
-          license={licenseBucket(project.license)}
-          maintenance={maintenanceState(project.updatedAt)}
-        />
+        {/* FOOTER ROW — activity-dot + relative time (left), lang + license (right).
+            mt-auto pushes this to sit just above the action row, regardless of
+            how much vertical space the description / topics occupy. */}
+        {(() => {
+          const rel = formatRelativeTime(project.updatedAt);
+          const isoTitle = (() => {
+            const d = new Date(project.updatedAt);
+            return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+          })();
+          const showLeft = !!rel;
+          const showLang = !!project.language;
+          const showLicense = license && license !== "Unknown";
+          if (!showLeft && !showLang && !showLicense) return null;
+          return (
+            <div className="ts-footer-row" style={{ marginTop: "auto" }}>
+              <div className="ts-footer-left">
+                {showLeft && (
+                  <>
+                    <span
+                      className="ts-activity-dot"
+                      data-state={maint}
+                      aria-hidden
+                    />
+                    <span title={isoTitle || undefined}>updated {rel}</span>
+                  </>
+                )}
+              </div>
+              <div className="ts-footer-right">
+                {showLang && (
+                  <span className="pill pill-language">{project.language}</span>
+                )}
+                {showLicense && <span className="pill pill-license">{license}</span>}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ACTION ROW — primary CTA + ghost copy (60/40 split) */}
         <CardActions
           url={project.url}
           copyItems={copyItems}

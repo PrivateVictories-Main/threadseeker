@@ -237,10 +237,24 @@ body > * {
   flex-direction: column;
   gap: 12px;
   padding: 24px 24px 20px;
-  min-height: 340px;
+  /* Iter-15 overhaul — tighter min-height for info-density layout. The
+     old 340 floor left dead-air on cards with no description; the new
+     metric grid + popularity badge fills the vertical rhythm without
+     needing the buffer. 380 is the new tall floor (set on the comprehensive
+     branch below); 320 stays the sparse floor. */
+  min-height: 380px;
   height: 100%;
   color: var(--ts-text);
   transition: transform .25s ease-out, box-shadow .25s ease-out;
+  /* Iter-15: top specular sheen — a one-pixel inner highlight that mimics
+     the way physical glass picks up light at its top edge. Inset shadow
+     stacks on top of the existing layered rest shadow without conflicting
+     because the rest shadow is outset only. The effect is most visible on
+     the lighter glass surface; on the strong-glass print fallback it
+     disappears, which is fine. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    var(--ts-shadow-rest);
 }
 /* Keyboard-nav scroll target — when j/k focuses a card and we call
    scrollIntoView({ block: 'nearest' }), the sticky header (≈68px:
@@ -259,15 +273,21 @@ body > * {
    right affordance. */
 @media (hover: hover) {
   .ts-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--ts-shadow-hover);
+    /* Iter-15: deeper lift + ambient indigo glow underneath. Combined
+       with the inset specular sheen, the card reads as physically
+       hovering rather than sliding upward in 2D. */
+    transform: translateY(-6px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      var(--ts-shadow-hover),
+      0 32px 60px -20px rgba(99, 102, 241, 0.18);
   }
 }
 /* Sparse variant — description + topics both absent; shave ~80px of
    baseline space. Row alignment stays intact because the grid is
    auto-rows-fr and stretches every card to the tallest sibling. */
 .ts-card.ts-card-sparse {
-  min-height: 260px;
+  min-height: 320px;
 }
 
 .ts-top {
@@ -306,8 +326,11 @@ body > * {
   min-width: 0;
 }
 .ts-avatar {
-  width: 36px; height: 36px; border-radius: 50%;
-  border: 2px solid rgba(99,102,241,0.15);
+  /* Iter-15 — bumped 36 → 44 for proper visual weight. Title now reads
+     as the primary anchor with the avatar grounding it to the left
+     instead of the previous tiny-icon-next-to-text feel. */
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid rgba(99,102,241,0.18);
   background: var(--ts-surface-strong);
   object-fit: cover; flex: 0 0 auto;
   box-shadow: var(--ts-shadow-sm);
@@ -329,16 +352,21 @@ body > * {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  /* 44px avatar warrants a slightly larger letter for visual weight. */
+  font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.01em;
   border-color: transparent;
 }
 .ts-title {
-  margin: 0; font-size: 17px; font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--ts-text); line-height: 1.3;
-  display: flex; flex-direction: column; gap: 2px;
+  margin: 0;
+  /* Iter-15: 17 → 19 for the card title. Aligned with Linear/Vercel
+     density where the title carries 80% of the visual weight. */
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ts-text); line-height: 1.25;
+  display: flex; flex-direction: column; gap: 3px;
   min-width: 0;
   flex: 1;
 }
@@ -362,7 +390,10 @@ body > * {
   width: 100%;
 }
 .ts-title .ts-title-sub {
-  font-size: 12.5px; font-weight: 500;
+  /* Iter-15: 12.5 → 13 to match the more comprehensive new card. Pairs
+     visually with the 19px title above (16% smaller, clearly secondary
+     but still readable at typical viewing distance). */
+  font-size: 13px; font-weight: 500;
   color: var(--ts-text-subtle);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -389,13 +420,16 @@ body > * {
 }
 
 .ts-desc {
-  margin: 0; font-size: 13.5px; line-height: 1.55;
+  margin: 0;
+  /* Iter-15: 13.5 → 14 for legibility, line-clamp 2 → 3 for density.
+     min-height calc tracks the new 3-line floor so cards align. */
+  font-size: 14px; line-height: 1.55;
   color: var(--ts-text-muted);
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   overflow: hidden;
-  min-height: calc(2 * 1.55em);
+  min-height: calc(3 * 1.55em);
 }
 /* Placeholder variant — italic + faint so it reads as "absence
    acknowledged" rather than content. Same line-clamp + min-height
@@ -509,9 +543,168 @@ button.topic-chip-interactive {
   justify-content: flex-start;
 }
 .ts-actions {
-  display: flex; flex-wrap: wrap; gap: 8px;
+  display: flex; flex-wrap: nowrap; gap: 8px;
 }
-.ts-actions .btn { height: 36px; }
+/* Iter-15: bigger weight on the action row. h-10 reads as a real CTA;
+   the previous h-9 felt thin against the rest of the card. The primary
+   action takes 60% of the row, ghost takes the remaining 40%. When
+   there's no copy item, the primary expands to full-width. */
+.ts-actions .btn {
+  height: 40px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ts-actions .btn-primary {
+  flex: 1 1 60%;
+  min-width: 0;
+}
+.ts-actions .btn-ghost {
+  flex: 1 1 40%;
+  min-width: 0;
+}
+.ts-actions .btn-primary:only-child {
+  flex: 1 1 100%;
+}
+
+/* Iter-15 — comprehensive 3-cell metric grid. Sits above the topics row
+   and gives every card a "this is what you'd want to know" snapshot
+   without leaving the card. Empty cells are dropped at the data layer
+   (metricsForProject in helpers.ts) so the grid renders 1, 2, or 3
+   cells — the grid-template stretches to fill regardless. */
+.ts-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 0;
+  /* Soft horizontal rule above + below to set the metric grid apart from
+     the description and the topics row. Indigo-soft border-color so the
+     rule reads as part of the indigo accent vocabulary, not generic
+     gray. */
+  border-top: 1px solid rgba(99, 102, 241, 0.10);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.10);
+}
+.ts-metric-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ts-metric-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ts-text-faint);
+  line-height: 1;
+}
+.ts-metric-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ts-text);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  /* Truncate a long version string ("3.0.0-rc.4") rather than wrap and
+     break the row rhythm. Format / Year / Authors strings are short
+     enough they rarely hit this. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Iter-15 — "why is this popular" badge. Top-right slot of the card,
+   adjacent to the bookmark button. Indigo-violet–rose–amber palette only. */
+.ts-pop-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 8px;
+  border-radius: var(--ts-radius-full);
+  line-height: 1;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.ts-pop-badge-hot {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.30);
+}
+.ts-pop-badge-trending {
+  color: #4f46e5;
+  background: rgba(99, 102, 241, 0.14);
+  border-color: rgba(99, 102, 241, 0.30);
+}
+.ts-pop-badge-rising {
+  color: #6d28d9;
+  background: rgba(124, 58, 237, 0.13);
+  border-color: rgba(124, 58, 237, 0.28);
+}
+.ts-pop-badge-new {
+  color: #0369a1;
+  background: rgba(14, 165, 233, 0.13);
+  border-color: rgba(14, 165, 233, 0.28);
+}
+.ts-pop-badge-established {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.13);
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+/* Iter-15 — refined footer row: small relative-time on left, language +
+   license pills on right. Smaller than the metric-grid values; reads as
+   secondary metadata. */
+.ts-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ts-text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.ts-footer-row .ts-footer-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.ts-footer-row .ts-footer-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.ts-footer-row .pill {
+  font-size: 11px;
+  padding: 3px 9px;
+}
+/* Activity dot — visible "last activity" pulse on the relative-time row.
+   Gentle pulse; reduced-motion users get a static dot via the global
+   prefers-reduced-motion block. */
+.ts-activity-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: ts-activity-pulse 2.4s ease-out infinite;
+  flex-shrink: 0;
+}
+.ts-activity-dot[data-state="recent"]    { background: #f59e0b; }
+.ts-activity-dot[data-state="stale"]     { background: #94a3b8; animation: none; }
+.ts-activity-dot[data-state="abandoned"] { background: #f87171; animation: none; }
+.ts-activity-dot[data-state="unknown"]   { background: #cbd5e1; animation: none; }
+@keyframes ts-activity-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+  70%  { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
 
 /* SearchBar — hero variant (big and rounded) */
 .search-bar-shell {
@@ -668,7 +861,8 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
    covers the hand-rolled keyframes and hover transitions here. */
 @media (prefers-reduced-motion: reduce) {
   .skeleton .shimmer,
-  .ts-hero-accent {
+  .ts-hero-accent,
+  .ts-activity-dot {
     animation: none !important;
   }
   .ts-hero-accent {
