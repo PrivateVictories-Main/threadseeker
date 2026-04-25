@@ -1041,35 +1041,37 @@ button.topic-chip-interactive {
 .shimmer-static { animation: none; background: rgba(99,102,241,0.12); }
 
 /* Iter-19 / Track 1 — animated trailing dots for "loading" mono captions.
-   Three dots cycle in via ::after content. Subtle, mono-register, cleaner
-   than spelling "..." statically when the user expects motion to confirm
-   the section is alive rather than stuck.
+   Three dots that cycle in via a width animation against a fixed-width
+   slot. Subtle, mono-register, cleaner than spelling "..." statically
+   when the user expects motion to confirm the section is alive.
 
-   .ts-loading-dots is rendered as an inline-block sibling so the caption
-   text doesn't shift when the dots animate. width is fixed to a 3-dot
-   slot so wrap/layout never changes. */
+   The 3-dot string lives in ::after content; a width animation reveals
+   0/1/2/3 dots via overflow:hidden against a 3ch slot. Avoids the
+   browser-quirky `content` animation path used in some older recipes. */
 .ts-loading-dots {
   display: inline-block;
   width: 1.6em;
   text-align: left;
   letter-spacing: 0.08em;
+  overflow: hidden;
+  vertical-align: bottom;
 }
 .ts-loading-dots::after {
-  content: "";
+  content: "...";
   display: inline-block;
+  width: 0;
+  overflow: hidden;
   animation: ts-loading-dots 1.4s steps(4, end) infinite;
+  white-space: nowrap;
 }
 @keyframes ts-loading-dots {
-  0%   { content: ""; }
-  25%  { content: "."; }
-  50%  { content: ".."; }
-  75%  { content: "..."; }
-  100% { content: ""; }
+  0%   { width: 0; }
+  100% { width: 1.4em; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ts-loading-dots::after {
     animation: none;
-    content: "...";
+    width: 1.4em;
   }
 }
 
