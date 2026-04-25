@@ -3,8 +3,19 @@
 // unit-tested (and reused) without pulling React in.
 
 import type { UnifiedProject } from "@/lib/sources/types";
-import type { MaintenanceState } from "./CardPills";
 import type { CopyItem } from "./CardActions";
+
+/**
+ * Maintenance bucket for a project's last-update timestamp. Migrated here
+ * from the (now-deleted) CardPills component during Overhaul B — `helpers`
+ * is the canonical home for card classification primitives.
+ */
+export type MaintenanceState =
+  | "active"
+  | "stale"
+  | "abandoned"
+  | "recent"
+  | "unknown";
 
 export function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -139,7 +150,7 @@ export function openLabelForSource(source: UnifiedProject["source"]): string {
 // upvote glyph (more semantically accurate than ★ for an upvote count)
 // and append a comments-count via the speech-bubble glyph when present.
 // Returns null when the project carries no popularity signal at all
-// (empty pills suppress entirely via CardPills.tsx).
+// (the card simply skips the pill / footer entry when this is null).
 export function popularityForProject(p: UnifiedProject): string | null {
   const isThread =
     p.source === "reddit" ||
