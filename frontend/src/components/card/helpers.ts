@@ -578,3 +578,196 @@ export function copyItemsForSource(p: UnifiedProject): CopyItem[] {
       return [];
   }
 }
+
+// Iter-21 / Overhaul G — unified single-row stat strip for the new
+// HF-clean compact card. Replaces both the 3-cell metric grid and the
+// 5-cell mini-strip with one horizontal row of inline icon + number
+// segments separated by middots.
+//
+// Each segment is { icon, value, title? }. Segments without data drop.
+// Caller renders as flex-row with middot separators between segments.
+//
+// Vocabulary (sticking to text-friendly glyphs that pair with mono nums):
+//   ★  stars / likes
+//   ⑂  forks (Y-fork glyph)
+//   ↓  downloads
+//   ◷  updated / posted (clock face)
+//   ☉  license (sun-circle, reads as a "core" / spec marker)
+//   ⓥ  version
+//   ♥  HF likes (alt — only used when ★ already in use elsewhere)
+//   ▲  upvote
+//   💬 comments
+//   ⓘ  citations
+//   ✎  authors
+export interface StatSegment {
+  /** Single-glyph icon prefix. */
+  icon: string;
+  /** Already-formatted display string (e.g. "41.5k", "v1.2.3", "MIT"). */
+  value: string;
+  /** Optional native tooltip — full count, ISO timestamp, etc. */
+  title?: string;
+}
+
+export function cardStatRow(p: UnifiedProject): StatSegment[] {
+  const out: StatSegment[] = [];
+  const isRepo =
+    p.source === "github" || p.source === "gitlab" || p.source === "codeberg";
+  const isPackage =
+    p.source === "npm" ||
+    p.source === "pypi" ||
+    p.source === "crates" ||
+    p.source === "rubygems" ||
+    p.source === "packagist" ||
+    p.source === "jsr" ||
+    p.source === "nuget" ||
+    p.source === "conda" ||
+    p.source === "maven" ||
+    p.source === "homebrew" ||
+    p.source === "dockerhub";
+  const isModel = p.source === "huggingface";
+  const isPaper =
+    p.source === "arxiv" || p.source === "paperswithcode" || p.source === "zenodo";
+  const isThread =
+    p.source === "hackernews" ||
+    p.source === "reddit" ||
+    p.source === "lobsters" ||
+    p.source === "stackoverflow" ||
+    p.source === "devto";
+  const license = licenseBucket(p.license);
+  const hasLicense = license && license !== "Unknown";
+
+  if (isRepo) {
+    if (p.stars > 0) {
+      out.push({ icon: "★", value: formatCount(p.stars), title: `${formatCountFull(p.stars)} stars` });
+    }
+    if (p.forks && p.forks > 0) {
+      out.push({ icon: "⑂", value: formatCount(p.forks), title: `${formatCountFull(p.forks)} forks` });
+    }
+    const rel = formatRelativeTime(p.updatedAt);
+    if (rel) {
+      const isoTitle = (() => {
+        const d = new Date(p.updatedAt);
+        return Number.isNaN(d.getTime()) ? rel : `Updated ${d.toISOString().slice(0, 10)}`;
+      })();
+      out.push({ icon: "◷", value: `updated ${rel}`, title: isoTitle });
+    }
+    if (hasLicense) out.push({ icon: "☉", value: license });
+    return out;
+  }
+
+  if (isPackage) {
+    const dl = p.weeklyDownloads ?? p.downloads;
+    if (dl && dl > 0) {
+      const suffix = p.weeklyDownloads ? "/wk" : "";
+      out.push({
+        icon: "↓",
+        value: `${formatCount(dl)}${suffix}`,
+        title: `${formatCountFull(dl)} downloads${suffix}`,
+      });
+    }
+    if (p.version) out.push({ icon: "ⓥ", value: `v${p.version}`, title: `Latest version ${p.version}` });
+    const stamp = p.lastPublished || p.updatedAt;
+    if (stamp) {
+      const rel = formatRelativeTime(stamp);
+      if (rel) {
+        const isoTitle = (() => {
+          const d = new Date(stamp);
+          return Number.isNaN(d.getTime()) ? rel : `Published ${d.toISOString().slice(0, 10)}`;
+        })();
+        out.push({ icon: "◷", value: rel, title: isoTitle });
+      }
+    }
+    if (hasLicense) out.push({ icon: "☉", value: license });
+    return out;
+  }
+
+  if (isModel) {
+    if (p.downloads && p.downloads > 0) {
+      out.push({
+        icon: "↓",
+        value: formatCount(p.downloads),
+        title: `${formatCountFull(p.downloads)} downloads`,
+      });
+    }
+    const likes = p.upvotes ?? p.stars;
+    if (likes > 0) {
+      out.push({ icon: "♥", value: formatCount(likes), title: `${formatCountFull(likes)} likes` });
+    }
+    if (p.language) out.push({ icon: "⌗", value: p.language });
+    if (hasLicense) out.push({ icon: "☉", value: license });
+    return out;
+  }
+
+  if (isPaper) {
+    if (p.citations !== undefined && p.citations > 0) {
+      out.push({
+        icon: "ⓘ",
+        value: `${formatCount(p.citations)} cites`,
+        title: `${formatCountFull(p.citations)} citations`,
+      });
+    }
+    if (p.paperYear) out.push({ icon: "◷", value: String(p.paperYear) });
+    if (p.paperAuthors && p.paperAuthors.length > 0) {
+      out.push({
+        icon: "✎",
+        value: `${p.paperAuthors.length} ${p.paperAuthors.length === 1 ? "author" : "authors"}`,
+        title: p.paperAuthors.slice(0, 6).join(", "),
+      });
+    }
+    return out;
+  }
+
+  if (isThread) {
+    const upvotes = p.upvotes ?? p.stars;
+    if (upvotes > 0) {
+      out.push({ icon: "▲", value: formatCount(upvotes), title: `${formatCountFull(upvotes)} upvotes` });
+    }
+    const comments = p.comments ?? p.commentsCount;
+    if (comments && comments > 0) {
+      out.push({
+        icon: "💬",
+        value: formatCount(comments),
+        title: `${formatCountFull(comments)} comments`,
+      });
+    }
+    const stamp = p.createdAt || p.updatedAt;
+    const rel = stamp ? formatRelativeTime(stamp) : "";
+    if (rel) out.push({ icon: "◷", value: `posted ${rel}` });
+    return out;
+  }
+
+  // Generic catch-all: apps, extensions, etc.
+  if (p.downloads && p.downloads > 0) {
+    out.push({
+      icon: "↓",
+      value: formatCount(p.downloads),
+      title: `${formatCountFull(p.downloads)} downloads`,
+    });
+  }
+  if (p.version) out.push({ icon: "ⓥ", value: `v${p.version}` });
+  const rel = formatRelativeTime(p.updatedAt);
+  if (rel) out.push({ icon: "◷", value: `updated ${rel}` });
+  if (hasLicense) out.push({ icon: "☉", value: license });
+  return out;
+}
+
+// Iter-21 / Overhaul G — popularity-class color tone for the new
+// text-only popularity dot. Restrained palette: amber for hot, indigo
+// for trending, violet for rising, sky for new, slate for established.
+// Returns the CSS color tokens directly to keep the component thin.
+export function popularityClassDotColor(cls: PopularityClass): string {
+  switch (cls) {
+    case "hot":
+      return "#d97706"; // amber-600
+    case "trending":
+      return "#4f46e5"; // indigo-600
+    case "rising":
+      return "#7c3aed"; // violet-600
+    case "new":
+      return "#0284c7"; // sky-600
+    case "established":
+      return "#475569"; // slate-600
+    default:
+      return "#94a3b8";
+  }
+}
