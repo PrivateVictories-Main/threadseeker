@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import type { UnifiedProject } from "@/lib/sources/types";
 import { SourceBadge } from "./card/SourceBadge";
 import { CardActions, type CopyItem } from "./card/CardActions";
 import { CardMetricGrid } from "./card/CardMetricGrid";
 import { PopularityBadge } from "./card/PopularityBadge";
+import { MiniStatStrip } from "./card/MiniStatStrip";
+import { IdentityRibbon } from "./card/IdentityRibbon";
+import { ExpandedDetail } from "./card/ExpandedDetail";
 import { AnimatedCard } from "./motion/AnimatedCard";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { bookmarkVariants } from "@/lib/motion";
@@ -12,13 +16,17 @@ import { useBookmark } from "@/lib/bookmarks";
 import {
   formatRelativeTime,
   licenseBucket,
+  licenseTone,
   maintenanceState,
   copyItemsForSource,
   avatarFallbackHue,
   openLabelForSource,
   popularityClass,
   metricsForProject,
+  miniStatsForProject,
   formatCount,
+  formatCountFull,
+  formatAge,
 } from "./card/helpers";
 
 interface Props {
@@ -60,6 +68,10 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
   // the rationale on the dual reduced-motion / animated branch.
   const pulseControls = useAnimationControls();
   const reducedMotion = useReducedMotion();
+  // Iter-20 / Overhaul F — in-place expansion. When true, ExpandedDetail
+  // renders a panel beneath the action row with README, languages,
+  // releases, comments, related sources, etc.
+  const [expanded, setExpanded] = useState(false);
 
   const copyItems: CopyItem[] = copyItemsForSource(project);
   const openLabel = openLabelForSource(project.source);
@@ -110,17 +122,37 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
   const popReason = (() => {
     if (!popClass) return undefined;
     const stars = formatCount(project.stars || 0);
-    if (popClass === "hot") return `${stars} stars in under a month`;
-    if (popClass === "trending") return `${stars} stars · trending`;
-    if (popClass === "rising") return `${stars} stars · rising`;
+    // Iter-20 — append the precise count as a tooltip-friendly addendum
+    // so the badge title reads "1.2k (1,231) stars in under a month".
+    const exact = project.stars > 0 ? ` (${formatCountFull(project.stars)})` : "";
+    if (popClass === "hot") return `${stars}${exact} stars in under a month`;
+    if (popClass === "trending") return `${stars}${exact} stars · trending`;
+    if (popClass === "rising") return `${stars}${exact} stars · rising`;
     if (popClass === "new") return "Created recently";
-    if (popClass === "established") return `${stars} stars · long-running`;
+    if (popClass === "established") return `${stars}${exact} stars · long-running`;
     return undefined;
   })();
 
   const metrics = metricsForProject(project);
+  const miniStats = miniStatsForProject(project);
   const maint = maintenanceState(project.updatedAt);
   const license = licenseBucket(project.license);
+  const licTone = licenseTone(project.license);
+
+  // Iter-20 / Overhaul F — mini-spec line beneath the title. Builds a
+  // single mono row of the highest-signal facets: license · language ·
+  // contributors · age. Each segment drops if absent so sparse cards
+  // (e.g. a HN thread) don't render an empty mid-dot chain. Cap at 4
+  // segments to keep the line scannable.
+  const specSegments: string[] = [];
+  if (license && license !== "Unknown") specSegments.push(license);
+  if (project.language) specSegments.push(project.language.toUpperCase());
+  if (project.contributors && project.contributors > 0) {
+    specSegments.push(`${formatCount(project.contributors)} contributors`);
+  }
+  const age = formatAge(project.createdAt);
+  if (age) specSegments.push(age);
+  const specLine = specSegments.slice(0, 4).join(" · ");
 
   return (
     <AnimatedCard
@@ -130,7 +162,21 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
       resultId={project.id}
       resultUrl={project.url}
     >
-      <article className={`ts-card glass${isSparse ? " ts-card-sparse" : ""}`}>
+      <article
+        className={`ts-card glass${isSparse ? " ts-card-sparse" : ""}${expanded ? " is-expanded" : ""}`}
+        data-source={project.source}
+        data-pop={popClass ?? undefined}
+      >
+        {/* Iter-20 / Overhaul F — vertical accent ribbon on the left edge.
+            Color-keyed to source family so a row of cards reads as a
+            self-organized result list. Subtle decorative cue. */}
+        <IdentityRibbon source={project.source} />
+
+        {/* Iter-20 / Overhaul F — single-pass scan-line on first hover.
+            Pure-CSS animation keyed off .ts-card:hover. The element is a
+            no-op until hovered; restart-on-leave lives in CSS. */}
+        <span className="ts-scanline" aria-hidden />
+
         {/* Bookmark-pulse ring */}
         <motion.span
           aria-hidden
@@ -209,6 +255,11 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
               )}
             </span>
             {subline && <span className="ts-title-sub">{subline}</span>}
+            {specLine && (
+              <span className="ts-spec-line" title={specLine}>
+                {specLine}
+              </span>
+            )}
           </h3>
         </div>
 
@@ -220,6 +271,13 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
             No description provided.
           </p>
         )}
+
+        {/* MINI STAT STRIP — Iter-20 / Overhaul F. Up to 5 mono cells
+            sitting between description and the headline metric grid.
+            Source-aware: github shows CREATED/UPDATED/ISSUES/WATCH/FORKS,
+            npm shows VERSION/PUBLISHED/WEEKLY/TOTAL, etc. Empty cells
+            drop. */}
+        <MiniStatStrip stats={miniStats} />
 
         {/* METRIC GRID — source-aware 3-cell snapshot */}
         <CardMetricGrid cells={metrics} />
@@ -278,13 +336,24 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
                 {showLang && (
                   <span className="pill pill-language">{project.language}</span>
                 )}
-                {showLicense && <span className="pill pill-license">{license}</span>}
+                {showLicense && (
+                  <span
+                    className="pill pill-license"
+                    data-license-tone={licTone}
+                    title={`License: ${license}`}
+                  >
+                    <span className="ts-license-icon" aria-hidden>
+                      {licTone === "permissive" ? "⚖" : licTone === "copyleft" ? "🔒" : "○"}
+                    </span>
+                    {license}
+                  </span>
+                )}
               </div>
             </div>
           );
         })()}
 
-        {/* ACTION ROW — primary CTA + ghost copy (60/40 split) */}
+        {/* ACTION ROW — primary CTA + ghost copy + expand toggle */}
         <CardActions
           url={project.url}
           copyItems={copyItems}
@@ -292,6 +361,19 @@ export function UnifiedProjectCard({ project, onToast, onTopicClick, index, oute
           onCopy={(text) => {
             onToast?.(`Copied: ${text.slice(0, 40)}`);
           }}
+          expanded={expanded}
+          onToggleExpand={() => setExpanded((v) => !v)}
+        />
+
+        {/* EXPANDED DETAIL — Iter-20 / Overhaul F. README excerpt,
+            language breakdown, releases, top comments, related sources,
+            quick actions. Each section hides when its data is absent —
+            so the panel is rich for github repos and minimal for sparse
+            sources. README fetches lazily on first open. */}
+        <ExpandedDetail
+          project={project}
+          open={expanded}
+          reduceMotion={!!reducedMotion}
         />
       </article>
     </AnimatedCard>

@@ -1098,13 +1098,491 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   box-shadow: 0 0 0 2px rgba(99,102,241,0.22);
 }
 
+/* =========================================================================
+   Iter-20 / Overhaul F — preview-panel card.
+   ========================================================================= */
+
+/* Identity ribbon — 2px vertical accent on the left edge of every card.
+   Color-keyed to source family so a row of mixed-source results reads as
+   a self-organized stack. Decorative; aria-hidden + pointer-events: none
+   keeps it inert. */
+.ts-identity-ribbon {
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: rgba(99, 102, 241, 0.55);
+  pointer-events: none;
+  opacity: 0.55;
+  transition: opacity .3s ease, background-color .3s ease;
+}
+@media (hover: hover) {
+  .ts-card:hover .ts-identity-ribbon {
+    opacity: 1;
+  }
+}
+.ts-identity-ribbon-github       { background: #1f2937; }
+.ts-identity-ribbon-gitlab       { background: #ea580c; }
+.ts-identity-ribbon-codeberg     { background: #0e7490; }
+.ts-identity-ribbon-huggingface  { background: #f59e0b; }
+.ts-identity-ribbon-npm          { background: #ef4444; }
+.ts-identity-ribbon-pypi         { background: #3b82f6; }
+.ts-identity-ribbon-crates       { background: #ea580c; }
+.ts-identity-ribbon-packagist    { background: #7c3aed; }
+.ts-identity-ribbon-rubygems     { background: #e11d48; }
+.ts-identity-ribbon-jsr          { background: #0ea5e9; }
+.ts-identity-ribbon-dockerhub    { background: #3b82f6; }
+.ts-identity-ribbon-flathub      { background: #4f46e5; }
+.ts-identity-ribbon-homebrew     { background: #f59e0b; }
+.ts-identity-ribbon-fdroid       { background: #10b981; }
+.ts-identity-ribbon-aur          { background: #1e3a8a; }
+.ts-identity-ribbon-openvsx      { background: #7c3aed; }
+.ts-identity-ribbon-conda        { background: #10b981; }
+.ts-identity-ribbon-nuget        { background: #5b21b6; }
+.ts-identity-ribbon-wordpress    { background: #3b82f6; }
+.ts-identity-ribbon-maven        { background: #ef4444; }
+.ts-identity-ribbon-paperswithcode { background: #0e7490; }
+.ts-identity-ribbon-arxiv        { background: #b91c1c; }
+.ts-identity-ribbon-zenodo       { background: #3b82f6; }
+.ts-identity-ribbon-hackernews   { background: #f97316; }
+.ts-identity-ribbon-reddit       { background: #ea580c; }
+.ts-identity-ribbon-lobsters     { background: #78350f; }
+.ts-identity-ribbon-stackoverflow{ background: #ea580c; }
+.ts-identity-ribbon-devto        { background: #0f172a; }
+
+/* Scan-line on first hover — single 1.4s sweep, then settles. Reads as
+   "data scanning" / live-system feel. Reduced-motion drops it entirely.
+   Implementation: a 1px tall horizontal indigo gradient that translates
+   from the top of the card to the bottom on hover, faded edges. */
+.ts-scanline {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(99, 102, 241, 0) 0%,
+    rgba(99, 102, 241, 0.55) 50%,
+    rgba(99, 102, 241, 0) 100%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0);
+  border-radius: 999px;
+}
+@media (hover: hover) {
+  .ts-card:hover .ts-scanline {
+    animation: ts-card-scan 1.4s cubic-bezier(0.32, 0.72, 0, 1) 1;
+  }
+}
+@keyframes ts-card-scan {
+  0%   { opacity: 0; transform: translateY(0); }
+  10%  { opacity: 1; }
+  85%  { opacity: 0.7; }
+  100% { opacity: 0; transform: translateY(380px); }
+}
+
+/* Pulse on Hot / Trending popularity badges — the "this is the rocket"
+   read. Slow, premium, almost imperceptible at glance but unmistakable
+   on attention. Reduced-motion users get a static badge. */
+.ts-card[data-pop="hot"] .ts-pop-badge,
+.ts-card[data-pop="trending"] .ts-pop-badge {
+  animation: ts-pop-pulse 2.6s ease-in-out infinite;
+}
+@keyframes ts-pop-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.0); }
+  50%      { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.18); }
+}
+.ts-card[data-pop="trending"] .ts-pop-badge {
+  /* Override the keyframe color for trending — indigo, not amber. */
+  animation-name: ts-pop-pulse-indigo;
+}
+@keyframes ts-pop-pulse-indigo {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.0); }
+  50%      { box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.20); }
+}
+
+/* Mini-spec chip beneath the title — single mono row of license · lang
+   · contributors · age. Reads as a "spec sheet" line, not body text.
+   Tabular-nums + tracked spacing mirror the metric-grid label register. */
+.ts-spec-line {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ts-text-faint);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+}
+
+/* License pill enrichments — Iter-20 adds tone-keyed coloring + an icon
+   slot. The base .pill-license style ships in the older block above
+   (color: #047857). Override per tone here. */
+.pill-license[data-license-tone="permissive"] {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.20);
+}
+.pill-license[data-license-tone="copyleft"] {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.10);
+  border-color: rgba(245, 158, 11, 0.22);
+}
+.pill-license[data-license-tone="other"] {
+  color: var(--ts-text-subtle);
+  background: rgba(148, 163, 184, 0.10);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+.ts-license-icon {
+  display: inline-block;
+  margin-right: 4px;
+  opacity: 0.85;
+  font-size: 11px;
+  vertical-align: -1px;
+}
+
+/* Mini stat strip — 5 compact tiles between description and metric grid.
+   Reads as a "spec readout" on the project. Mono labels above
+   tabular-numeric values. Soft indigo divider above + below mirrors the
+   metric-grid rhythm but uses lighter weight so the visual hierarchy
+   stays metric-grid > mini-strip > footer. */
+.ts-mini-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px dashed rgba(99, 102, 241, 0.14);
+}
+.ts-mini-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.ts-mini-stat-label {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ts-text-faint);
+  line-height: 1;
+}
+.ts-mini-stat-value {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--ts-text);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Expand toggle — sits at the right edge of the action row. Mono ghost
+   button so it visually pairs with the metric-grid labels rather than
+   the primary CTA. */
+.ts-expand-toggle {
+  flex: 0 0 auto !important;
+  min-width: 76px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px !important;
+}
+.ts-expand-toggle .ts-expand-toggle-chev {
+  display: inline-block;
+  transition: transform .25s cubic-bezier(0.32, 0.72, 0, 1);
+  font-size: 10px;
+}
+.ts-expand-toggle.is-expanded .ts-expand-toggle-chev {
+  transform: rotate(180deg);
+}
+
+/* Expanded panel — sits below the action row when card is open. Uses
+   AnimatePresence + height auto via framer-motion for the height
+   transition; the visual layer here adds the indigo top divider, inner
+   section spacing, and the mono section headers. */
+.ts-card.is-expanded {
+  /* Soft outer glow so the open card stands out in a row of collapsed
+     siblings. Same layering vocabulary as the hover state. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    var(--ts-glass-rim),
+    0 0 0 1px rgba(99, 102, 241, 0.22),
+    var(--ts-shadow-hover),
+    0 32px 60px -20px rgba(99, 102, 241, 0.22);
+}
+.ts-expand {
+  overflow: hidden;
+  border-top: 1px solid rgba(99, 102, 241, 0.14);
+  margin: 4px -2px 0;
+  padding: 0 2px;
+}
+.ts-expand-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 0 4px;
+}
+.ts-expand-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.10);
+}
+.ts-expand-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.ts-expand-h {
+  margin: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ts-accent-strong);
+  line-height: 1;
+}
+.ts-expand-readme {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ts-text-muted);
+  white-space: pre-wrap;
+  /* Cap the readme block so a card doesn't stretch a full screen on
+     a long readme. The 600-char slice in JS is the upstream cap. */
+  max-height: 11em;
+  overflow: hidden;
+  position: relative;
+}
+.ts-expand-loading {
+  margin: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--ts-text-faint);
+}
+.ts-expand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ts-expand-row-text {
+  font-size: 12.5px;
+  color: var(--ts-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ts-expand-author {
+  color: var(--ts-text);
+  font-weight: 600;
+}
+.ts-expand-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(99, 102, 241, 0.18);
+  background: var(--ts-surface-strong);
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+.ts-expand-releases {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ts-expand-release {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12.5px;
+}
+.ts-expand-release-v {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-weight: 600;
+  color: var(--ts-accent-strong);
+  font-variant-numeric: tabular-nums;
+}
+.ts-expand-release-date {
+  color: var(--ts-text-faint);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+.ts-expand-release-link {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ts-accent-strong);
+  text-decoration: none;
+}
+.ts-expand-release-link:hover {
+  text-decoration: underline;
+}
+.ts-expand-comments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ts-expand-comment {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border-left: 2px solid rgba(99, 102, 241, 0.30);
+  background: rgba(99, 102, 241, 0.04);
+  border-radius: 0 6px 6px 0;
+}
+.ts-expand-comment-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+}
+.ts-expand-comment-author {
+  font-weight: 700;
+  color: var(--ts-accent-strong);
+}
+.ts-expand-comment-score {
+  color: var(--ts-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.ts-expand-comment-body {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ts-text-muted);
+  line-height: 1.5;
+}
+.ts-expand-related {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ts-expand-related-chip {
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+.ts-expand-related-chip:hover {
+  transform: translateY(-1px);
+}
+.ts-expand-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ts-expand-qa {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: var(--ts-radius-sm);
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.20);
+  color: var(--ts-accent-strong);
+  text-decoration: none;
+  line-height: 1;
+  transition: background-color .15s ease, border-color .15s ease, transform .15s ease;
+}
+.ts-expand-qa:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.36);
+  transform: translateY(-1px);
+}
+
+/* Language breakdown stacked-bar (used inside expand panel). */
+.ts-lang-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ts-lang-bar {
+  display: flex;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(99, 102, 241, 0.06);
+}
+.ts-lang-bar-seg {
+  height: 100%;
+  display: block;
+}
+.ts-lang-bar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.ts-lang-bar-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ts-text-muted);
+}
+.ts-lang-bar-legend-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.ts-lang-bar-legend-name {
+  color: var(--ts-text);
+  font-weight: 600;
+}
+.ts-lang-bar-legend-pct {
+  color: var(--ts-text-faint);
+}
+
+/* Sparkline — small inline-SVG bar chart. Used in the expand panel
+   when adapter ships per-window count data. */
+.ts-sparkline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+}
+.ts-sparkline-label {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  color: var(--ts-text-faint);
+}
+
 /* Honor reduced-motion — kill decorative CSS animations + long transitions.
    Framer-motion handles its own reduced-motion via its provider; this only
    covers the hand-rolled keyframes and hover transitions here. */
 @media (prefers-reduced-motion: reduce) {
   .skeleton .shimmer,
   .ts-hero-accent,
-  .ts-activity-dot {
+  .ts-activity-dot,
+  .ts-scanline,
+  .ts-card[data-pop="hot"] .ts-pop-badge,
+  .ts-card[data-pop="trending"] .ts-pop-badge {
     animation: none !important;
   }
   .ts-hero-accent {
@@ -1200,7 +1678,10 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   .search-bar-pulse,
   .sb-submit,
   .ts-bookmark,
-  .ts-actions {
+  .ts-actions,
+  .ts-expand,
+  .ts-scanline,
+  .ts-identity-ribbon {
     display: none !important;
   }
   /* Card grid → single column with hard page-break-avoid so individual
