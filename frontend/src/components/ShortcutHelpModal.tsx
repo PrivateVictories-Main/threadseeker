@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { sheetVariants } from "@/lib/motion";
 
 const SHORTCUTS: Array<{ keys: string[]; label: string }> = [
+  { keys: ["⌘K", "Ctrl+K"], label: "Open the command palette" },
   { keys: ["/"], label: "Focus the search bar" },
   { keys: ["j", "↓"], label: "Move to next result" },
   { keys: ["k", "↑"], label: "Move to previous result" },

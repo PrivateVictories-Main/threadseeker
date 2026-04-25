@@ -12,6 +12,7 @@ import { SavedSection } from "@/components/SavedSection";
 import { DirectJumps } from "@/components/DirectJumps";
 import { CardSkeleton } from "@/components/CardSkeleton";
 import { ShortcutHelpModal, ShortcutHelpButton } from "@/components/ShortcutHelpModal";
+import { CommandPalette, COMMAND_PALETTE_OPEN_EVENT } from "@/components/CommandPalette";
 import { NetworkErrorMessage, NetworkErrorTray } from "@/components/network/NetworkErrorMessage";
 import { AnimatedGrid } from "@/components/motion/AnimatedGrid";
 import { Toast } from "@/components/motion/Toast";
@@ -598,6 +599,24 @@ export default function Home() {
         {liveAnnouncement}
       </div>
       <ShortcutHelpModal />
+      {/* ⌘K command palette — global trigger; can be opened from
+          anywhere via the COMMAND_PALETTE_OPEN_EVENT custom event. The
+          floating "press ⌘K" chip in the sticky header dispatches it. */}
+      <CommandPalette
+        onSearch={(q) => handleSearch(q)}
+        onSortChange={setSortMode}
+        onSourceFilterChange={setActiveSourceFilter}
+        onClearHistory={() => {
+          setHistory([]);
+          saveHistory([]);
+        }}
+        onResetSources={() => setSelectedSources(ALL_SOURCES)}
+        activeSourceFilter={activeSourceFilter}
+        sortMode={sortMode}
+        selectedSourcesCount={selectedSources.length}
+        totalSourcesCount={ALL_SOURCES.length}
+        initialQuery={query}
+      />
       <main id="main-content" className="flex-1">
         <AnimatePresence mode="wait" initial={false}>
           {mode === "hero" ? (
@@ -856,6 +875,25 @@ export default function Home() {
                       </>
                     )}
                   </div>
+                  {/* ⌘K kbd hint — opens the command palette. Hidden
+                      below sm so the search bar gets the room. The
+                      visible "K" chip mirrors the long-standing
+                      keyboard contract from ShortcutHelpModal. */}
+                  <button
+                    onClick={() =>
+                      window.dispatchEvent(new CustomEvent(COMMAND_PALETTE_OPEN_EVENT))
+                    }
+                    className="hidden md:inline-flex items-center gap-1 px-2 py-1 rounded-md text-slate-500 hover:text-indigo-700 hover:bg-white/60 transition-colors flex-shrink-0"
+                    title="Open command palette (⌘K)"
+                    aria-label="Open command palette"
+                  >
+                    <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-indigo-200 bg-white/80 font-mono text-[10px] text-slate-600">
+                      ⌘
+                    </kbd>
+                    <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-indigo-200 bg-white/80 font-mono text-[10px] text-slate-600">
+                      K
+                    </kbd>
+                  </button>
                   <button
                     onClick={handleClear}
                     className="font-mono text-[11px] uppercase tracking-[0.08em] text-slate-500 hover:text-indigo-700 transition-colors px-2 py-1.5 rounded-md hover:bg-white/60 flex-shrink-0"
