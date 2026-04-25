@@ -164,16 +164,20 @@ export function ResultsToolbar({
     SORT_OPTIONS.find((o) => o.value === sortMode)?.label ?? "Relevance";
 
   return (
-    <div className="glass flex flex-col gap-2 px-4 py-2.5 rounded-xl">
+    <div className="ts-toolbar glass flex flex-col gap-2 px-4 py-2.5 rounded-xl">
       {/* Two logical groups: [Sources + Sort] on the left, [MD/JSON/Share]
-          on the right. Both clusters are flex-wrap with min-w-0 so a narrow
-          viewport breaks the row between groups instead of awkwardly
-          mid-button or stacking every control on its own line. */}
-      <div className="flex items-center gap-x-3 gap-y-2 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          on the right. Ghost dot dividers (·) separate logical clusters
+          inside each group, so the toolbar reads as a sentence of related
+          controls rather than a wall of independent buttons.
+          Source filter pill on active state takes a badge treatment with
+          a count chip rather than embedded text. */}
+      <div className="flex items-center gap-x-2 gap-y-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
           <button
             onClick={() => setFilterOpen((v) => !v)}
-            className="btn btn-ghost text-[12.5px] h-8 px-3 min-w-0"
+            className={`btn btn-ghost text-[12.5px] h-8 px-3 min-w-0 ${
+              activeSource ? "ts-toolbar-active" : ""
+            }`}
             aria-expanded={filterOpen}
             title={
               activeSource
@@ -187,12 +191,18 @@ export function ResultsToolbar({
             }
           >
             <Filter className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
-            <span className="truncate">
-              Sources
+            <span className="truncate inline-flex items-center gap-1.5">
+              <span className="font-mono uppercase tracking-[0.06em] text-[11px] text-slate-500">
+                Sources
+              </span>
               {activeSource ? (
-                <span className="ml-1 text-indigo-700">· {getSourceConfig(activeSource).name}</span>
+                <span className="ts-toolbar-badge">
+                  {getSourceConfig(activeSource).name}
+                </span>
               ) : (
-                <span className="ml-1 text-slate-500">· All {activeSourceCount}</span>
+                <span className="font-mono tabular-nums text-[11px] text-slate-500">
+                  {activeSourceCount}
+                </span>
               )}
             </span>
             <ChevronDown
@@ -200,6 +210,7 @@ export function ResultsToolbar({
               aria-hidden
             />
           </button>
+          <span className="ts-toolbar-divider" aria-hidden>·</span>
           <div className="relative" ref={sortRef}>
             <button
               onClick={() => setSortOpen((v) => !v)}
@@ -210,7 +221,12 @@ export function ResultsToolbar({
               aria-label={`Sort order. Currently sorted by ${currentSortLabel}.`}
             >
               <ArrowDownWideNarrow className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
-              <span className="truncate">{currentSortLabel}</span>
+              <span className="truncate inline-flex items-center gap-1.5">
+                <span className="font-mono uppercase tracking-[0.06em] text-[11px] text-slate-500">
+                  Sort
+                </span>
+                <span>{currentSortLabel}</span>
+              </span>
               <ChevronDown
                 className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${sortOpen ? "rotate-180" : ""}`}
                 aria-hidden
@@ -254,7 +270,7 @@ export function ResultsToolbar({
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-2 flex-wrap min-w-0">
+        <div className="ml-auto flex items-center gap-1.5 flex-wrap min-w-0">
           <motion.button
             onClick={() => handleExport("md")}
             className="btn btn-ghost text-[12.5px] h-8 px-3"

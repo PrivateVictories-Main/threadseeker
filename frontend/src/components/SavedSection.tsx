@@ -48,15 +48,15 @@ export function SavedSection() {
   return (
     <div className="glass section-container mt-12">
       <div className="relative flex items-center justify-center mb-3">
-        <h2 className="section-title flex items-center gap-2 m-0">
+        <h2 className="ts-section-header flex items-center gap-2 m-0">
           <BookmarkCheck className="w-3 h-3 text-rose-500" aria-hidden />
-          Saved · {items.length}
+          // Saved <strong>{items.length}</strong>
         </h2>
         {/* Clear-all sits on the right, ghost-weight so it reads as an
             affordance only once you notice it. */}
         <button
           onClick={clearAll}
-          className="absolute right-0 text-[10.5px] uppercase tracking-[0.12em] font-semibold text-slate-400 hover:text-rose-600 transition-colors"
+          className="absolute right-0 font-mono text-[10.5px] uppercase tracking-[0.12em] font-semibold text-slate-400 hover:text-rose-600 transition-colors"
           aria-label="Remove all saved projects"
           title="Clear all saved"
         >

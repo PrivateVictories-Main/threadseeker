@@ -154,9 +154,9 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
 
   return (
     <div className="glass section-container mt-12">
-      <h2 className="section-title flex items-center justify-center gap-2">
+      <h2 className="ts-section-header flex items-center justify-center gap-2 mb-3">
         <Flame className="w-3 h-3 text-amber-600" aria-hidden />
-        Trending this week
+        // Trending <strong>this week</strong>
       </h2>
 
       {/* Language tabs — underline-bar active state for a tabbed-interface

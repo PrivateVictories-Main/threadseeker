@@ -893,8 +893,10 @@ export default function Home() {
               <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 w-full">
                 {isLoading && resultCount === 0 ? (
                   <div className="space-y-5">
-                    <div className="flex items-center gap-2 text-[13px] text-slate-500">
-                      <span>Searching {activeSources} sources</span>
+                    <div className="flex items-center gap-2 font-mono text-[11.5px] uppercase tracking-[0.08em] text-slate-500 tabular-nums">
+                      <span>
+                        Searching <span className="text-slate-700 font-semibold">{activeSources}</span> sources
+                      </span>
                       <span className="inline-flex items-center gap-1.5 text-slate-400">
                         {pendingSourceList.slice(0, 10).map((src) => {
                           const cfg = getSourceConfig(src);
@@ -937,31 +939,37 @@ export default function Home() {
                     />
 
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1">
-                      <p className="text-[13px] text-slate-500">
+                      <p className="text-[12.5px] text-slate-500 font-mono tabular-nums tracking-[0.01em]">
                         <span className="text-slate-800 font-semibold">{view.length}</span>{" "}
-                        {view.length === 1 ? "result" : "results"}
+                        <span className="uppercase text-[11px] tracking-[0.06em] text-slate-400">
+                          {view.length === 1 ? "result" : "results"}
+                        </span>
                         {activeSourceFilter && (
                           <span>
-                            {" "}
-                            from{" "}
-                            <span className="text-indigo-700 font-medium">
+                            <span className="text-slate-300 mx-1.5">·</span>
+                            <span className="uppercase text-[11px] tracking-[0.06em] text-slate-400">
+                              from
+                            </span>{" "}
+                            <span className="text-indigo-700 font-semibold">
                               {getSourceConfig(activeSourceFilter).name}
                             </span>
                           </span>
                         )}
                         {parsedQuery.freeText && (
                           <span>
-                            {" "}
-                            for{" "}
-                            <span className="text-indigo-700 font-medium">
+                            <span className="text-slate-300 mx-1.5">·</span>
+                            <span className="uppercase text-[11px] tracking-[0.06em] text-slate-400">
+                              for
+                            </span>{" "}
+                            <span className="text-indigo-700 font-semibold normal-case">
                               {parsedQuery.freeText}
                             </span>
                           </span>
                         )}
                         {opSummary && (
                           <span>
-                            {" · "}
-                            <span className="text-slate-600 font-mono text-[11.5px]">
+                            <span className="text-slate-300 mx-1.5">·</span>
+                            <span className="text-slate-600 text-[11px] normal-case">
                               {opSummary}
                             </span>
                           </span>
@@ -1052,8 +1060,8 @@ export default function Home() {
                       if (top.length === 0) return null;
                       return (
                         <div className="pt-6 mt-2">
-                          <div className="text-center text-[11px] uppercase tracking-[0.14em] text-slate-400 font-semibold mb-2.5">
-                            More from
+                          <div className="text-center ts-section-header mb-2.5">
+                            // More from
                           </div>
                           <div className="flex flex-wrap justify-center gap-2">
                             {top.map((src) => {
@@ -1257,33 +1265,39 @@ export default function Home() {
 
       <footer className="mt-auto border-t border-indigo-100/70">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6 text-[12px] text-slate-500">
-          <div className="leading-relaxed">
-            <span className="font-semibold text-slate-700">ThreadSeeker</span>{" "}
-            <span className="text-slate-400">·</span> unified search across{" "}
-            <span className="tabular-nums font-medium text-slate-600">
-              {ALL_SOURCES.length}
-            </span>{" "}
-            open-source platforms{" "}
-            <span className="text-slate-300">·</span> no paid APIs{" "}
-            <span className="text-slate-300">·</span> no tracking
+          <div className="leading-relaxed flex items-center gap-3 flex-wrap">
+            <BrandMark variant="inline" />
+            <span className="text-slate-300">·</span>
+            <span className="font-mono text-[11px] uppercase tracking-[0.08em] tabular-nums">
+              <span className="text-slate-700 font-semibold">{ALL_SOURCES.length}</span>{" "}
+              <span className="text-slate-400">platforms</span>
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-slate-400">
+              No paid APIs
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-slate-400">
+              No tracking
+            </span>
           </div>
-          <div className="flex items-center gap-4 md:flex-shrink-0">
+          <div className="flex items-center gap-4 md:flex-shrink-0 font-mono text-[11px] uppercase tracking-[0.08em]">
             <a
               href="https://github.com/PrivateVictories-Main/threadseeker"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 hover:text-indigo-700 transition-colors font-medium"
+              className="inline-flex items-center gap-1.5 hover:text-indigo-700 transition-colors text-slate-500"
             >
               <Github className="w-3.5 h-3.5" aria-hidden />
               GitHub
             </a>
-            <span className="text-slate-300">·</span>
-            <span className="inline-flex items-center gap-1.5">
-              Press
-              <kbd className="px-1.5 py-0.5 rounded border border-indigo-200 bg-white text-slate-700 font-mono text-[11px]">
+            <span className="text-slate-300 normal-case">·</span>
+            <span className="inline-flex items-center gap-1.5 normal-case text-slate-500 lowercase">
+              <span className="uppercase">Press</span>
+              <kbd className="px-1.5 py-0.5 rounded border border-indigo-200 bg-white text-slate-700 font-mono text-[11px] uppercase">
                 ?
               </kbd>
-              for shortcuts
+              <span className="uppercase">for shortcuts</span>
             </span>
           </div>
         </div>
