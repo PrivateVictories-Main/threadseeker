@@ -375,7 +375,16 @@ export function CommandPalette({
     } else if (e.key === "Enter") {
       e.preventDefault();
       const cmd = visible[activeIdx];
-      if (cmd) cmd.onRun();
+      if (cmd) {
+        cmd.onRun();
+      } else if (filter.trim()) {
+        // No matching command but the user typed a query — run it as
+        // a search. This mirrors how Raycast falls back to the
+        // first-class action when the filter narrows past every
+        // command-list entry.
+        onSearch(filter.trim());
+        setOpen(false);
+      }
     } else if (e.key === "Escape") {
       e.preventDefault();
       setOpen(false);
