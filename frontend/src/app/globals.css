@@ -88,16 +88,15 @@ body {
   position: relative;
 }
 
-/* Atmospheric depth layer — two soft radial spots that float over the flat
-   linear gradient. Indigo top-left, violet bottom-right. Pointer-events
-   none + z-index 0 + fixed positioning means they sit beneath every
-   surface but cost nothing in interaction. Opacity stays low (≤22% color
-   stops) so the layer reads as ambient light, not a competing shape. If
-   you can clearly see the spots, it's too strong.
-
-   The spots track a vh/vw viewport so they don't slide as the page
-   scrolls — they stay anchored to the user's visible window the way a
-   real soft light source would. */
+/* Atmospheric depth layer — Overhaul D adds a fourth, hue-rotated radial.
+   Four soft radial spots that float over the flat linear gradient:
+     - Top-left  (intent hue, large)         — primary mood spot
+     - Bottom-right (intent + 30°, large)    — secondary mood spot
+     - Top-right (intent − 20°, medium)      — additional ambient warmth
+     - Bottom-left (intent + 45°, smaller)   — counterbalance grounding
+   All at low opacity (≤22%) so they read as ambient light, not shapes.
+   Pointer-events: none + z-index 0 + fixed positioning anchors them to
+   the user's visible window the way a real soft light source would. */
 body::before {
   content: "";
   position: fixed;
@@ -116,52 +115,136 @@ body::before {
       hsla(calc(var(--ts-intent-hue) + 30), 75%, 78%, 0.18) 0%,
       hsla(calc(var(--ts-intent-hue) + 30), 75%, 78%, 0.08) 38%,
       transparent 72%
+    ),
+    radial-gradient(
+      ellipse 55vw 50vh at 88% 12%,
+      hsla(calc(var(--ts-intent-hue) - 20), 80%, 92%, 0.16) 0%,
+      hsla(calc(var(--ts-intent-hue) - 20), 80%, 92%, 0.06) 40%,
+      transparent 75%
+    ),
+    radial-gradient(
+      ellipse 45vw 40vh at 8% 88%,
+      hsla(calc(var(--ts-intent-hue) + 45), 75%, 90%, 0.14) 0%,
+      hsla(calc(var(--ts-intent-hue) + 45), 75%, 90%, 0.05) 42%,
+      transparent 78%
     );
   /* Soft transition when --ts-intent-hue shifts on a new query, matching
      the body background's own transition cadence. */
   transition: background 800ms ease;
 }
 
-/* Make sure children sit above the depth layer. */
+/* Subtle grain overlay — Overhaul D premium touch.
+   Inline SVG turbulence + tiny opacity gives every page a faint texture
+   so the gradient never reads as a flat plastic plane. Almost
+   imperceptible (1.5% opacity) but adds the same "depth" Apple Maps
+   carries on its glass surfaces. Mix-blend overlay so the grain only
+   modulates, never adds, brightness. Pointer-events: none and z-index
+   sits between the depth layer (0) and the surfaces (1) — the only way
+   to thread it under the chrome without intercepting clicks. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.32;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.045 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 200px 200px;
+}
+
+/* Make sure children sit above the depth + grain layers. */
 body > * {
   position: relative;
   z-index: 1;
 }
 
-/* Glass surface */
+/* Glass surface — Overhaul D multi-layer treatment.
+   Layered effect:
+     - Base translucent fill via --ts-surface (lower alpha than iter-17).
+     - backdrop-filter: blur + saturate, so the surface pulls color from
+       the gradient/depth-radial behind it. saturate(180%) on rest punches
+       the indigo/violet through; hover bumps to saturate(200%).
+     - Inset specular sheen on the top edge, grounding indigo rim on the
+       bottom — composed in --ts-glass-sheen / --ts-glass-rim so card,
+       sheet and modal each pick up the same light-on-glass read.
+     - A 1px gradient border via box-shadow ring (top-bright, bottom-soft)
+       layered with the layered drop shadow for spatial depth.
+     - The previous flat 1px border-image-style edge is now a doubled
+       box-shadow ring, which lets the inner highlight + outer indigo
+       hairline coexist cleanly. */
 .glass {
   background: var(--ts-surface);
-  backdrop-filter: blur(var(--ts-blur)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--ts-blur)) saturate(140%);
+  backdrop-filter: blur(var(--ts-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--ts-blur)) saturate(180%);
   border: 1px solid var(--ts-border);
   border-radius: var(--ts-radius-lg);
-  box-shadow: var(--ts-shadow-rest);
+  box-shadow:
+    var(--ts-glass-sheen),
+    var(--ts-glass-rim),
+    var(--ts-shadow-rest);
+  transition: backdrop-filter .25s ease, box-shadow .25s ease, transform .25s ease, border-color .25s ease;
 }
 .glass-strong {
   background: var(--ts-surface-strong);
-  backdrop-filter: blur(var(--ts-blur)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--ts-blur)) saturate(160%);
+  backdrop-filter: blur(var(--ts-blur-strong)) saturate(190%);
+  -webkit-backdrop-filter: blur(var(--ts-blur-strong)) saturate(190%);
   border: 1px solid var(--ts-border);
   border-radius: var(--ts-radius-lg);
-  box-shadow: var(--ts-shadow-rest);
+  box-shadow:
+    var(--ts-glass-sheen),
+    var(--ts-glass-rim),
+    var(--ts-shadow-rest);
+  transition: backdrop-filter .25s ease, box-shadow .25s ease, transform .25s ease, border-color .25s ease;
 }
 .glass-sticky {
   background: var(--ts-surface-sticky);
-  backdrop-filter: blur(var(--ts-blur-strong)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--ts-blur-strong)) saturate(160%);
+  backdrop-filter: blur(var(--ts-blur-strong)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--ts-blur-strong)) saturate(180%);
   border-bottom: 1px solid var(--ts-border-soft);
   /* Shadow opacity is driven by --ts-sticky-shadow-opacity, fed from
      framer's useScroll/useTransform in page.tsx. At scroll-top the shadow
      fades to ~0 (header reads flush with the gradient); past ~60px it
-     reaches full vocabulary. Falls back to 1 (always visible) if the
-     custom property isn't supplied. */
+     reaches full vocabulary. The inset top sheen is constant — it reads
+     as the same light-on-glass register the cards carry. */
   box-shadow:
+    var(--ts-glass-sheen),
     0 1px 0 rgba(99, 102, 241, calc(0.06 * var(--ts-sticky-shadow-opacity, 1))),
-    0 8px 20px rgba(30, 27, 75, calc(0.05 * var(--ts-sticky-shadow-opacity, 1)));
+    0 8px 20px rgba(30, 27, 75, calc(0.05 * var(--ts-sticky-shadow-opacity, 1))),
+    0 16px 32px rgba(30, 27, 75, calc(0.04 * var(--ts-sticky-shadow-opacity, 1)));
+}
+
+/* Generic hover affordance for any glass surface that's interactive
+   (e.g. dropdowns, popovers). Cards have their own .ts-card:hover so
+   we don't double-apply. Saturation pumps + border picks up indigo. */
+@media (hover: hover) {
+  a.glass:hover,
+  button.glass:hover {
+    backdrop-filter: blur(var(--ts-blur)) saturate(200%);
+    -webkit-backdrop-filter: blur(var(--ts-blur)) saturate(200%);
+    border-color: rgba(99, 102, 241, 0.32);
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      var(--ts-glass-rim),
+      var(--ts-shadow-hover);
+  }
 }
 
 @supports not (backdrop-filter: blur(1px)) {
   .glass, .glass-strong, .glass-sticky { background: rgba(255, 255, 255, 0.96); }
+}
+
+/* Selection — indigo-soft so the selected text reads inside the brand
+   palette rather than the OS default. Foreground stays at high-contrast
+   --ts-text so the selected text remains readable on the tinted bg. */
+::selection {
+  background: rgba(99, 102, 241, 0.22);
+  color: var(--ts-text);
+}
+::-moz-selection {
+  background: rgba(99, 102, 241, 0.22);
+  color: var(--ts-text);
 }
 
 /* Pills */
@@ -230,13 +313,25 @@ body > * {
   }
 }
 
-/* Card structure */
+/* Card structure — extends .glass via class composition in JSX, so the
+   sheen + rim + drop-shadow layered box-shadow comes from .glass. The
+   ts-card-only adds the subtle "lit from above" vertical gradient (a
+   tiny additive highlight on the top 30% of each card) and a softer
+   transition curve tuned for translateY hover. */
 .ts-card {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 24px 24px 20px;
+  /* Lit-from-above gradient — a faint white wash on the top third of
+     the card. Pairs with the .glass top-edge sheen (1px) to give the
+     card a real "the light source is above and slightly in front"
+     read, like Apple Maps cards. Sits as a layered background on top
+     of .glass's existing background fill. */
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 32%),
+    linear-gradient(180deg, transparent 0%, rgba(99, 102, 241, 0.025) 100%);
   /* Iter-15 overhaul — tighter min-height for info-density layout. The
      old 340 floor left dead-air on cards with no description; the new
      metric grid + popularity badge fills the vertical rhythm without
@@ -245,16 +340,10 @@ body > * {
   min-height: 380px;
   height: 100%;
   color: var(--ts-text);
-  transition: transform .25s ease-out, box-shadow .25s ease-out;
-  /* Iter-15: top specular sheen — a one-pixel inner highlight that mimics
-     the way physical glass picks up light at its top edge. Inset shadow
-     stacks on top of the existing layered rest shadow without conflicting
-     because the rest shadow is outset only. The effect is most visible on
-     the lighter glass surface; on the strong-glass print fallback it
-     disappears, which is fine. */
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    var(--ts-shadow-rest);
+  transition: transform .35s cubic-bezier(0.32, 0.72, 0, 1),
+              box-shadow .35s cubic-bezier(0.32, 0.72, 0, 1),
+              border-color .25s ease,
+              backdrop-filter .25s ease;
 }
 /* Keyboard-nav scroll target — when j/k focuses a card and we call
    scrollIntoView({ block: 'nearest' }), the sticky header (≈68px:
@@ -273,14 +362,24 @@ body > * {
    right affordance. */
 @media (hover: hover) {
   .ts-card:hover {
-    /* Iter-15: deeper lift + ambient indigo glow underneath. Combined
-       with the inset specular sheen, the card reads as physically
-       hovering rather than sliding upward in 2D. */
+    /* Overhaul D — deeper hover with all four glass-on-glass cues:
+         - translateY -6 (unchanged) + brief saturation pump for the
+           "the surface absorbs more light when raised"
+         - intensified specular top sheen
+         - 1px indigo halo via outset accent ring
+         - layered ambient indigo glow underneath for spatial depth
+       Border-color picks up indigo at 0.32 (vs 0.22 rest) so the edge
+       reads as if the surface is now under a brighter spotlight. */
     transform: translateY(-6px);
+    border-color: rgba(99, 102, 241, 0.32);
+    backdrop-filter: blur(var(--ts-blur)) saturate(200%);
+    -webkit-backdrop-filter: blur(var(--ts-blur)) saturate(200%);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      var(--ts-glass-rim),
+      0 0 0 1px rgba(99, 102, 241, 0.10),
       var(--ts-shadow-hover),
-      0 32px 60px -20px rgba(99, 102, 241, 0.18);
+      0 32px 60px -20px rgba(99, 102, 241, 0.22);
   }
 }
 /* Sparse variant — description + topics both absent; shave ~80px of
