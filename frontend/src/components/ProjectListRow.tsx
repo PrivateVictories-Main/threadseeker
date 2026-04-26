@@ -19,7 +19,7 @@
 
 import type { UnifiedProject } from "@/lib/sources/types";
 import { motion } from "framer-motion";
-import { Star, ExternalLink, Heart } from "lucide-react";
+import { Star, ExternalLink, Heart, ChevronRight } from "lucide-react";
 import { useBookmark } from "@/lib/bookmarks";
 import { getSourceConfig } from "@/lib/sources";
 import {
@@ -37,6 +37,10 @@ interface Props {
   onTopicClick?: (topic: string) => void;
   onOpenDetails?: (project: UnifiedProject) => void;
   focused?: boolean;
+  /** Iter-24 — when set and matches this row's project id, picks up
+   *  the indigo flash ring (used after the user opens a row's details
+   *  drawer). */
+  flashId?: string | null;
 }
 
 export function ProjectListRow({
@@ -44,6 +48,7 @@ export function ProjectListRow({
   index,
   onOpenDetails,
   focused,
+  flashId,
 }: Props) {
   const { isBookmarked, toggle } = useBookmark(project);
   const cfg = getSourceConfig(project.source);
@@ -68,6 +73,8 @@ export function ProjectListRow({
     ? formatRelativeShort(project.updatedAt)
     : null;
 
+  const isFlash = flashId === project.id;
+
   return (
     <motion.div
       role="listitem"
@@ -76,7 +83,7 @@ export function ProjectListRow({
       data-result-url={project.url}
       data-source={project.source}
       data-pop={popClass ?? undefined}
-      className={`ts-list-row${focused ? " is-focused" : ""}`}
+      className={`ts-list-row${focused ? " is-focused" : ""}${isFlash ? " is-flash" : ""}`}
       variants={cardVariants}
       initial="hidden"
       animate="visible"
@@ -160,28 +167,31 @@ export function ProjectListRow({
       </div>
 
       <div className="ts-list-actions">
-        <button
+        <motion.button
           type="button"
           onClick={() => toggle()}
           className={`ts-list-bookmark${isBookmarked ? " is-on" : ""}`}
           aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
           title={isBookmarked ? "Saved" : "Save"}
+          whileTap={{ scale: 1.25 }}
+          transition={{ type: "spring", stiffness: 320, damping: 14 }}
         >
           <Heart
             className="w-3.5 h-3.5"
             fill={isBookmarked ? "currentColor" : "none"}
             aria-hidden
           />
-        </button>
+        </motion.button>
         {onOpenDetails && (
-          <button
+          <motion.button
             type="button"
             onClick={() => onOpenDetails(project)}
             className="ts-list-details"
             title="View details"
+            whileTap={{ scale: 0.97 }}
           >
             Details
-          </button>
+          </motion.button>
         )}
         <a
           href={project.url}
@@ -194,6 +204,10 @@ export function ProjectListRow({
           <ExternalLink className="w-3.5 h-3.5" aria-hidden />
         </a>
       </div>
+
+      {/* Iter-24 — chevron-on-hover. Slides in from the right edge as
+          the cursor enters the row. */}
+      <ChevronRight className="ts-list-chevron w-4 h-4" aria-hidden />
     </motion.div>
   );
 }

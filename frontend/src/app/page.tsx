@@ -161,6 +161,13 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<CategoryKey>("all");
   const [drawerProject, setDrawerProject] = useState<UnifiedProject | null>(null);
   const [resultsView, setResultsView] = useState<ResultsView>("grid");
+  // Iter-24 — when the user opens a card's details, briefly flash that
+  // card's id so the corresponding ts-card / ts-list-row picks up an
+  // indigo ring fade. Tracks "which card spawned the open drawer".
+  const [flashCardId, setFlashCardId] = useState<string | null>(null);
+  // Iter-24 — when the user changes sort, briefly show an inline toast
+  // confirming the change ("Sorted by stars"). Mounts for ~1s.
+  const [sortToastLabel, setSortToastLabel] = useState<string | null>(null);
   const initialLoadDone = useRef(false);
   const searchRunIdRef = useRef(0);
   const resultsGridRef = useRef<HTMLDivElement | null>(null);
@@ -399,6 +406,21 @@ export default function Home() {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 1500);
   }, []);
+
+  // Iter-24 — clear the card-flash highlight after a short window so
+  // the indigo ring fades out and the card returns to its rest state.
+  useEffect(() => {
+    if (!flashCardId) return;
+    const handle = setTimeout(() => setFlashCardId(null), 700);
+    return () => clearTimeout(handle);
+  }, [flashCardId]);
+
+  // Iter-24 — sort-toast auto-dismiss.
+  useEffect(() => {
+    if (!sortToastLabel) return;
+    const handle = setTimeout(() => setSortToastLabel(null), 1100);
+    return () => clearTimeout(handle);
+  }, [sortToastLabel]);
 
   const handleCategoryChange = useCallback((key: CategoryKey) => {
     setActiveCategory(key);
@@ -745,18 +767,128 @@ export default function Home() {
                   </div>
                 ) : resultCount > 0 ? (
                   <div className="space-y-4">
+                    {/* Iter-24 — query echo banner. Big mono `// SEARCHING "..."`
+                        head so the user always knows what query produced the
+                        current results. */}
+                    {(parsedQuery.freeText || query).trim().length > 0 && (
+                      <div className="ts-results-query" aria-live="polite">
+                        <span className="ts-results-query-label">{"// SEARCHING"}</span>
+                        <span className="ts-results-query-term">
+                          &ldquo;{parsedQuery.freeText || query}&rdquo;
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Iter-24 — active filter chips row. Surfaces every
+                        currently-applied narrowing (category, source, sort,
+                        operators) with a one-click clear on each. */}
+                    {(activeCategory !== "all" ||
+                      activeSourceFilter ||
+                      sortMode !== "relevance" ||
+                      opSummary) && (
+                      <div className="ts-active-filters" role="region" aria-label="Active filters">
+                        <span className="ts-active-filters-label">{"// FILTERS"}</span>
+                        {activeCategory !== "all" && (
+                          <span className="ts-active-chip">
+                            <span className="ts-active-chip-key">Category</span>
+                            <span>{CATEGORY_DEFS.find((c) => c.key === activeCategory)?.label ?? activeCategory}</span>
+                            <button
+                              type="button"
+                              className="ts-active-chip-x"
+                              onClick={() => handleCategoryChange("all")}
+                              aria-label="Clear category filter"
+                              title="Clear"
+                            >
+                              <SearchX className="w-3 h-3" aria-hidden />
+                            </button>
+                          </span>
+                        )}
+                        {activeSourceFilter && (
+                          <span className="ts-active-chip">
+                            <span className="ts-active-chip-key">Source</span>
+                            <span>{getSourceConfig(activeSourceFilter).name}</span>
+                            <button
+                              type="button"
+                              className="ts-active-chip-x"
+                              onClick={() => setActiveSourceFilter(null)}
+                              aria-label="Clear source filter"
+                              title="Clear"
+                            >
+                              <SearchX className="w-3 h-3" aria-hidden />
+                            </button>
+                          </span>
+                        )}
+                        {sortMode !== "relevance" && (
+                          <span className="ts-active-chip">
+                            <span className="ts-active-chip-key">Sort</span>
+                            <span>{sortMode}</span>
+                            <button
+                              type="button"
+                              className="ts-active-chip-x"
+                              onClick={() => setSortMode("relevance")}
+                              aria-label="Reset sort"
+                              title="Clear"
+                            >
+                              <SearchX className="w-3 h-3" aria-hidden />
+                            </button>
+                          </span>
+                        )}
+                        {opSummary && (
+                          <span className="ts-active-chip" title="Search operators">
+                            <span className="ts-active-chip-key">Ops</span>
+                            <span className="font-mono">{opSummary}</span>
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          className="ts-active-chip-clear"
+                          onClick={() => {
+                            setActiveSourceFilter(null);
+                            setSortMode("relevance");
+                            handleCategoryChange("all");
+                          }}
+                          title="Clear all filters"
+                        >
+                          Clear all
+                        </button>
+                      </div>
+                    )}
+
                     <DirectJumps query={parsedQuery.freeText || query} />
 
                     <div className="ts-results-toolbar-row">
                       <ResultsToolbar
                         projects={projects}
                         sortMode={sortMode}
-                        onSortChange={setSortMode}
+                        onSortChange={(m) => {
+                          setSortMode(m);
+                          setSortToastLabel(
+                            m === "relevance"
+                              ? "Sorted by relevance"
+                              : m === "stars"
+                                ? "Sorted by stars"
+                                : m === "updated"
+                                  ? "Sorted by updated"
+                                  : "Sorted by downloads",
+                          );
+                        }}
                         activeSource={activeSourceFilter}
                         onSourceClick={setActiveSourceFilter}
                         emptySources={emptySources}
                       />
                       <ViewToggle view={resultsView} onChange={setResultsView} />
+                      {sortToastLabel && (
+                        <motion.span
+                          className="ts-sort-toast"
+                          initial={{ opacity: 0, scale: 0.9, y: -4 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          transition={{ type: "spring", stiffness: 360, damping: 24 }}
+                          aria-live="polite"
+                        >
+                          {sortToastLabel}
+                        </motion.span>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1">
@@ -808,48 +940,71 @@ export default function Home() {
                       />
                     </div>
 
-                    {/* Result list — grid OR list view. */}
-                    {resultsView === "list" ? (
-                      <div
-                        ref={resultsGridRef}
-                        className="ts-result-list"
-                        role="list"
-                      >
-                        {view.map((project, idx) => (
-                          <ProjectListRow
-                            key={project.id}
-                            project={project}
-                            index={idx}
-                            onToast={showToast}
-                            onTopicClick={(topic) => handleSearch(topic)}
-                            onOpenDetails={(p) => setDrawerProject(p)}
-                            focused={focusedIdx === idx}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <AnimatedGrid
-                        ref={resultsGridRef}
-                        keyed={query || parsedQuery.freeText}
-                        className="grid gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
-                      >
-                        {view.map((project, idx) => (
-                          <UnifiedProjectCard
-                            key={project.id}
-                            project={project}
-                            index={idx}
-                            onToast={showToast}
-                            onTopicClick={(topic) => handleSearch(topic)}
-                            onOpenDetails={(p) => setDrawerProject(p)}
-                            outerClassName={`transition-shadow rounded-[22px] ${
-                              focusedIdx === idx
-                                ? "ring-2 ring-indigo-500/60 ring-offset-2 ring-offset-transparent"
-                                : ""
-                            }`}
-                          />
-                        ))}
-                      </AnimatedGrid>
-                    )}
+                    {/* Result list — grid OR list view. Iter-24:
+                        view swap is wrapped in AnimatePresence so the
+                        outgoing layout fades + drifts out before the
+                        new layout fades in (instead of snapping). */}
+                    <AnimatePresence mode="wait" initial={false}>
+                      {resultsView === "list" ? (
+                        <motion.div
+                          key="list-view"
+                          ref={resultsGridRef}
+                          className="ts-result-list"
+                          role="list"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0, transition: { duration: 0.22 } }}
+                          exit={{ opacity: 0, y: -8, transition: { duration: 0.16 } }}
+                        >
+                          {view.map((project, idx) => (
+                            <ProjectListRow
+                              key={project.id}
+                              project={project}
+                              index={idx}
+                              onToast={showToast}
+                              onTopicClick={(topic) => handleSearch(topic)}
+                              onOpenDetails={(p) => {
+                                setDrawerProject(p);
+                                setFlashCardId(p.id);
+                              }}
+                              focused={focusedIdx === idx}
+                              flashId={flashCardId}
+                            />
+                          ))}
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="grid-view"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0, transition: { duration: 0.22 } }}
+                          exit={{ opacity: 0, y: -8, transition: { duration: 0.16 } }}
+                        >
+                          <AnimatedGrid
+                            ref={resultsGridRef}
+                            keyed={query || parsedQuery.freeText}
+                            className="grid gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
+                          >
+                            {view.map((project, idx) => (
+                              <UnifiedProjectCard
+                                key={project.id}
+                                project={project}
+                                index={idx}
+                                onToast={showToast}
+                                onTopicClick={(topic) => handleSearch(topic)}
+                                onOpenDetails={(p) => {
+                                  setDrawerProject(p);
+                                  setFlashCardId(p.id);
+                                }}
+                                outerClassName={`transition-shadow rounded-[22px] ${
+                                  focusedIdx === idx
+                                    ? "ring-2 ring-indigo-500/60 ring-offset-2 ring-offset-transparent"
+                                    : ""
+                                } ${flashCardId === project.id ? "is-flash" : ""}`}
+                              />
+                            ))}
+                          </AnimatedGrid>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     {activeSourceFilter && query && getSourceSearchUrl(activeSourceFilter, query) && (() => {
                       const cfg = getSourceConfig(activeSourceFilter);
@@ -1086,28 +1241,39 @@ function ViewToggle({
 }) {
   return (
     <div className="ts-view-toggle" role="tablist" aria-label="Result view">
-      <button
-        type="button"
-        role="tab"
-        aria-selected={view === "grid"}
-        className={`ts-view-toggle-btn${view === "grid" ? " is-active" : ""}`}
-        onClick={() => onChange("grid")}
-        title="Grid view"
-      >
-        <LayoutGrid className="w-3.5 h-3.5" aria-hidden />
-        <span>Grid</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={view === "list"}
-        className={`ts-view-toggle-btn${view === "list" ? " is-active" : ""}`}
-        onClick={() => onChange("list")}
-        title="List view"
-      >
-        <ListIcon className="w-3.5 h-3.5" aria-hidden />
-        <span>List</span>
-      </button>
+      {(["grid", "list"] as const).map((kind) => {
+        const Icon = kind === "grid" ? LayoutGrid : ListIcon;
+        const active = view === kind;
+        return (
+          <motion.button
+            key={kind}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            className={`ts-view-toggle-btn has-layout-pill${active ? " is-active" : ""}`}
+            onClick={() => onChange(kind)}
+            title={`${kind === "grid" ? "Grid" : "List"} view`}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 360, damping: 24 }}
+          >
+            {active && (
+              <motion.span
+                layoutId="ts-view-toggle-active-pill"
+                className="ts-view-toggle-active-bg"
+                aria-hidden
+                transition={{
+                  type: "spring",
+                  stiffness: 380,
+                  damping: 32,
+                  mass: 0.7,
+                }}
+              />
+            )}
+            <Icon className="w-3.5 h-3.5" aria-hidden />
+            <span>{kind === "grid" ? "Grid" : "List"}</span>
+          </motion.button>
+        );
+      })}
     </div>
   );
 }
