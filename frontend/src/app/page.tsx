@@ -17,6 +17,7 @@ import { CategoryGrid } from "@/components/CategoryGrid";
 import { LandingHero } from "@/components/LandingHero";
 import { LandingStatTiles } from "@/components/LandingStatTiles";
 import { ShortcutHelpModal, ShortcutHelpButton } from "@/components/ShortcutHelpModal";
+import { DiscoverRail } from "@/components/DiscoverRail";
 import { CommandPalette } from "@/components/CommandPalette";
 import { NetworkErrorMessage, NetworkErrorTray } from "@/components/network/NetworkErrorMessage";
 import { AnimatedGrid } from "@/components/motion/AnimatedGrid";
@@ -35,6 +36,9 @@ import {
   rankCorpus,
   buildSearchQuery,
   sparseFraction,
+  nextRelaxation,
+  type RelaxationTier,
+  type RelaxedPlan,
 } from "@/lib/sources";
 import { parseQuery, applyOperators, describeOperators } from "@/lib/query-parser";
 import { toast } from "sonner";
@@ -168,6 +172,15 @@ export default function Home() {
   // Iter-24 — when the user changes sort, briefly show an inline toast
   // confirming the change ("Sorted by stars"). Mounts for ~1s.
   const [sortToastLabel, setSortToastLabel] = useState<string | null>(null);
+  // Iter-25 / Overhaul K — when the resilience pipeline fired, store the
+  // banner text so the Discover rail can announce "Showing related
+  // results — no exact match for X". null when the strict pass had
+  // enough results.
+  const [relaxationBanner, setRelaxationBanner] = useState<string | null>(null);
+  // Iter-25 / Overhaul K — record which relaxed-query strings were
+  // actually executed, so the Discover rail can offer them as one-click
+  // chips ("Did you mean autoclicker?").
+  const [relaxedQueries, setRelaxedQueries] = useState<string[]>([]);
   // Iter-24 — viewport-aware drawer-pinned state. On xl+ (≥1280px) the
   // DetailDrawer becomes a sticky right rail instead of a slide-over
   // when there's a project to display. On smaller viewports we keep
@@ -285,6 +298,12 @@ export default function Home() {
         setSortMode("relevance");
       }
 
+      // Iter-25 / Overhaul K — reset relaxation state at the start of every
+      // search. The strict pass either fills the page on its own (state
+      // stays null) or the post-strict resilience loop fills these.
+      setRelaxationBanner(null);
+      setRelaxedQueries([]);
+
       try {
         const expansion = expandQuery(freeText);
         const hueByIntent: Record<string, number> = {
@@ -342,11 +361,83 @@ export default function Home() {
         );
 
         if (searchRunIdRef.current !== runId) return;
-        const ranked = rankCorpus(mergeRelatedProjects(results), freeText, expansion);
+        let mergedCorpus: UnifiedProject[] = results;
+        const ranked = rankCorpus(mergeRelatedProjects(mergedCorpus), freeText, expansion);
         setProjects(ranked);
 
-        if (results.length === 0) {
-          toast.info("No results found. Try different keywords or enable more sources.");
+        // Iter-25 / Overhaul K — resilience loop. If the strict pass came
+        // back thin, walk the relaxation chain (tokens → fuzzy-synonyms
+        // → distinctive → first-token) until either we have enough
+        // results or we exhaust the chain. Each plan calls
+        // searchAllSources again with a broader query string and merges
+        // into mergedCorpus. We dedupe by id so the same project doesn't
+        // appear twice.
+        const SATISFIED_AT = 9;
+        if (ranked.length < SATISFIED_AT) {
+          const seenIds = new Set(mergedCorpus.map((p) => p.id));
+          const relaxedQueriesRun: string[] = [];
+          let firstBanner: string | null = null;
+          let lastTier: RelaxationTier = "strict";
+          let cumulative = ranked.length;
+          // Cap the chain so we don't fan out forever on truly-unique queries.
+          for (let step = 0; step < 4; step += 1) {
+            const plan: RelaxedPlan | null = nextRelaxation(freeText, cumulative, lastTier);
+            if (!plan) break;
+            // Skip if we've already executed this exact query string.
+            if (plan.query.trim().toLowerCase() === freeText.trim().toLowerCase()) {
+              lastTier = plan.tier;
+              continue;
+            }
+            if (relaxedQueriesRun.includes(plan.query)) {
+              lastTier = plan.tier;
+              continue;
+            }
+            relaxedQueriesRun.push(plan.query);
+            firstBanner = firstBanner ?? plan.banner;
+
+            const relaxedExpansion = expandQuery(plan.query);
+            const relaxedOverrides: Partial<Record<SourceType, string>> = {};
+            const relaxedOr = buildSearchQuery(plan.query, relaxedExpansion, { supportsOr: true });
+            if (relaxedOr !== plan.query) {
+              relaxedOverrides.github = relaxedOr;
+              relaxedOverrides.gitlab = relaxedOr;
+              relaxedOverrides.codeberg = relaxedOr;
+            }
+
+            const relaxedResults = await searchAllSources(
+              plan.query,
+              targetSources,
+              true,
+              relaxedOverrides,
+              // Don't update progress UI for relaxed passes — it would
+              // confuse the "X of N sources" indicator. We've already
+              // marked the strict pass as done.
+              undefined,
+            );
+            if (searchRunIdRef.current !== runId) return;
+
+            // Merge: append only items whose id isn't already present.
+            for (const p of relaxedResults) {
+              if (!seenIds.has(p.id)) {
+                seenIds.add(p.id);
+                mergedCorpus.push(p);
+              }
+            }
+            const reranked = rankCorpus(
+              mergeRelatedProjects(mergedCorpus),
+              freeText,
+              expansion,
+            );
+            setProjects(reranked);
+            cumulative = reranked.length;
+            lastTier = plan.tier;
+            if (cumulative >= SATISFIED_AT) break;
+          }
+
+          if (relaxedQueriesRun.length > 0) {
+            setRelaxedQueries(relaxedQueriesRun);
+            setRelaxationBanner(firstBanner);
+          }
         }
       } catch (error) {
         if (searchRunIdRef.current !== runId) return;
@@ -1086,6 +1177,22 @@ export default function Home() {
                         </div>
                       );
                     })()}
+
+                    {/* Iter-25 / Overhaul K — Discover rail. Sparse-result
+                        pages get the full glass card with Did-you-mean +
+                        Related searches + Browse-by-tool. Dense pages get
+                        a compact inline footer strip so the rail still
+                        surfaces related queries without competing with
+                        the (already-dense) results grid. */}
+                    {!isLoading && (parsedQuery.freeText || query).trim().length > 0 && (
+                      <DiscoverRail
+                        query={parsedQuery.freeText || query}
+                        banner={relaxationBanner}
+                        relaxedQueries={relaxedQueries}
+                        onQueryClick={(q) => handleSearch(q)}
+                        variant={view.length < 9 ? "full" : "footer"}
+                      />
+                    )}
                   </div>
                 ) : hasSearched && lastSearchedCount > 0 && failedSources.length === lastSearchedCount ? (
                   <NetworkErrorMessage
@@ -1094,33 +1201,56 @@ export default function Home() {
                     onClear={handleClear}
                   />
                 ) : hasSearched ? (
-                  <div className="flex flex-col items-center text-center py-24">
-                    <div
-                      className="w-16 h-16 rounded-full glass-strong flex items-center justify-center mb-5"
-                      aria-hidden
-                    >
-                      <SearchX className="w-7 h-7 text-indigo-400" />
+                  <div className="space-y-4">
+                    {/* Iter-25 / Overhaul K — restyled no-results state.
+                        Instead of a tiny centered SearchX in a sea of
+                        whitespace, surface a slim banner that echoes
+                        the query, then immediately the Discover rail
+                        (Did-you-mean / Related searches / Browse-by-
+                        tool) and finally the action pill row below. */}
+                    {(parsedQuery.freeText || query).trim().length > 0 && (
+                      <div className="ts-results-query" aria-live="polite">
+                        <span className="ts-results-query-label">{"// SEARCHING"}</span>
+                        <span className="ts-results-query-term">
+                          &ldquo;{parsedQuery.freeText || query}&rdquo;
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="ts-no-results-banner">
+                      <span className="ts-no-results-headline">
+                        {activeCategory !== "all"
+                          ? `Nothing exact in ${CATEGORY_DEFS.find((c) => c.key === activeCategory)?.label ?? "this category"} — here are related projects`
+                          : `No exact matches${(parsedQuery.freeText || query).trim() ? ` for "${parsedQuery.freeText || query}"` : ""} — here are related projects`}
+                      </span>
+                      <span className="ts-no-results-sub">
+                        {activeCategory !== "all"
+                          ? "Try widening to a different category, or browse all sources."
+                          : "Browse the discover rail below for similar tools, or try one of the suggestions further down."}
+                      </span>
                     </div>
-                    <span className="ts-section-header mb-1.5">
-                      {"// No matches"}
-                    </span>
-                    <p className="text-[20px] font-semibold text-slate-800 tracking-tight">
-                      {activeCategory !== "all"
-                        ? `Nothing in ${CATEGORY_DEFS.find((c) => c.key === activeCategory)?.label ?? "this category"}`
-                        : "Nothing to surface yet"}
-                    </p>
-                    <p className="text-[13.5px] text-slate-500 mt-2 max-w-sm leading-relaxed">
-                      {activeCategory !== "all"
-                        ? "Try widening to a different category — or browse all sources."
-                        : "Try broadening your query, removing filters, or enabling more sources."}
-                    </p>
+
+                    {/* Discover rail — always shown on no-results so the
+                        page is never visually empty. */}
+                    {(parsedQuery.freeText || query).trim().length > 0 && (
+                      <DiscoverRail
+                        query={parsedQuery.freeText || query}
+                        banner={relaxationBanner}
+                        relaxedQueries={relaxedQueries}
+                        onQueryClick={(q) => handleSearch(q)}
+                        variant="full"
+                      />
+                    )}
 
                     {/* Iter-24 — category pivot chips on no-results.
                         Surfaces the immediate "try a different category"
                         flow as one-click chips. Only when a narrow
                         category is active. */}
                     {activeCategory !== "all" && (
-                      <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-[10.5px] uppercase tracking-[0.10em] text-slate-400 mr-1">
+                          {"// Try"}
+                        </span>
                         {(["all", "repos", "packages", "ai", "papers", "threads"] as const)
                           .filter((k) => k !== activeCategory)
                           .slice(0, 4)
@@ -1136,7 +1266,7 @@ export default function Home() {
                                 }}
                                 className="text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors inline-flex items-center gap-1.5"
                               >
-                                <span>Try {def?.label ?? k}</span>
+                                <span>{def?.label ?? k}</span>
                                 <ArrowRight className="w-3 h-3" aria-hidden />
                               </button>
                             );
@@ -1236,7 +1366,7 @@ export default function Home() {
                           </button>
                         );
                       return (
-                        <div className="mt-6 w-full max-w-md mx-auto flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-center gap-2">
+                        <div className="mt-2 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
                           {primary.href ? (
                             <a
                               href={primary.href}
