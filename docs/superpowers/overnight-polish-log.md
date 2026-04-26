@@ -2625,3 +2625,215 @@ Modified:
   (kept the slide-over drawer from Overhaul G — pursuing the
   permanent pane would have made the iteration longer than the
   user-asked-for milestone).
+
+## Iteration 24 — Major Overhaul J (polish on the new shell)
+
+Date: 2026-04-23
+
+The user looked at Overhaul I (sidebar + topbar shell + restructured
+landing + grid/list results) and called it _"significantly better"_,
+then asked for a deep polish pass: scrolling feel, click interactions,
+search information clarity, animation refinement, density sweep.
+This iteration is six tracks of polish on top of that shell — no
+architectural changes.
+
+### What shipped
+
+#### Track 1 — scroll polish
+
+- `html { scroll-behavior: smooth; scroll-padding-top: 80px }` so
+  in-page anchors honor the 56px sticky topbar with a 24px breath.
+- AppShell tracks page scroll (>8px threshold) and sets
+  `data-scrolled="1"` on the shell. Topbar then picks up a soft drop
+  shadow + bumped backdrop blur (28px / saturate 1.6) so it lifts off
+  the content instead of sitting flat.
+- Sidebar gets `overscroll-behavior: contain` + finer 4px scrollbar
+  (vs 6px page scrollbar) so wheel events on the sidebar don't bubble
+  into the body and the rail feels native.
+- New `RevealOnScroll` helper wraps each landing-feed row in
+  `whileInView` with `once: true, margin: "-80px"` — sections gently
+  fade up as they enter the viewport instead of all painting at once.
+  Reduced-motion-safe via the framer provider.
+- StatTiles, CategoryGrid, RegistryJumps each gain staggered child
+  variants (60ms / 80ms / 50ms) so tiles pop in sequentially rather
+  than as a wall.
+- `handleSearch` smooth-scrolls to top when the user fires a new
+  query mid-results so the next set lands in the viewport.
+- Page scrollbar thumb hover bumped 0.42 → 0.32 — slightly more
+  restrained at hover.
+
+#### Track 2 — click + interaction polish
+
+- Sidebar active-category pill now uses `layoutId` so the indigo
+  highlight slides between rows on click. The static `.is-active`
+  gradient is suppressed via `.has-layout-pill` so the framer pill is
+  the only "loud" element.
+- ViewToggle (Grid / List) gets the same `layoutId` treatment — the
+  indigo pill slides between Grid and List instead of snapping.
+- Grid <-> List view swap wraps in `AnimatePresence mode="wait"` so
+  the outgoing layout fades + drifts out before the new one enters.
+- New `flashCardId` page-state flashes the source row/card with an
+  indigo ring (`.is-flash`, 700ms TTL) when the user opens the
+  DetailDrawer from it — the user gets visible feedback "I opened
+  this one's details".
+- ProjectListRow bookmark heart picks up a `whileTap scale 1.25`
+  spring; Details button gets `whileTap scale 0.97`.
+- New `.ts-list-chevron` slides in from the right edge of every list
+  row on hover so the row reads as "click to see more".
+- Compact (topbar) SearchBar gets a subtle scale 1.005 on
+  `focus-within` alongside the existing indigo glow.
+
+#### Track 3 — search information clarity
+
+- New big mono `// SEARCHING "react state management"` query banner
+  sits above the toolbar on results-mode. The term carries a 2px
+  indigo left-bar so it's visually anchored.
+- New active-filter chip row surfaces every applied narrowing
+  (category / source / sort / operators) with a one-click clear on
+  each plus a `Clear all` ghost button. Fixes "where am I and how do
+  I widen back".
+- Topbar status now echoes the active category: `Repositories · 142
+  results · loading 3 of 28` (was `0 results · pendingCount loading`).
+- Results count strip now says `X sources searched · 142ms` so users
+  see breadth + speed of the search.
+- Sort change shows a 1.1s springy `Sorted by stars` mono toast in
+  the toolbar so the action reads as confirmed instead of silent.
+- No-results state is now context-aware: when narrowed to a category
+  the headline becomes `Nothing in Repositories` and surfaces 4
+  one-click `Try Packages / AI / Papers / Threads` pivot chips.
+- Topbar loading indicator changed from a single pulse dot to three
+  animated dots (`.ts-topbar-thinking`) — reads like "thinking…"
+  instead of a heartbeat.
+
+#### Track 4 — animation polish
+
+- Sidebar mounts with a fade-slide from the left
+  (`opacity 0→1, x: -12 → 0`, 200/26 spring, 50ms delay so the page
+  reads first).
+- Topbar mounts with a fade-down from above (200/26 spring).
+- Layout-pill on sidebar + view-toggle uses a 380/32/0.7 spring so
+  the highlight settles fast without overshoot.
+- StatTiles per-tile spring (220/22/0.8) + staggerChildren 0.06.
+- CategoryGrid per-tile spring (220/24/0.85) + staggerChildren 0.08
+  driven by `whileInView`.
+- RegistryJumps per-pill spring (240/26/0.85) + staggerChildren 0.05
+  with x: -8 → 0 so pills appear to slide in from the left.
+
+#### Track 5 — cleanliness sweep
+
+- Removed orphan `SavedSection.tsx` (replaced by AppSidebar's //SAVED
+  section in Overhaul I, no longer imported anywhere).
+- `CategoryNav.tsx` pruned to a data-only module — the unused React
+  component was dropped, the data exports (CATEGORY_DEFS,
+  CategoryKey, CategoryDef) survive because page.tsx + CategoryGrid
+  both consume them.
+- Dead `.ts-category-nav` / `.ts-category-pill` CSS removed (~60
+  lines).
+- LandingHero blobs softened: opacity 0.55 → 0.42, blur 48 → 56,
+  per-blob alpha pulled back. The atmosphere stays present without
+  competing with the headline.
+
+#### Track 6 — handoff drains from Overhaul I
+
+- DetailDrawer becomes a sticky right-rail pane on xl+ (≥1280px) when
+  open. Page tracks `matchMedia("(min-width: 1280px)")` and passes
+  `drawerPinned` to AppShell. The shell exposes
+  `data-drawer-pinned="1"` which: (a) sets `padding-right: 420px` on
+  the main column so content doesn't sit under the drawer; (b) hides
+  the slide-over backdrop. Below xl+ behavior is unchanged. The
+  drawer DOM itself is untouched — purely a CSS attribute hook +
+  page-level prop.
+- Mobile sidebar slide-over backdrop migrated to AnimatePresence
+  pattern matching DetailDrawer's vocabulary (was hand-rolled CSS
+  transition).
+- ProjectListRow description visible at md+ (was lg+).
+- `<SavedSection>` orphan pruned (see Track 5).
+- Active category surfaced in topbar status + new active-filter chip
+  on results header (see Track 3).
+
+### Validation
+
+- **Tests:** 83/83 green (unchanged baseline).
+- **Build:** Next.js production build passes with no warnings.
+- **Bundle:** route size 96.6 kB → 98 kB (≈1.4 kB net for ~280 lines
+  of new CSS + the framer animation hooks). First Load JS unchanged
+  (194 kB → 195 kB).
+
+### Files touched
+
+New components:
+- `frontend/src/components/motion/RevealOnScroll.tsx`
+
+Modified:
+- `frontend/src/app/page.tsx` — flashCardId, sortToastLabel,
+  viewportIsXl state; query banner + active-filter chip row;
+  no-results category pivots; sort toast; ViewToggle layoutId;
+  AnimatePresence around grid/list view swap; drawerPinned wiring.
+- `frontend/src/app/globals.css` — scroll-behavior + scroll-padding;
+  topbar scrolled-state shadow; sidebar overscroll + finer scrollbar;
+  hero blob opacities; new ~330-line polish layer for active-filter
+  chips, list-row chevron, alternating row stripe, results query
+  banner, drawer-as-pane, sort toast, layout-pill suppression,
+  list-row description visible at md+, topbar thinking dots, list/
+  card flash highlight; removed dead .ts-category-nav block.
+- `frontend/src/components/shell/AppShell.tsx` — scroll listener,
+  data-scrolled + data-drawer-pinned hooks, AnimatePresence backdrop.
+- `frontend/src/components/shell/AppSidebar.tsx` — motion.aside
+  fade-slide mount; layoutId active pill.
+- `frontend/src/components/shell/AppTopBar.tsx` — motion.header
+  fade-down mount; activeCategoryLabel echo; loading "X of N";
+  thinking dots.
+- `frontend/src/components/StatTiles.tsx` — staggered tile reveal.
+- `frontend/src/components/CategoryGrid.tsx` — whileInView container
+  + staggered tile reveal.
+- `frontend/src/components/RegistryJumps.tsx` — whileInView container
+  + staggered pill reveal.
+- `frontend/src/components/ProjectListRow.tsx` — flashId, ChevronRight
+  hover-reveal, bookmark + Details whileTap motion.
+- `frontend/src/components/CategoryNav.tsx` — pruned to data-only
+  module.
+
+Removed:
+- `frontend/src/components/SavedSection.tsx` (orphan).
+
+### Hand-off for Iteration 25
+
+- **Drawer-pane content swap.** When the drawer is pinned (xl+) and
+  the user clicks a different card, the drawer's project changes via
+  state but the surface itself stays mounted. Currently the slide-in
+  motion runs once on first open; subsequent project swaps are
+  instant. A future pass could crossfade the drawer's inner content
+  on project change (header + scroll body + footer fade out → in)
+  without animating the surface itself.
+- **Recent search rows hover scale.** The sidebar Recent rows already
+  pick up an indigo bg on hover but don't have a tap-scale. A
+  whileTap could match the category-row vocabulary.
+- **Drawer-pinned slide-from-right drift.** When the viewport is xl+
+  and the user opens the drawer for the first time, it still slides
+  in from x:100% — that's correct. But when they close it, the slide-
+  out happens before the main column's `padding-right: 420px` relaxes,
+  which can cause a visible content shift. Could be coordinated with
+  AnimatePresence's exit timing.
+- **Topbar `data-scrolled` jitter on iOS rubber-band.** The 8px
+  threshold works on desktop but iOS rubber-band scroll can briefly
+  clamp the value to 0 then back, causing the shadow to flash. A
+  small debounce or rAF-throttled handler could smooth it.
+- **Active-filter chip row mobile.** At narrow widths the chip row
+  can wrap to 3 lines. Worth considering a horizontal scroll
+  container at xs / sm.
+- **No-results category pivots.** Currently surfaces 4 chips. Could
+  rank them by which category is most likely to have results for the
+  query (e.g. mostly-natural-language → threads; package-name shape
+  → packages).
+- **Sort toast position.** The sort toast mounts inside the toolbar
+  row, which can shift the layout when it appears. A floating
+  position (absolute, 8px below the sort dropdown trigger) would
+  avoid the layout shift.
+
+### What this iteration deliberately did NOT do
+
+- Change search ranking / BM25 / query parsing.
+- Add new sources.
+- Redo the command palette.
+- Restructure the DetailDrawer's DOM. The drawer-as-pane treatment is
+  CSS-only on top of the existing slide-over component.
