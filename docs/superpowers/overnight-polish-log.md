@@ -2275,3 +2275,196 @@ Surface harmony sweep:
 - Fill new optional UnifiedProject fields (releases, languageBreakdown,
   topComments) — drawer surfaces them when adapters provide them but
   no adapter enrichment in this iteration
+
+---
+
+## Iteration 22 — Major Overhaul H (landing-page transformation)
+
+User screenshotted the landing page after Overhaul G and said it
+looked identical to before. The card overhaul (Iter-21) only shows up
+*after* a search — so the landing page itself looked unchanged. This
+iteration ships substantial visible delta on the landing page itself
+so the moment localhost opens, the user sees a different product:
+HuggingFace-style category nav, a curated 3-card Featured row, glass
+stat tiles, and atmospheric hero blobs.
+
+### TRACK 1 — Category navigation strip (commit 6403d4b)
+
+HF-inspired horizontal pill row sits between the search bar and the
+stat tiles. Six pills wired to ALL_SOURCES subsets:
+
+  All sources     → every source (default)
+  Repositories    → github / gitlab / codeberg
+  Packages        → npm / pypi / crates / rubygems / packagist /
+                    nuget / jsr / conda / homebrew / dockerhub /
+                    flathub / fdroid / aur / openvsx / wordpress /
+                    maven
+  AI Models       → huggingface / paperswithcode
+  Papers          → arxiv / zenodo / paperswithcode
+  Threads         → hackernews / reddit / lobsters / stackoverflow /
+                    devto
+
+- Active pill carries the indigo gradient + soft glow + white text.
+- Inactive pills are ghost-glass with mono uppercase 11px caps.
+- Hover lift (whileHover y: -1) + indigo tint background.
+- Whole strip sits on a glass-strong rounded-full surface ~40px
+  tall (38px on phones, 40px on sm+).
+- Lucide icons: Globe / GitBranch / Package / Cpu / FileText /
+  MessageSquare.
+
+handleCategoryChange swaps selectedSources to that category's source
+list — sticky across searches so once the user picks "AI Models" their
+next query routes only to huggingface + paperswithcode.
+
+Files:
+- `frontend/src/components/CategoryNav.tsx` (new)
+- `frontend/src/app/globals.css` (.ts-category-nav, .ts-category-pill)
+- `frontend/src/app/page.tsx` (state + handler + mount)
+
+### TRACK 2 — Featured Projects row (commit 7ee0058)
+
+The headline visible change. Curated 3-card horizontal row of
+known-good repos visible immediately on landing — Next.js,
+Transformers, Tailwind CSS. Reuses UnifiedProjectCard so featured
+projects share the exact same vocabulary as search results: source
+ribbon, popularity badge, bookmark, stat row, topics, action row.
+
+Data flow:
+  1. On first mount, read `threadseeker:featured:v1` from
+     sessionStorage.
+  2. If present and < 24h old, render immediately (zero network).
+  3. Otherwise fire 3 parallel `api.github.com/repos/{owner}/{repo}`
+     calls. Well under the 60-req/hour unauthenticated limit.
+  4. Cache the merged result.
+  5. Partial-degradation: if one repo errors the others still
+     render. If GitHub is fully unreachable, the section renders
+     null rather than an empty header.
+
+Layout: 1 col → 2 col at md → 3 col at lg.
+
+Files:
+- `frontend/src/components/FeaturedProjects.tsx` (new)
+- (CSS already shipped in Track 1 commit: `.ts-featured`,
+  `.ts-featured-head`, `.ts-featured-grid`, `.ts-featured-link`)
+
+### TRACK 3 — Stat tile rework (commit 6403d4b)
+
+Replaces the flat 4-cell `.ts-stat-strip` with four glass tiles, each
+with:
+  - a 32×32 colored icon background (10px radius)
+  - a 22-24px font-weight-700 numeric value
+  - a 10.5px tracked mono label
+
+Tiles tinted to four hues:
+  - SOURCES   → indigo  (Globe)
+  - PAID APIs → emerald (Lock)
+  - ACCOUNTS  → violet  (User)
+  - TRACKING  → amber   (Eye)
+
+Each tile carries a low-alpha gradient tint + an icon-bg in the
+stronger version of the same hue. Hover lift + brighter rim. Reads as
+four distinct visual elements rather than a unified data row.
+
+Files:
+- `frontend/src/components/StatTiles.tsx` (new)
+- `frontend/src/app/globals.css` (.ts-stat-tiles, .ts-stat-tile,
+  .ts-stat-tile-icon/value/label/text, data-tone variants)
+
+### TRACK 4 — Hero flourishes (commits 6403d4b + 589e60b)
+
+1. Three floating blurred blobs in the hero stage:
+   - Top-right: 320px indigo, opacity 0.48, blur 80px
+   - Bottom-left: 240px violet, opacity 0.36
+   - Top-left: 200px purple, opacity 0.28
+   Pure CSS positioned divs at z=-1 so they sit behind the headline
+   and search bar without intercepting clicks.
+
+2. 1px grid pattern overlay in the hero only (40px spacing, indigo
+   at 0.07 alpha) with a radial mask that fades the grid out around
+   the search bar. Reads as a subtle technical/futuristic texture.
+
+3. Hero headline picks up:
+   - line-height 1.04 → 1.02
+   - letter-spacing -0.03em → -0.035em
+   - indigo-tinted text-shadow (0 2px 12px rgba(99,102,241,0.10))
+   - text-rendering geometricPrecision
+
+Files:
+- `frontend/src/app/globals.css` (.ts-hero-stage, .ts-hero-blob,
+  .ts-hero-grid, .ts-hero-headline shadow)
+- `frontend/src/app/page.tsx` (ts-hero-stage wrapping)
+
+### TRACK 5 — Section rhythm (commit 589e60b)
+
+Single 1px indigo-soft gradient hairline divider sits below the
+Featured Projects row and above the // TRY pill row. Reads as
+breathing-room rather than a hard section break. Other section
+breaks continue to rely on the 32/48 vertical spacing ladder.
+
+Files:
+- `frontend/src/app/globals.css` (.ts-section-divider)
+- `frontend/src/app/page.tsx` (one divider mount)
+
+### TRACK 6 — Trending refresh (skipped)
+
+Time-bounded scope; the current TrendingSection ships in its existing
+vertical-list rows. Horizontal-scroll Spotify-album-row treatment is
+deferred to a future iteration. The section already picked up the
+22px radius surface harmony in Iter-21, so it doesn't read as
+out-of-place against the new bubbly tiles above it.
+
+### Numbers
+
+- **Tests:** 83 → 83 (no test changes; surface-only iteration).
+- **Build:** clean. Page bundle 95.8 → 97.5 kB (+1.7 kB across the
+  three commits, accounting for CategoryNav + StatTiles +
+  FeaturedProjects components).
+- **TypeScript:** unchanged from baseline (one pre-existing error in
+  `card/helpers.test.ts` not introduced by this iteration).
+
+### Files touched
+
+New components:
+- `frontend/src/components/CategoryNav.tsx`
+- `frontend/src/components/StatTiles.tsx`
+- `frontend/src/components/FeaturedProjects.tsx`
+
+Modified:
+- `frontend/src/app/globals.css` (~270 lines added)
+- `frontend/src/app/page.tsx` (state + 3 component mounts + hero
+  stage wrap + section divider)
+
+### Hand-off for the next iteration
+
+- **Featured cache invalidation** — 24h TTL is generous; if an
+  API consumer wants a manual refresh they need to clear
+  sessionStorage. A "Refresh" affordance on the Featured header
+  could surface this for power users.
+- **Featured fallback** — currently when GitHub is fully
+  unreachable, the section renders null. Worth considering a
+  cached static fallback (3 hardcoded title/description pairs)
+  so the landing always carries 3 cards even without network.
+- **Category narrowing on results mode** — the category pill state
+  is sticky across searches, but on results mode it's invisible
+  (the strip lives only on the hero). A small "Category: AI Models
+  ✕" chip in the sticky header would let the user see / clear the
+  narrowing once they're in results.
+- **Trending row Spotify treatment** — Track 6 punted. Worth
+  picking up in a future iteration: 6 mini-cards in a horizontal
+  scroll-snapped row, 200px each, peek for affordance on phone.
+- **Hero blob breathing** — currently fully static. A very slow
+  6s ease-in-out scale(1 → 1.04 → 1) on each blob would add live
+  feel without distraction, gated under reduced-motion.
+- **Stat tile values** — currently hardcoded. If the index ever
+  grows past 28 sources the SOURCES value dynamically follows
+  ALL_SOURCES.length but the other three are fixed. Verified
+  honest copy.
+
+### What this iteration deliberately did NOT do
+
+- Touch the search results card (Overhaul G already shipped)
+- Touch ranking / BM25 / query parsing
+- Add new sources
+- Touch the command palette
+- Add the horizontal-scroll trending row (Track 6 skipped)
+
