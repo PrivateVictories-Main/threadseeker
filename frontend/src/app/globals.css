@@ -916,6 +916,14 @@ button.topic-chip-interactive {
   padding: 4px 6px 4px 16px;
   height: 44px;
   gap: 8px;
+  /* Iter-24 — subtle scale lift on focus so the topbar search reads as
+     "active" alongside the existing indigo glow. transform-origin
+     center keeps the bar visually anchored. */
+  transition: box-shadow .2s ease, transform .2s ease;
+  transform-origin: center;
+}
+.search-bar-shell.compact:focus-within {
+  transform: scale(1.005);
 }
 .search-bar-shell.compact .search-bar-input {
   font-size: 14px;
