@@ -21,7 +21,8 @@
 // the shell level so a future iteration can render a drawer overlay
 // without re-wiring the page.
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { AppSidebar, type CategoryKey } from "./AppSidebar";
 import { AppTopBar } from "./AppTopBar";
 
@@ -42,6 +43,15 @@ interface Props {
   durationMs: number | null;
   inResultsMode: boolean;
   onClear: () => void;
+  /**
+   * Iter-24 — when the DetailDrawer is open AND the viewport is xl+,
+   * the shell promotes the drawer to a sticky right-rail pane (instead
+   * of a slide-over). Lower viewports continue to render the
+   * AnimatePresence slide-over. This prop is the hook for that
+   * structural change; the actual DOM swap happens through
+   * data-drawer-pinned + the existing DetailDrawer mount in the page.
+   */
+  drawerPinned?: boolean;
   // Slot
   children: ReactNode;
 }
@@ -61,12 +71,33 @@ export function AppShell({
   durationMs,
   inResultsMode,
   onClear,
+  drawerPinned = false,
   children,
 }: Props) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Iter-24 — track page scroll so the topbar can lift off the surface
+  // (data-scrolled="1" → soft drop shadow + intensified backdrop blur).
+  // Threshold of 8px so the change triggers as soon as the user starts
+  // scrolling, but not on a 1-pixel jiggle from layout settle.
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY || window.pageYOffset || 0;
+      setScrolled(y > 8);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <div className="ts-shell" data-mobile-nav={mobileNavOpen ? "open" : "closed"}>
+    <div
+      className="ts-shell"
+      data-mobile-nav={mobileNavOpen ? "open" : "closed"}
+      data-scrolled={scrolled ? "1" : "0"}
+      data-drawer-pinned={drawerPinned ? "1" : "0"}
+    >
       <AppSidebar
         activeCategory={activeCategory}
         onCategoryChange={(k) => {
@@ -83,14 +114,22 @@ export function AppShell({
 
       {/* Mobile-only backdrop that closes the sidebar when tapped. The
           backdrop is part of the shell rather than the sidebar so the
-          sidebar component can stay layout-pure. */}
-      {mobileNavOpen && (
-        <div
-          className="ts-shell-mobile-backdrop md:hidden"
-          aria-hidden
-          onClick={() => setMobileNavOpen(false)}
-        />
-      )}
+          sidebar component can stay layout-pure. Iter-24 — moved to
+          framer AnimatePresence so the fade matches the DetailDrawer
+          backdrop vocabulary. */}
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <motion.div
+            key="mobile-backdrop"
+            className="ts-shell-mobile-backdrop md:hidden"
+            aria-hidden
+            onClick={() => setMobileNavOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.18 } }}
+            exit={{ opacity: 0, transition: { duration: 0.14 } }}
+          />
+        )}
+      </AnimatePresence>
 
       <div className="ts-shell-column">
         <AppTopBar

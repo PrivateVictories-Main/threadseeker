@@ -100,9 +100,21 @@ export function AppSidebar({
   const saved = bookmarks.slice(0, 5);
 
   return (
-    <aside
+    <motion.aside
       className="ts-sidebar glass-strong"
       aria-label="ThreadSeeker navigation"
+      // Iter-24 — fade-slide in from the left so the page reads first
+      // and the rail arrives a beat later. Honored under
+      // reduced-motion via the framer provider.
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{
+        type: "spring",
+        stiffness: 200,
+        damping: 26,
+        mass: 0.9,
+        delay: 0.05,
+      }}
     >
       <div className="ts-sidebar-inner">
         {/* HEADER — wordmark */}
@@ -110,7 +122,12 @@ export function AppSidebar({
           <BrandMark variant="hero" />
         </div>
 
-        {/* CATEGORIES */}
+        {/* CATEGORIES — Iter-24: active highlight uses layoutId so it
+            slides between rows on click rather than snapping. Each row
+            renders an absolutely-positioned <motion.span> when active
+            sharing the same layoutId so framer interpolates between
+            them. The static .is-active gradient on the button is
+            suppressed via .has-layout-pill so they don't double up. */}
         <nav className="ts-sidebar-section" aria-label="Filter by category">
           <h3 className="ts-sidebar-h">{"// CATEGORIES"}</h3>
           <ul className="ts-sidebar-list">
@@ -122,11 +139,24 @@ export function AppSidebar({
                   <motion.button
                     type="button"
                     onClick={() => onCategoryChange(c.key)}
-                    className={`ts-sidebar-nav-item${isActive ? " is-active" : ""}`}
+                    className={`ts-sidebar-nav-item has-layout-pill${isActive ? " is-active" : ""}`}
                     aria-pressed={isActive}
-                    whileTap={{ scale: 0.98 }}
+                    whileTap={{ scale: 0.985 }}
                     transition={{ type: "spring", stiffness: 360, damping: 24 }}
                   >
+                    {isActive && (
+                      <motion.span
+                        layoutId="ts-sidebar-active-pill"
+                        className="ts-sidebar-nav-active-bg"
+                        aria-hidden
+                        transition={{
+                          type: "spring",
+                          stiffness: 380,
+                          damping: 32,
+                          mass: 0.7,
+                        }}
+                      />
+                    )}
                     <Icon className="w-3.5 h-3.5" aria-hidden />
                     <span className="ts-sidebar-nav-label">{c.label}</span>
                   </motion.button>
@@ -234,6 +264,6 @@ export function AppSidebar({
           </div>
         </footer>
       </div>
-    </aside>
+    </motion.aside>
   );
 }

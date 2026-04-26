@@ -78,10 +78,21 @@
    gradient until hovered. Firefox picks up the properties on `html`.
    Overhaul D — narrower 6px (was 8px) for the glass-character read.
    Keeps the 2px transparent border-padding so the thumb visually sits
-   inside its own 6px channel rather than flush against content. */
+   inside its own 6px channel rather than flush against content.
+   Iter-24 / Major Overhaul J — refined rest opacity 0.18 → 0.18 (kept,
+   matches the system feel), hover bumps to 0.32 (was 0.42, slightly
+   more restrained), thumb gains box-shadow inset for that "pill in a
+   well" depth read. */
 html {
   scrollbar-width: thin;
   scrollbar-color: rgba(99, 102, 241, 0.28) transparent;
+  /* Iter-24 — smooth scroll for in-page anchors + scroll-into-view
+     behavior. The 80px scroll-padding-top reserves space for the
+     56px sticky topbar plus a 24px breathing margin so anchored
+     content lands a little below the bar instead of flush against
+     it. Honors prefers-reduced-motion via the global block. */
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
 }
 ::-webkit-scrollbar {
   width: 6px;
@@ -98,7 +109,7 @@ html {
   transition: background .2s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.42);
+  background: rgba(99, 102, 241, 0.32);
   background-clip: padding-box;
 }
 
@@ -2729,7 +2740,26 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   border-radius: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Iter-24 — explicit overscroll containment so wheel events on the
+     sidebar don't bubble into the body scroll. The sidebar lists
+     (recent + saved) can grow tall — their own scroll feels native
+     this way. */
+  overscroll-behavior: contain;
   scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+
+/* Iter-24 — sidebar gets a slightly more restrained scrollbar than the
+   page. Same indigo system, finer at-rest read so it doesn't compete
+   with the navigation rows. */
+.ts-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+.ts-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.14);
+}
+.ts-sidebar:hover::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.28);
 }
 
 .ts-sidebar-inner {
@@ -3063,6 +3093,22 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   border-right: 0;
   border-top: 0;
   border-bottom: 1px solid var(--ts-border-soft);
+  /* Iter-24 — scroll-aware shadow + blur. At rest (data-scrolled="0")
+     the topbar sits flat against the surface. Once page scroll exceeds
+     8px the shell sets data-scrolled="1" and we fade in a soft drop
+     shadow + bump the backdrop-filter blur to read as "lifted off the
+     content". 220ms cubic ease keeps the transition unobtrusive. */
+  transition:
+    box-shadow .22s cubic-bezier(0.32, 0.72, 0, 1),
+    backdrop-filter .22s cubic-bezier(0.32, 0.72, 0, 1),
+    background-color .22s cubic-bezier(0.32, 0.72, 0, 1),
+    border-color .22s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.ts-shell[data-scrolled="1"] .ts-topbar {
+  box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(28px) saturate(1.6);
+  -webkit-backdrop-filter: blur(28px) saturate(1.6);
+  border-bottom-color: var(--ts-border);
 }
 
 .ts-topbar-inner {
@@ -3954,4 +4000,346 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
     background: var(--ts-accent);
     color: #ffffff;
   }
+}
+
+/* =====================================================================
+ * Iter-24 / Major Overhaul J — polish layer
+ *
+ * Additions:
+ *   1. Results-header search-echo + active-filter chip row.
+ *   2. List-row chevron-reveal on hover.
+ *   3. Alternating list-row stripe so 50 rows are scannable.
+ *   4. Results query banner (big mono `// SEARCHING ...`).
+ *   5. Drawer-as-permanent-pane on lg+ (CSS only; component continues
+ *      to render the same DOM — the .ts-shell[data-drawer-pinned] hook
+ *      restructures the column to host the pane inline).
+ *   6. List-row description visible at md+ (was lg+).
+ *   7. Topic-mismatch / no-source chips for the no-results view.
+ *   8. Sort-changed inline badge (CSS for fade in/out via opacity).
+ *   9. Loading "thinking dots" inside the topbar searchbar.
+ * ===================================================================== */
+
+/* 1) Results query echo banner — big mono `// SEARCHING "..."` head. */
+.ts-results-query {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ts-text-faint);
+  padding: 4px 2px 2px;
+}
+
+.ts-results-query-label {
+  color: var(--ts-text-faint);
+}
+
+.ts-results-query-term {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 14.5px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: -0.005em;
+  color: var(--ts-text);
+  /* slim left bar in indigo so the query is visually anchored */
+  padding-left: 9px;
+  margin-left: -2px;
+  border-left: 2px solid var(--ts-accent);
+  line-height: 1.2;
+}
+
+/* 2) Active-filter chip row — sits above the toolbar when the user has
+   any filter active (category, source, sort != relevance). One-click
+   clear on each chip. */
+.ts-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 0 1px;
+}
+
+.ts-active-filters-label {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ts-text-faint);
+  margin-right: 2px;
+}
+
+.ts-active-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 10px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.10);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  color: var(--ts-accent-strong);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: default;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+
+.ts-active-chip-key {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ts-text-subtle);
+  margin-right: 1px;
+}
+
+.ts-active-chip-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  color: var(--ts-text-subtle);
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+}
+
+@media (hover: hover) {
+  .ts-active-chip:hover {
+    background: rgba(99, 102, 241, 0.14);
+    border-color: rgba(99, 102, 241, 0.34);
+  }
+  .ts-active-chip-x:hover {
+    background: rgba(99, 102, 241, 0.18);
+    color: var(--ts-accent-strong);
+  }
+}
+
+.ts-active-chip-clear {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ts-text-subtle);
+  background: transparent;
+  border: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+}
+
+@media (hover: hover) {
+  .ts-active-chip-clear:hover {
+    color: var(--ts-accent-strong);
+    background: rgba(99, 102, 241, 0.08);
+  }
+}
+
+/* 3) List-row chevron-reveal on hover, plus alternating stripe. */
+.ts-list-row {
+  /* Add room on the right edge for the chevron to land in. */
+  padding-right: 14px;
+}
+
+.ts-list-chevron {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%) translateX(4px);
+  opacity: 0;
+  color: var(--ts-text-faint);
+  transition: opacity .18s ease, transform .18s ease, color .18s ease;
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .ts-list-row:hover .ts-list-chevron {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+    color: var(--ts-accent-strong);
+  }
+}
+
+/* Alternating row tint — every other row gets a 50% lighter base so
+   long lists scan as zebra-striped without losing the glass register. */
+.ts-list-row:nth-of-type(2n) {
+  background: rgba(255, 255, 255, 0.62);
+}
+
+/* 4) (banner shares .ts-results-query — same selector). */
+
+/* 5) Drawer-as-permanent-pane on lg+. When the shell is in
+   data-drawer-pinned="1" mode, the right pane becomes a flex sibling
+   instead of an absolutely-positioned slide-over. The DetailDrawer's
+   own DOM continues to render exactly the same — the CSS is simply
+   re-targeted by an attribute hook. */
+@media (min-width: 1280px) {
+  .ts-shell[data-drawer-pinned="1"] .ts-drawer {
+    position: sticky;
+    top: 0;
+    align-self: stretch;
+    width: 420px;
+    height: 100vh;
+    border-radius: 0;
+    border-left: 1px solid var(--ts-border-soft);
+    box-shadow:
+      inset 1px 0 0 rgba(255, 255, 255, 0.6),
+      var(--ts-shadow-rest);
+    z-index: 25;
+  }
+  .ts-shell[data-drawer-pinned="1"] .ts-drawer-backdrop {
+    display: none;
+  }
+}
+
+/* 6) List-row description visible at md+ (was lg+). One-line clamp at
+   md, full visibility at lg. */
+@media (min-width: 768px) {
+  .ts-list-desc { display: block; }
+  .ts-list-row { grid-template-columns: 36px 220px 1fr auto auto; }
+}
+
+/* 7) "More from" chips and no-results category pivots — already styled
+   inline. Add a subtler shared `.ts-pivot-chip` if needed by future
+   passes. (placeholder hook — no rules needed yet.) */
+
+/* 8) Sort-changed inline badge. Briefly mounts via component state. */
+.ts-sort-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  background: rgba(99, 102, 241, 0.10);
+  color: var(--ts-accent-strong);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+}
+
+/* 9) Topbar searchbar "thinking" dots — appended to the topbar status. */
+.ts-topbar-thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+}
+
+.ts-topbar-thinking-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--ts-accent);
+  opacity: 0.55;
+  animation: ts-topbar-thinking 1.2s ease-in-out infinite;
+}
+.ts-topbar-thinking-dot:nth-child(2) { animation-delay: 0.18s; }
+.ts-topbar-thinking-dot:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes ts-topbar-thinking {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40%           { opacity: 1;    transform: translateY(-2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-topbar-thinking-dot { animation: none; opacity: 0.6; }
+}
+
+/* Sidebar nav active-pill layout shadow. The framer layoutId="ts-sidebar-active-pill"
+   driving the active highlight needs an absolute layer below the nav-item
+   content. We render it as a separate motion.span sibling positioned
+   absolute-inset and add a class that gives it the gradient + glow. */
+.ts-sidebar-nav-active-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: var(--ts-accent-gradient);
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    0 4px 12px -4px rgba(99, 102, 241, 0.45);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.ts-sidebar-nav-item {
+  position: relative;
+  z-index: 1;
+}
+.ts-sidebar-nav-item > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* When the layoutId pill is rendering the active background, suppress
+   the previous .is-active static gradient so they don't double up. */
+.ts-sidebar-nav-item.is-active.has-layout-pill {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* View-toggle layoutId active pill — same pattern. */
+.ts-view-toggle-active-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 9px;
+  background: var(--ts-accent-gradient);
+  box-shadow: 0 2px 8px -2px rgba(99, 102, 241, 0.40);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.ts-view-toggle-btn {
+  position: relative;
+}
+.ts-view-toggle-btn > * {
+  position: relative;
+  z-index: 1;
+}
+.ts-view-toggle-btn.is-active.has-layout-pill {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* List-row "card highlight" when the drawer was just opened from this
+   row — a soft indigo ring fades in/out. Component toggles the class
+   for ~700ms via state. */
+.ts-list-row.is-flash,
+.ts-card.is-flash {
+  box-shadow:
+    0 0 0 2px rgba(99, 102, 241, 0.45),
+    0 0 18px 0 rgba(99, 102, 241, 0.25),
+    var(--ts-shadow-rest) !important;
+  transition: box-shadow .35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Reveal-on-scroll variants are driven by framer-motion whileInView; no
+   CSS keyframes needed. The .ts-reveal class below is purely a hook so
+   reduced-motion fallback strips translation gracefully — framer
+   already handles this via MotionConfig reducedMotion="user", but
+   leaving the hook in case a future iteration needs CSS-only reveal. */
+.ts-reveal {
+  /* no-op marker */
+}
+
+/* Reduced-motion guard — silence the new dot animation explicitly. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .ts-list-row.is-flash,
+  .ts-card.is-flash { transition: none; }
 }

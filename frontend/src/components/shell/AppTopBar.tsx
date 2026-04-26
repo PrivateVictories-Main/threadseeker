@@ -28,6 +28,9 @@ interface Props {
   onDebouncedChange: (v: string) => void;
   /** Visible-results count, animated. Hidden on landing (resultCount===0). */
   resultCount: number;
+  /** Total queried-source count for the in-flight search (used for the
+   *  loading micro-readout: "loading 3 of 28"). */
+  totalQueriedCount?: number;
   /** Sources currently still pending (during a live search). */
   pendingCount: number;
   /** End-to-end search duration. */
@@ -37,6 +40,9 @@ interface Props {
   onMobileNavToggle: () => void;
   /** Currently in results mode (vs landing) — drives the count visibility. */
   inResultsMode: boolean;
+  /** Iter-24 — active category label echoed in the status readout so
+   *  the user always knows what slice they're viewing. */
+  activeCategoryLabel?: string;
   onClear: () => void;
 }
 
@@ -46,17 +52,23 @@ export function AppTopBar({
   onSearch,
   onDebouncedChange,
   resultCount,
+  totalQueriedCount,
   pendingCount,
   durationMs,
   mobileNavOpen,
   onMobileNavToggle,
   inResultsMode,
+  activeCategoryLabel,
   onClear,
 }: Props) {
   return (
-    <header
+    <motion.header
       className="ts-topbar glass-strong"
       aria-label="ThreadSeeker search"
+      // Iter-24 — fade down from above on mount. 0.3s, springSoft cadence.
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 200, damping: 26, mass: 0.8 }}
     >
       <div className="ts-topbar-inner">
         {/* Mobile hamburger — only visible <md (sidebar hides below md
@@ -92,9 +104,19 @@ export function AppTopBar({
 
         {/* CENTER — live status readout. Hidden on landing because
             "0 results · 0ms" reads as broken; only present in results
-            mode where there's something to count. */}
+            mode where there's something to count. Iter-24 — surfaces
+            the active category label and a finer "loading X of N"
+            readout with thinking dots. */}
         {inResultsMode && (
           <div className="ts-topbar-status" aria-hidden>
+            {activeCategoryLabel && (
+              <>
+                <span className="text-[var(--ts-accent-strong)] font-semibold normal-case tracking-tight">
+                  {activeCategoryLabel}
+                </span>
+                <span className="ts-topbar-sep">·</span>
+              </>
+            )}
             <span className="ts-topbar-count">
               <CountUp value={resultCount} />
             </span>
@@ -103,11 +125,19 @@ export function AppTopBar({
               <>
                 <span className="ts-topbar-sep">·</span>
                 <span className="ts-topbar-loading">
-                  <span
-                    className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"
-                    aria-hidden
-                  />
-                  {pendingCount} loading
+                  <span className="ts-topbar-thinking" aria-hidden>
+                    <span className="ts-topbar-thinking-dot" />
+                    <span className="ts-topbar-thinking-dot" />
+                    <span className="ts-topbar-thinking-dot" />
+                  </span>
+                  {typeof totalQueriedCount === "number" && totalQueriedCount > 0 ? (
+                    <span>
+                      loading <span className="tabular-nums">{Math.max(0, totalQueriedCount - pendingCount)}</span>{" "}
+                      of <span className="tabular-nums">{totalQueriedCount}</span>
+                    </span>
+                  ) : (
+                    <span>{pendingCount} loading</span>
+                  )}
                 </span>
               </>
             )}
@@ -153,6 +183,6 @@ export function AppTopBar({
           )}
         </div>
       </div>
-    </header>
+    </motion.header>
   );
 }
