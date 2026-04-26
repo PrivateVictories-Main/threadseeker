@@ -2468,3 +2468,160 @@ Modified:
 - Touch the command palette
 - Add the horizontal-scroll trending row (Track 6 skipped)
 
+
+---
+
+## Iteration 23 — Major Overhaul I (architectural)
+
+Date: 2026-04-23
+
+The most substantial iteration since the project began. Previous
+overhauls (G, H) polished cards and added curated landing rows but
+preserved the same overall page architecture: hero search at top,
+results grid below. The user explicitly asked for a fundamental
+redesign — _"It should be an entire overhaul of both as soon as you go
+on to the landing page as well as obviously the card overhaul. It
+should be an entire kind of UI overhaul entirely."_
+
+### What shipped
+
+The page is no longer a centered single column. It is now a Spotify
+macOS / HuggingFace / Linear-adjacent triple-region structure.
+
+#### 1. Persistent left sidebar (`AppSidebar`, 260px)
+
+- Glass-strong surface, sticky, with right-edge indigo border + inner
+  highlight (Spotify sidebar feel).
+- Contents top→bottom: BrandMark, `// CATEGORIES` nav (All / Repos /
+  Packages / AI / Papers / Threads), `// RECENT` (last 6 searches with
+  per-row clear), `// SAVED` (last 5 bookmarks), footer with cmd-K hint
+  + GitHub link.
+- Active category gets indigo gradient fill + soft inner glow.
+- Below md: hides entirely, surfaces via top-bar hamburger as a
+  slide-over drawer with backdrop-click dismiss.
+
+#### 2. Persistent top bar (`AppTopBar`, 56px)
+
+- Replaces the previous sticky-header-on-results pattern. Now
+  persistent across landing AND results.
+- Always-visible compact SearchBar on the left.
+- Live result count + duration in results mode (hidden on landing).
+- Cmd-K trigger chip + clear button on the right.
+- Mobile: hamburger trigger on the left for the sidebar drawer.
+
+#### 3. Restructured landing as content feed
+
+Vertical stack of distinct rows:
+
+1. `LandingHero` — glass-strong rounded panel ~50vh tall with
+   decorative blobs, indigo grid backdrop, headline + tagline + a
+   `/ ⌘K` keyboard hint chip. No search bar (search lives in topbar).
+2. `LandingStatTiles` — repurposed StatTiles row.
+3. `FeaturedProjects` — unchanged from Overhaul H, fits the new flow.
+4. `TrendingSection` — unchanged from previous, fits the new flow.
+5. `CategoryGrid` — new visual 2/3-col tile grid with icon + label +
+   tagline + source count badge. Mirrors the sidebar selection.
+6. `RegistryJumps` — new compact 4-tile pill row (npm / PyPI / crates
+   / Docker Hub) for direct registry navigation.
+7. Sources disclosure (collapsed by default).
+8. Footer.
+
+#### 4. Restructured results: list view + grid view
+
+- New view toggle on the results sub-toolbar (Grid / List). State
+  persisted to URL via `?view=list`.
+- New `ProjectListRow` component: dense horizontal stripe with avatar
+  + name + source/author/version/updated meta + 1-line description
+  (lg+ only) + stats (stars, language) + bookmark + Details + open.
+- Grid view unchanged — uses the existing UnifiedProjectCard
+  (Overhaul G).
+
+#### 5. Card variants
+
+`UnifiedProjectCard` (grid view) is unchanged. `ProjectListRow` is
+the new third variant for list view. The "compact tile" variant for
+landing rows is implicit — FeaturedProjects already reuses the grid
+card, which works fine inside its own constrained row.
+
+#### 6. Visual identity treatment
+
+- Sidebar: glass-strong with inset right-edge highlight.
+- Top bar: glass-strong with bottom border.
+- Hero card: glass-strong rounded-3xl with three decorative blobs +
+  grid backdrop.
+- Category tiles: glass with hover lift; active tile gets indigo
+  gradient fill (matching the sidebar active state).
+- List rows: glass with hover lift; focus-ring on keyboard focus.
+- Topbar count: tabular mono microcopy register matches the rest of
+  the system.
+
+### Validation
+
+- **Tests:** 83/83 green (unchanged baseline).
+- **Build:** Next.js production build passes with no warnings.
+- **Typecheck:** clean apart from one preexisting `card/helpers.test.ts`
+  error from a previous iteration (not introduced here).
+- **Smoke test:** `curl localhost:3000` returns HTTP 200 with the
+  expected `ts-shell` / `ts-sidebar` / `ts-topbar` / `ts-landing-hero`
+  / `ts-category-grid` / `ts-registry-pill` markers in the rendered
+  HTML.
+
+### Files touched
+
+New components:
+- `frontend/src/components/shell/AppShell.tsx`
+- `frontend/src/components/shell/AppSidebar.tsx`
+- `frontend/src/components/shell/AppTopBar.tsx`
+- `frontend/src/components/LandingHero.tsx`
+- `frontend/src/components/LandingStatTiles.tsx`
+- `frontend/src/components/CategoryGrid.tsx`
+- `frontend/src/components/RegistryJumps.tsx`
+- `frontend/src/components/ProjectListRow.tsx`
+
+Modified:
+- `frontend/src/app/page.tsx` (substantial rewrite — drops the inline
+  hero/results sticky-header-and-grid layout, swaps in `<AppShell>`
+  with separate landing-feed and results-mode children).
+- `frontend/src/app/globals.css` (~700 lines added: shell, sidebar,
+  topbar, landing-hero, category-grid, registry-jumps, results layout,
+  view-toggle, list-row).
+
+### Hand-off for the next iteration
+
+- **Saved-section deduplication.** The old `<SavedSection>` glass
+  panel is no longer rendered (the sidebar surfaces saved bookmarks
+  directly), but the file is still imported elsewhere — could be
+  pruned in a future cleanup.
+- **Mobile sidebar drawer polish.** The sidebar hides below md and
+  surfaces a hamburger that toggles a slide-over with backdrop. The
+  slide animation comes from CSS `transform` transitions, not framer
+  motion. A follow-up could move the drawer to a framer-motion
+  AnimatePresence pattern matching DetailDrawer's vocabulary.
+- **Detail drawer → permanent right-pane.** The user-prompt asked
+  for the drawer to become a permanent inline preview pane that
+  pushes the grid into 1-2 columns. This iteration kept the drawer
+  as a slide-over (Overhaul G's behavior). Worth promoting to a
+  flex-shrink-0 panel on lg+ in a future pass.
+- **Category narrowing on results mode.** The sidebar still shows
+  the active category in results mode, so a user knows their search
+  is narrowed. But there's no inline chip in the results header
+  surfacing "Category: AI Models ✕" — could improve the discovery
+  of how to widen back.
+- **List-row description on md.** Currently hidden below lg because
+  the row geometry uses a 5-column grid only at lg+. A follow-up
+  could collapse the description below the meta line on md to
+  preserve scannability without truncating identity.
+- **`SavedSection` and `CategoryNav` legacy components.** Both still
+  live in the codebase but are no longer mounted by `page.tsx`. Tests
+  reference them, so they're safe to keep but a cleanup pass could
+  prune them.
+
+### What this iteration deliberately did NOT do
+
+- Change search ranking / BM25 / query parsing.
+- Add new sources.
+- Redo the command palette.
+- Promote the detail drawer to a permanent right-side preview pane
+  (kept the slide-over drawer from Overhaul G — pursuing the
+  permanent pane would have made the iteration longer than the
+  user-asked-for milestone).
