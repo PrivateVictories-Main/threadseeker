@@ -1,6 +1,16 @@
-"use client";
+// Category definitions for the source-narrowing system. Originally
+// (Iter-22 / Overhaul H) this module exported a `CategoryNav` component
+// for a horizontal pill strip on the hero. As of Iter-23 / Major
+// Overhaul I the visible navigation surface moved into the persistent
+// AppSidebar + CategoryGrid. The data exports (CATEGORY_DEFS,
+// CategoryKey, CategoryDef) are still consumed by page.tsx and the
+// new CategoryGrid; they live here because every consumer expects
+// "@/components/CategoryNav" — moving them to /lib would force a
+// codebase-wide rename without functional benefit.
+//
+// Iter-24 / Major Overhaul J — pruned the unused CategoryNav component
+// itself. The data exports below are the only public API.
 
-import { motion } from "framer-motion";
 import {
   Globe,
   GitBranch,
@@ -11,27 +21,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { SourceType } from "@/lib/sources/types";
-
-// Iter-22 / Overhaul H — Track 1
-//
-// HuggingFace-inspired horizontal category navigation strip. Sits below the
-// hero search bar, above the stat tiles. Each pill maps to a hand-curated
-// set of source types that share the same content shape:
-//
-//   All        — every source (resets the chip selection)
-//   Repos      — github / gitlab / codeberg
-//   Packages   — npm / pypi / crates / rubygems / packagist / nuget / jsr /
-//                conda / homebrew / dockerhub / flathub / fdroid / aur /
-//                openvsx / wordpress / maven
-//   AI Models  — huggingface / paperswithcode (model-shaped community)
-//   Papers     — arxiv / zenodo / paperswithcode
-//   Threads    — hackernews / reddit / lobsters / stackoverflow / devto
-//
-// Active state = indigo gradient fill + white text + soft glow.
-// Inactive    = ghost glass with mono uppercase 11px text.
-// Hover       = scale(1.03) + indigo tint background.
-//
-// Whole strip sits on a glass-strong rounded-full surface ~52px tall.
 
 export type CategoryKey = "all" | "repos" | "packages" | "ai" | "papers" | "threads";
 
@@ -82,39 +71,3 @@ export const CATEGORY_DEFS: CategoryDef[] = [
     sources: ["hackernews", "reddit", "lobsters", "stackoverflow", "devto"],
   },
 ];
-
-interface Props {
-  activeKey: CategoryKey;
-  onChange: (key: CategoryKey) => void;
-}
-
-export function CategoryNav({ activeKey, onChange }: Props) {
-  return (
-    <nav
-      className="ts-category-nav"
-      aria-label="Filter by content category"
-    >
-      <div className="ts-category-nav-inner">
-        {CATEGORY_DEFS.map((cat) => {
-          const Icon = cat.icon;
-          const isActive = cat.key === activeKey;
-          return (
-            <motion.button
-              key={cat.key}
-              type="button"
-              onClick={() => onChange(cat.key)}
-              className={`ts-category-pill${isActive ? " is-active" : ""}`}
-              aria-pressed={isActive}
-              whileHover={{ y: -1 }}
-              whileTap={{ scale: 0.97 }}
-              transition={{ type: "spring", stiffness: 360, damping: 24 }}
-            >
-              <Icon className="w-3.5 h-3.5" aria-hidden />
-              <span>{cat.label}</span>
-            </motion.button>
-          );
-        })}
-      </div>
-    </nav>
-  );
-}
