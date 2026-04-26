@@ -21,6 +21,7 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { NetworkErrorMessage, NetworkErrorTray } from "@/components/network/NetworkErrorMessage";
 import { AnimatedGrid } from "@/components/motion/AnimatedGrid";
 import { Toast } from "@/components/motion/Toast";
+import { RevealOnScroll } from "@/components/motion/RevealOnScroll";
 import { AppShell } from "@/components/shell/AppShell";
 import { modeVariants } from "@/lib/motion";
 import {
@@ -230,6 +231,17 @@ export default function Home() {
       setProjects([]);
       setIsLoading(true);
       setSearchDurationMs(null);
+      // Iter-24 — when the user fires a new search after scrolling
+      // partway through results, scroll the main column back to the
+      // top gracefully so the new result set lands in the viewport.
+      // Skipped on initial mount-load (preserveView=true).
+      if (!preserveView && typeof window !== "undefined" && window.scrollY > 0) {
+        try {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch {
+          window.scrollTo(0, 0);
+        }
+      }
       const targetSources = parsed.source && (selectedSources as string[]).includes(parsed.source)
         ? [parsed.source]
         : selectedSources;
@@ -550,8 +562,14 @@ export default function Home() {
         onDebouncedChange={debouncedChangeHandler}
         resultCount={view.length}
         pendingCount={pendingSources}
+        totalQueriedCount={lastSearchedCount}
         durationMs={searchDurationMs}
         inResultsMode={mode === "results"}
+        activeCategoryLabel={
+          activeCategory !== "all"
+            ? CATEGORY_DEFS.find((c) => c.key === activeCategory)?.label
+            : undefined
+        }
         onClear={handleClear}
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -573,34 +591,40 @@ export default function Home() {
               <LandingStatTiles sourceCount={ALL_SOURCES.length} />
 
               {/* FEATURED PROJECTS ROW — curated horizontal stripe. */}
-              <FeaturedProjects
-                onTopicClick={(t) => handleSearch(t)}
-                onOpenDetails={(p) => setDrawerProject(p)}
-                onToast={showToast}
-              />
+              <RevealOnScroll>
+                <FeaturedProjects
+                  onTopicClick={(t) => handleSearch(t)}
+                  onOpenDetails={(p) => setDrawerProject(p)}
+                  onToast={showToast}
+                />
+              </RevealOnScroll>
 
               {/* TRENDING THIS WEEK ROW. */}
-              <TrendingSection onQueryClick={(q) => handleSearch(q)} />
+              <RevealOnScroll>
+                <TrendingSection onQueryClick={(q) => handleSearch(q)} />
+              </RevealOnScroll>
 
               {/* BROWSE BY CATEGORY — visual 6-tile grid that maps to
                   the same categories the sidebar exposes. */}
-              <CategoryGrid
-                activeKey={activeCategory}
-                onSelect={(k) => {
-                  handleCategoryChange(k);
-                  // Don't auto-search — selection narrows the source
-                  // set so the user's next query honors it.
-                }}
-              />
+              <RevealOnScroll>
+                <CategoryGrid
+                  activeKey={activeCategory}
+                  onSelect={(k) => {
+                    handleCategoryChange(k);
+                    // Don't auto-search — selection narrows the source
+                    // set so the user's next query honors it.
+                  }}
+                />
+              </RevealOnScroll>
 
               {/* REGISTRY JUMPS — npm/PyPI/crates/Docker quick links. */}
-              <div className="ts-landing-row">
+              <RevealOnScroll className="ts-landing-row">
                 <h2 className="ts-section-header">{"// Direct jumps"}</h2>
                 <p className="text-[12.5px] text-slate-500 mt-1 mb-3">
                   Open a registry directly without going through ThreadSeeker.
                 </p>
                 <RegistryJumps />
-              </div>
+              </RevealOnScroll>
 
               {/* SOURCES — collapsible disclosure, kept for power users. */}
               <div className="ts-landing-row">

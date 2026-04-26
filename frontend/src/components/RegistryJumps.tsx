@@ -8,6 +8,7 @@
 // has typed a bare package name. RegistryJumps surfaces the canonical
 // browse URLs for the four most-jumped registries.
 
+import { motion } from "framer-motion";
 import {
   Boxes,
   Container,
@@ -23,6 +24,25 @@ interface Registry {
   href: string;
   tagline: string;
 }
+
+// Iter-24 — staggered pill reveal (50ms/sibling) when the row scrolls
+// into view.
+const rowContainer = {
+  hidden: { opacity: 1 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05, delayChildren: 0.04 },
+  },
+};
+
+const pillChild = {
+  hidden: { opacity: 0, x: -8 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { type: "spring" as const, stiffness: 240, damping: 26, mass: 0.85 },
+  },
+};
 
 const REGISTRIES: Registry[] = [
   {
@@ -53,16 +73,25 @@ const REGISTRIES: Registry[] = [
 
 export function RegistryJumps() {
   return (
-    <div className="ts-registry-jumps">
+    <motion.div
+      className="ts-registry-jumps"
+      variants={rowContainer}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-60px" }}
+    >
       {REGISTRIES.map((r) => {
         const Icon = r.icon;
         return (
-          <a
+          <motion.a
             key={r.name}
             href={r.href}
             target="_blank"
             rel="noopener noreferrer"
             className="ts-registry-pill"
+            variants={pillChild}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.985 }}
           >
             <span className="ts-registry-pill-icon" aria-hidden>
               <Icon className="w-4 h-4" />
@@ -72,9 +101,9 @@ export function RegistryJumps() {
               <span className="ts-registry-pill-tag">{r.tagline}</span>
             </span>
             <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" aria-hidden />
-          </a>
+          </motion.a>
         );
       })}
-    </div>
+    </motion.div>
   );
 }
