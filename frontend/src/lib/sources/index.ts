@@ -50,6 +50,19 @@ export { expandQuery } from "./synonyms";
 export type { ExpandQueryResult } from "./synonyms";
 export * from "./merge";
 export * from "./adapters";
+export {
+  significantTokens,
+  pickDistinctiveToken,
+  pickFirstToken,
+  buildTokenPlan,
+  buildDistinctivePlan,
+  buildFuzzySynonymPlan,
+  buildFirstTokenPlan,
+  nextRelaxation,
+  planRelaxationChain,
+  relaxedExpansionTerms,
+} from "./resilience";
+export type { RelaxedPlan, RelaxationTier } from "./resilience";
 
 // Default set. Explicitly ordered so that when callers don't pass a subset,
 // the first few sources to complete are the high-signal ones (repo hosts

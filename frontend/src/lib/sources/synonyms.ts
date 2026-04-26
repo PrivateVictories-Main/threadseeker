@@ -359,6 +359,440 @@ export const SYNONYMS: SynonymEntry[] = [
     expandTo: ["spring boot", "quarkus", "micronaut", "javalin"],
     boostProjects: ["spring-projects/spring-boot"],
   },
+
+  // ====================================================================
+  // Iter-25 / Major Overhaul K — everyday-user vocabulary expansion.
+  // Bridges the gap between "framework jargon" (above) and the practical
+  // verbs/nouns people type when they're shopping for tools.
+  // ====================================================================
+
+  // --- Desktop input automation ---
+  {
+    concept: "automation-desktop",
+    triggers: [
+      "autoclicker",
+      "auto clicker",
+      "auto click",
+      "mouse tapper",
+      "mouse clicker",
+      "click bot",
+      "macro recorder",
+      "key macro",
+      "keybind",
+      "automation desktop",
+      "tapper",
+    ],
+    expandTo: [
+      "autoclicker",
+      "xdotool",
+      "autohotkey",
+      "hammerspoon",
+      "keyboard maestro",
+      "macro",
+    ],
+    boostProjects: [
+      "jordansissel/xdotool",
+      "Hammerspoon/hammerspoon",
+      "AutoHotkey/AutoHotkey",
+    ],
+  },
+
+  // --- Browser automation / scraping ---
+  {
+    concept: "browser-automation",
+    triggers: [
+      "browser automation",
+      "headless browser",
+      "scraping",
+      "web scraper",
+      "puppeteer alt",
+      "selenium alt",
+    ],
+    expandTo: [
+      "puppeteer",
+      "playwright",
+      "selenium",
+      "webdriver",
+      "scrapy",
+      "beautifulsoup",
+    ],
+    boostProjects: ["puppeteer/puppeteer", "microsoft/playwright"],
+  },
+
+  // --- Screenshot / screen recording ---
+  {
+    concept: "screenshot-tool",
+    triggers: [
+      "screenshot",
+      "screen capture",
+      "screen recorder",
+      "screencast",
+      "screen record",
+    ],
+    expandTo: ["flameshot", "shotcut", "obs", "ffmpeg", "screenshot"],
+    boostProjects: ["flameshot-org/flameshot", "obsproject/obs-studio"],
+  },
+
+  // --- Clipboard manager ---
+  {
+    concept: "clipboard-manager",
+    triggers: [
+      "clipboard manager",
+      "clipboard history",
+      "clip manager",
+      "copy paste history",
+    ],
+    expandTo: ["maccy", "ditto", "copyq", "flycut", "clipboard"],
+    boostProjects: ["p0deje/Maccy", "hluk/CopyQ"],
+  },
+
+  // --- File / folder sync ---
+  {
+    concept: "file-sync",
+    triggers: [
+      "file sync",
+      "folder sync",
+      "rsync alternative",
+      "syncthing alt",
+      "file synchronization",
+    ],
+    expandTo: ["syncthing", "rsync", "rclone", "unison"],
+    boostProjects: ["syncthing/syncthing", "rclone/rclone"],
+  },
+
+  // --- Media player ---
+  {
+    concept: "media-player",
+    triggers: [
+      "media player",
+      "video player",
+      "audio player",
+      "music player",
+      "mp4 player",
+    ],
+    expandTo: ["vlc", "mpv", "iina", "kodi", "plex"],
+    boostProjects: ["videolan/vlc", "mpv-player/mpv"],
+  },
+
+  // --- Torrent client ---
+  {
+    concept: "torrent-client",
+    triggers: ["torrent client", "bittorrent client", "torrent app"],
+    expandTo: ["qbittorrent", "transmission", "rtorrent", "deluge"],
+    boostProjects: ["qbittorrent/qBittorrent"],
+  },
+
+  // --- RSS reader ---
+  {
+    concept: "rss-reader",
+    triggers: [
+      "rss reader",
+      "rss feed reader",
+      "newsreader",
+      "feed reader",
+      "rss app",
+    ],
+    expandTo: [
+      "feedbin",
+      "feedly alt",
+      "newsboat",
+      "miniflux",
+      "freshrss",
+    ],
+    boostProjects: ["miniflux/v2"],
+  },
+
+  // --- Note taking / PKM ---
+  {
+    concept: "note-taking",
+    triggers: [
+      "note taking",
+      "notes app",
+      "obsidian alt",
+      "notion alt",
+      "markdown notes",
+      "pkm",
+      "second brain",
+    ],
+    expandTo: [
+      "obsidian",
+      "logseq",
+      "joplin",
+      "standard notes",
+      "anytype",
+      "trilium",
+    ],
+    boostProjects: ["logseq/logseq", "laurent22/joplin"],
+  },
+
+  // --- Tasks / kanban / issue tracking ---
+  {
+    concept: "task-tracker",
+    triggers: [
+      "todo app",
+      "task tracker",
+      "kanban",
+      "issue tracker self hosted",
+      "todo list",
+      "task manager",
+    ],
+    expandTo: ["todoist alt", "taskwarrior", "wekan", "kanboard", "vikunja"],
+    boostProjects: ["taskwarrior/taskwarrior", "wekan/wekan"],
+  },
+
+  // --- Self-hosted catch-all ---
+  {
+    concept: "self-hosted-tools",
+    triggers: [
+      "self hosted",
+      "self-hosted",
+      "selfhosted",
+      "open source alternative",
+      "homelab",
+    ],
+    expandTo: ["selfhosted", "awesome selfhosted"],
+    boostProjects: ["awesome-selfhosted/awesome-selfhosted"],
+  },
+
+  // --- CLI tool catch-all ---
+  {
+    concept: "cli-tool",
+    triggers: [
+      "cli tool",
+      "command line tool",
+      "terminal app",
+      "terminal tool",
+      "shell utility",
+    ],
+    expandTo: ["bat", "fzf", "ripgrep", "tldr", "fd", "zoxide", "exa"],
+    boostProjects: ["sharkdp/bat", "junegunn/fzf"],
+  },
+
+  // --- Dotfile / config manager ---
+  {
+    concept: "dotfile-manager",
+    triggers: [
+      "dotfile",
+      "dotfiles manager",
+      "config manager",
+      "dotfiles sync",
+    ],
+    expandTo: ["chezmoi", "yadm", "stow", "dotbot"],
+    boostProjects: ["twpayne/chezmoi", "TheLocehiliosan/yadm"],
+  },
+
+  // --- AI coding / Copilot alternatives ---
+  {
+    concept: "ai-coding",
+    triggers: [
+      "copilot alt",
+      "ai coding",
+      "ai code completion",
+      "autocomplete code",
+      "code completion",
+    ],
+    expandTo: ["continue", "cody", "codeium", "tabby", "supermaven"],
+    boostProjects: ["continuedev/continue"],
+  },
+
+  // --- Personal finance / budgeting ---
+  {
+    concept: "personal-finance",
+    triggers: [
+      "personal finance",
+      "budgeting",
+      "expense tracker",
+      "money manager",
+      "ynab alt",
+      "mint alt",
+    ],
+    expandTo: ["actual budget", "firefly iii", "ynab alt", "ledger"],
+    boostProjects: ["actualbudget/actual", "firefly-iii/firefly-iii"],
+  },
+
+  // --- Music streaming / library ---
+  {
+    concept: "music-streaming",
+    triggers: [
+      "music streaming",
+      "spotify alt",
+      "self hosted music",
+      "music server",
+      "music library",
+    ],
+    expandTo: ["navidrome", "jellyfin", "plex", "funkwhale"],
+    boostProjects: ["navidrome/navidrome", "jellyfin/jellyfin"],
+  },
+
+  // --- Photo library / management ---
+  {
+    concept: "photo-library",
+    triggers: [
+      "photo library",
+      "photo manager",
+      "google photos alt",
+      "photo gallery",
+      "photo backup",
+    ],
+    expandTo: ["immich", "photoprism", "librephotos", "piwigo"],
+    boostProjects: ["immich-app/immich", "photoprism/photoprism"],
+  },
+
+  // --- Email client ---
+  {
+    concept: "email-client",
+    triggers: [
+      "email client",
+      "mail client",
+      "mail app",
+      "gmail alt",
+      "imap client",
+    ],
+    expandTo: ["thunderbird", "mailspring", "geary", "alpine", "neomutt"],
+    boostProjects: ["mailspring/mailspring"],
+  },
+
+  // --- Chat / messaging ---
+  {
+    concept: "chat-messenger",
+    triggers: [
+      "chat app",
+      "messenger app",
+      "discord alt",
+      "slack alt",
+      "matrix client",
+      "team chat",
+    ],
+    expandTo: ["element", "matrix", "rocketchat", "mattermost", "zulip"],
+    boostProjects: [
+      "element-hq/element-web",
+      "RocketChat/Rocket.Chat",
+      "mattermost/mattermost",
+    ],
+  },
+
+  // --- Video conferencing ---
+  {
+    concept: "video-conferencing",
+    triggers: [
+      "video conferencing",
+      "zoom alt",
+      "video call",
+      "video chat",
+      "webrtc app",
+    ],
+    expandTo: ["jitsi", "bigbluebutton", "nextcloud talk"],
+    boostProjects: ["jitsi/jitsi-meet"],
+  },
+
+  // --- Calendar / scheduling ---
+  {
+    concept: "calendar-app",
+    triggers: [
+      "calendar app",
+      "scheduling app",
+      "calendly alt",
+      "caldav",
+      "calendar server",
+    ],
+    expandTo: ["cal.com", "radicale", "baikal", "etesync", "easyappointments"],
+    boostProjects: ["calcom/cal.com"],
+  },
+
+  // --- Diagram / drawing ---
+  {
+    concept: "diagram-tool",
+    triggers: [
+      "diagram tool",
+      "drawing app",
+      "whiteboard",
+      "flowchart",
+      "draw.io alt",
+      "miro alt",
+      "excalidraw",
+    ],
+    expandTo: ["excalidraw", "drawio", "tldraw", "mermaid"],
+    boostProjects: ["excalidraw/excalidraw", "tldraw/tldraw"],
+  },
+
+  // --- Image editing ---
+  {
+    concept: "image-editor",
+    triggers: [
+      "image editor",
+      "photo editor",
+      "photoshop alt",
+      "raster editor",
+      "image manipulation",
+    ],
+    expandTo: ["gimp", "krita", "photopea", "darktable"],
+    boostProjects: ["GNOME/gimp"],
+  },
+
+  // --- 3D / modeling ---
+  {
+    concept: "3d-modeling",
+    triggers: ["3d modeling", "blender alt", "cad", "3d sculpting"],
+    expandTo: ["blender", "openscad", "freecad"],
+    boostProjects: ["blender/blender"],
+  },
+
+  // --- Game engine ---
+  {
+    concept: "game-engine",
+    triggers: ["game engine", "godot alt", "unity alt", "2d game engine"],
+    expandTo: ["godot", "bevy", "love2d", "phaser"],
+    boostProjects: ["godotengine/godot", "bevyengine/bevy"],
+  },
+
+  // --- Bookmark manager / read later ---
+  {
+    concept: "bookmark-manager",
+    triggers: [
+      "bookmark manager",
+      "read later",
+      "pocket alt",
+      "bookmark app",
+      "linkding",
+    ],
+    expandTo: ["linkding", "wallabag", "shiori", "raindrop"],
+    boostProjects: ["sissbruecker/linkding", "wallabag/wallabag"],
+  },
+
+  // --- Habit tracking ---
+  {
+    concept: "habit-tracker",
+    triggers: ["habit tracker", "habit app", "streak tracker"],
+    expandTo: ["loop habit tracker", "habitica"],
+    boostProjects: ["iSoron/uhabits", "HabitRPG/habitica"],
+  },
+
+  // --- VPN / privacy ---
+  {
+    concept: "vpn-self-hosted",
+    triggers: [
+      "self hosted vpn",
+      "wireguard ui",
+      "vpn server",
+      "vpn alt",
+      "openvpn alt",
+    ],
+    expandTo: ["wireguard", "tailscale", "headscale", "openvpn"],
+    boostProjects: ["WireGuard/wireguard-tools", "juanfont/headscale"],
+  },
+
+  // --- Backup ---
+  {
+    concept: "backup-tool",
+    triggers: [
+      "backup tool",
+      "backup software",
+      "incremental backup",
+      "encrypted backup",
+    ],
+    expandTo: ["restic", "borgbackup", "duplicati", "kopia"],
+    boostProjects: ["restic/restic", "borgbackup/borg"],
+  },
 ];
 
 export interface ExpandQueryResult {
