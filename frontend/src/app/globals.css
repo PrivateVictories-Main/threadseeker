@@ -4179,24 +4179,27 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
 
 /* 4) (banner shares .ts-results-query — same selector). */
 
-/* 5) Drawer-as-permanent-pane on lg+. When the shell is in
-   data-drawer-pinned="1" mode, the right pane becomes a flex sibling
-   instead of an absolutely-positioned slide-over. The DetailDrawer's
-   own DOM continues to render exactly the same — the CSS is simply
-   re-targeted by an attribute hook. */
+/* 5) Drawer-as-permanent-pane on xl+. When the shell is in
+   data-drawer-pinned="1" mode, the slide-over drawer is repositioned
+   to feel like a sticky right rail and the main column pads its right
+   edge so content doesn't sit under the drawer. The drawer itself
+   continues to render in the same DOM — only its CSS position changes
+   via the .ts-shell attribute hook. */
 @media (min-width: 1280px) {
+  .ts-shell[data-drawer-pinned="1"] .ts-shell-column {
+    padding-right: 420px;
+    transition: padding-right .26s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .ts-shell-column {
+    transition: padding-right .26s cubic-bezier(0.32, 0.72, 0, 1);
+  }
   .ts-shell[data-drawer-pinned="1"] .ts-drawer {
-    position: sticky;
-    top: 0;
-    align-self: stretch;
     width: 420px;
-    height: 100vh;
     border-radius: 0;
     border-left: 1px solid var(--ts-border-soft);
     box-shadow:
       inset 1px 0 0 rgba(255, 255, 255, 0.6),
       var(--ts-shadow-rest);
-    z-index: 25;
   }
   .ts-shell[data-drawer-pinned="1"] .ts-drawer-backdrop {
     display: none;

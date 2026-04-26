@@ -168,6 +168,21 @@ export default function Home() {
   // Iter-24 — when the user changes sort, briefly show an inline toast
   // confirming the change ("Sorted by stars"). Mounts for ~1s.
   const [sortToastLabel, setSortToastLabel] = useState<string | null>(null);
+  // Iter-24 — viewport-aware drawer-pinned state. On xl+ (≥1280px) the
+  // DetailDrawer becomes a sticky right rail instead of a slide-over
+  // when there's a project to display. On smaller viewports we keep
+  // the slide-over. Watched via matchMedia so live resizes work too.
+  const [viewportIsXl, setViewportIsXl] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(min-width: 1280px)").matches;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const onChange = () => setViewportIsXl(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
   const initialLoadDone = useRef(false);
   const searchRunIdRef = useRef(0);
   const resultsGridRef = useRef<HTMLDivElement | null>(null);
@@ -592,6 +607,7 @@ export default function Home() {
             ? CATEGORY_DEFS.find((c) => c.key === activeCategory)?.label
             : undefined
         }
+        drawerPinned={!!drawerProject && viewportIsXl}
         onClear={handleClear}
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -897,6 +913,24 @@ export default function Home() {
                         <span className="uppercase text-[11px] tracking-[0.06em] text-slate-400">
                           {view.length === 1 ? "result" : "results"}
                         </span>
+                        {!isLoading && lastSearchedCount > 0 && (
+                          <>
+                            <span className="text-slate-400 mx-1.5">·</span>
+                            <span className="uppercase text-[11px] tracking-[0.06em] text-slate-400">
+                              {lastSearchedCount === 1 ? "1 source searched" : `${lastSearchedCount} sources searched`}
+                            </span>
+                          </>
+                        )}
+                        {searchDurationMs !== null && !isLoading && (
+                          <>
+                            <span className="text-slate-400 mx-1.5">·</span>
+                            <span className="uppercase text-[11px] tracking-[0.06em] text-slate-400">
+                              {searchDurationMs < 1000
+                                ? `${searchDurationMs}ms`
+                                : `${(searchDurationMs / 1000).toFixed(1)}s`}
+                            </span>
+                          </>
+                        )}
                         {activeSourceFilter && (
                           <span>
                             <span className="text-slate-400 mx-1.5">·</span>
@@ -905,17 +939,6 @@ export default function Home() {
                             </span>{" "}
                             <span className="text-indigo-700 font-semibold">
                               {getSourceConfig(activeSourceFilter).name}
-                            </span>
-                          </span>
-                        )}
-                        {parsedQuery.freeText && (
-                          <span>
-                            <span className="text-slate-400 mx-1.5">·</span>
-                            <span className="uppercase text-[11px] tracking-[0.06em] text-slate-400">
-                              for
-                            </span>{" "}
-                            <span className="text-indigo-700 font-semibold normal-case">
-                              {parsedQuery.freeText}
                             </span>
                           </span>
                         )}
@@ -1082,12 +1105,44 @@ export default function Home() {
                       {"// No matches"}
                     </span>
                     <p className="text-[20px] font-semibold text-slate-800 tracking-tight">
-                      Nothing to surface yet
+                      {activeCategory !== "all"
+                        ? `Nothing in ${CATEGORY_DEFS.find((c) => c.key === activeCategory)?.label ?? "this category"}`
+                        : "Nothing to surface yet"}
                     </p>
                     <p className="text-[13.5px] text-slate-500 mt-2 max-w-sm leading-relaxed">
-                      Try broadening your query, removing filters, or enabling
-                      more sources.
+                      {activeCategory !== "all"
+                        ? "Try widening to a different category — or browse all sources."
+                        : "Try broadening your query, removing filters, or enabling more sources."}
                     </p>
+
+                    {/* Iter-24 — category pivot chips on no-results.
+                        Surfaces the immediate "try a different category"
+                        flow as one-click chips. Only when a narrow
+                        category is active. */}
+                    {activeCategory !== "all" && (
+                      <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                        {(["all", "repos", "packages", "ai", "papers", "threads"] as const)
+                          .filter((k) => k !== activeCategory)
+                          .slice(0, 4)
+                          .map((k) => {
+                            const def = CATEGORY_DEFS.find((c) => c.key === k);
+                            return (
+                              <button
+                                key={k}
+                                type="button"
+                                onClick={() => {
+                                  handleCategoryChange(k);
+                                  if (query) handleSearch(query);
+                                }}
+                                className="text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors inline-flex items-center gap-1.5"
+                              >
+                                <span>Try {def?.label ?? k}</span>
+                                <ArrowRight className="w-3 h-3" aria-hidden />
+                              </button>
+                            );
+                          })}
+                      </div>
+                    )}
                     {(() => {
                       const dropOneTerm = () => {
                         const tokens = parsedQuery.freeText.split(/\s+/).filter(Boolean);
