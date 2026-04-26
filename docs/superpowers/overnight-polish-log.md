@@ -2837,3 +2837,206 @@ Removed:
 - Redo the command palette.
 - Restructure the DetailDrawer's DOM. The drawer-as-pane treatment is
   CSS-only on top of the existing slide-over component.
+
+### Iteration 25 — 2026-04-23 — Major Overhaul K — search resilience + empty-space density
+
+**Trigger:** user searched `mouse tapper` and got zero results — a
+literal phrase that doesn't exist on GitHub but where each token has
+matches. The screenshot showed a tiny "Nothing to surface yet" card
+in a sea of empty whitespace. Two sibling problems: (a) the search
+gave up too fast, (b) when it did give up, the front-end didn't fill
+the page with anything useful.
+
+**Commits:**
+
+- 3c9bec6 — Overhaul: Iter-25 Track 1A/1B — query-relaxation pipeline
+  + synonym vocabulary expansion
+- 7a93673 — Overhaul: Iter-25 Track 1C/2 — wire resilience into page
+  + DiscoverRail (empty-space density)
+- 0b07ffa — Overhaul: Iter-25 Track 3 — single-source filter empty
+  pivot callout
+
+#### Track 1A — relaxation pipeline
+
+- New `frontend/src/lib/sources/resilience.ts` defines a tiered
+  pipeline. `nextRelaxation(raw, totalSoFar, lastTier)` returns one
+  plan at a time so callers can iterate without blocking the streaming
+  progress UI.
+- Tier order: `tokens` (split multi-word query and re-run as space-
+  joined; OR-expansion still applies for github/gitlab/codeberg) →
+  `fuzzy-synonyms` (substring-match user tokens against every entry's
+  expandTo + triggers, even when the strict expandQuery() didn't fire)
+  → `distinctive` (longest significant token alone, heuristic for
+  rarity) → `first-token` (last-resort fallback). Stop-words +
+  short-tokens dropped via `significantTokens()`.
+- Page.tsx walks the chain after the strict pass: when ranked.length
+  < 9 it loops `nextRelaxation` for up to 4 plans, calls
+  `searchAllSources` with each broader query, dedupes by id, and
+  reranks via `rankCorpus`. Cumulative count gates further relaxation
+  so plenty-of-results queries don't fan out unnecessarily.
+- Banner ("Showing related results — no exact match for X") + the
+  list of relaxed queries is stored in `relaxationBanner` /
+  `relaxedQueries` state for the DiscoverRail to surface.
+- New `frontend/src/lib/sources/resilience.test.ts` adds 19 tests
+  including the brief's hard requirement: `relaxedExpansionTerms("mouse
+  tapper").length >= 3`.
+
+**How "mouse tapper" is handled now:** The strict pass hits the new
+`automation-desktop` synonym entry (which has "mouse tapper" as a
+trigger), so OR-expansion sends `mouse tapper OR autoclicker OR
+xdotool OR autohotkey OR hammerspoon OR keyboard OR maestro` to
+GitHub/GitLab/Codeberg. If that still under-fills, the resilience
+chain re-issues `mouse tapper` (token plan), then `tapper`
+(distinctive), then `mouse` (first-token) — each as its own
+searchAllSources call. The combined corpus is reranked.
+
+#### Track 1B — synonym dictionary expansion
+
+- Added 27 everyday-tooling entries to `synonyms.ts`, bringing the
+  total to ~76. Coverage includes: automation-desktop (autoclicker /
+  xdotool / autohotkey), browser-automation (puppeteer / playwright),
+  screenshot-tool (flameshot / obs), clipboard-manager (maccy /
+  copyq), file-sync (syncthing / rclone), media-player (vlc / mpv),
+  torrent-client (qbittorrent), rss-reader (miniflux / freshrss),
+  note-taking (obsidian / logseq), task-tracker (taskwarrior / wekan),
+  self-hosted-tools, cli-tool, dotfile-manager (chezmoi / yadm),
+  ai-coding (continue / cody), personal-finance (actual / firefly),
+  music-streaming (navidrome / jellyfin), photo-library (immich /
+  photoprism), email-client (thunderbird / mailspring), chat-messenger
+  (matrix / mattermost), video-conferencing (jitsi), calendar-app
+  (cal.com), diagram-tool (excalidraw / tldraw), image-editor (gimp /
+  krita), 3d-modeling (blender), game-engine (godot / bevy),
+  bookmark-manager (linkding / wallabag), habit-tracker, vpn-self-
+  hosted (wireguard / headscale), backup-tool (restic / borgbackup).
+- Most entries pick everyday-user vocabulary the original 49 entries
+  missed (which were heavier on dev-framework jargon).
+
+#### Track 2 — Discover rail / empty-space density
+
+- New `frontend/src/components/DiscoverRail.tsx` — three rails inside
+  one glass card:
+  1. "Did you mean?" — primary indigo chip showing the first relaxed
+     query the resilience pipeline executed.
+  2. Related searches — 4-8 chips drawn from synonym entries that
+     fuzzy-matched the user query, plus the relaxed-queries the
+     pipeline ran. Falls back to a hardcoded popular-search list when
+     no synonym matches at all.
+  3. Browse-by-tool — synonym-entry expandTo terms (real project
+     names like "xdotool" / "autohotkey") rendered as monospace
+     indigo-tinted chips.
+- Two variants: `full` for sparse (view.length < 9) and no-results
+  pages, `footer` for dense pages (compact dashed-border inline strip
+  with the "Related" label + 6 chips, so we still surface related
+  queries without competing with the dense grid).
+- ~140 lines of new CSS: `.ts-discover-rail` (glass card with the
+  same border-soft + backdrop-blur vocabulary as the rest of the
+  results column), `.ts-discover-chip` (white pill with indigo
+  hover), `.ts-discover-chip.is-primary` (gradient indigo→violet for
+  the Did-you-mean), `.ts-discover-chip.is-tag` (mono indigo for
+  Browse-by-tool), `.ts-discover-footer` (dashed-top inline strip),
+  `.ts-no-results-banner` (slim banner replacing the old SearchX
+  centered card).
+- No-results state restyled. The old `flex flex-col items-center
+  text-center py-24` with the 64×64 SearchX-in-a-glass-circle is
+  gone. New layout: query-echo banner → slim "No exact matches —
+  here are related projects" banner → full DiscoverRail → category
+  pivots (when a narrow category is active) → existing action pills
+  inline below. Page is no longer visually empty for any query.
+
+#### Track 3 — edge cases
+
+- Single-source filter empty result. When `activeSourceFilter` is set
+  and that source returned 0 projects but the unfiltered corpus has
+  results, page now renders a discover-rail-styled callout above the
+  empty grid: `// Nothing on GitHub` + `12 results on other sources —
+  pivot to one of these:` + chips ranked by alt-source result count
+  (`npm (8)`, `pypi (3)`, `crates (1)`) + a primary "Show all sources"
+  chip that clears the filter entirely.
+- Query echo on no-results — the `// SEARCHING "..."` banner now
+  renders inside the no-results layout too, so users always see what
+  they searched.
+- URL persistence — the resilience pipeline fires from the same
+  `handleSearch()` function that URL-driven searches go through, so
+  `?q=mouse+tapper` produces the same enriched results as a typed
+  search.
+
+### Validation
+
+- **Tests:** 102/102 green (was 83). 19 new resilience tests
+  including the brief's hard requirement that "mouse tapper" expand
+  to >= 3 distinct terms.
+- **Build:** Next.js production build passes. Route size 98 kB → 102
+  kB (+4 kB for the DiscoverRail component + ~140 lines of new CSS).
+  First Load JS 195 kB → 199 kB.
+- **Manual verification (intent only — not exercised in this
+  session):** typing "mouse tapper" in the search bar should now
+  produce GitHub results from xdotool / autohotkey / hammerspoon /
+  autoclicker via the OR-expanded strict pass; if under-filled, the
+  resilience chain runs `tapper` and `mouse` as single-token searches,
+  populating dozens of additional cards. The DiscoverRail renders
+  below with chip rows for related queries + browse-by-tool.
+
+### Files touched
+
+New:
+- `frontend/src/lib/sources/resilience.ts` — relaxation pipeline.
+- `frontend/src/lib/sources/resilience.test.ts` — 19 tests.
+- `frontend/src/components/DiscoverRail.tsx` — three-rail glass card.
+
+Modified:
+- `frontend/src/lib/sources/synonyms.ts` — +27 synonym entries
+  (~340 lines).
+- `frontend/src/lib/sources/index.ts` — re-exports for resilience.
+- `frontend/src/app/page.tsx` — resilience loop after strict pass,
+  relaxationBanner / relaxedQueries state, DiscoverRail wiring,
+  no-results restyle, single-source-filter empty callout.
+- `frontend/src/app/globals.css` — discover-rail / discover-chip /
+  no-results-banner CSS.
+
+### Hand-off for Iteration 26
+
+- **Resilience progress UI.** The relaxed passes don't update the
+  topbar's `pendingCount` — they fire silently. A future pass could
+  show a small "broadening search…" pill on the toolbar while the
+  relaxation chain runs.
+- **DiscoverRail trending row.** The brief mentioned "Trending in
+  this category — pull 4-6 trending repos in the active category to
+  fill empty grid" as a Section #3 candidate; the current rail only
+  has chip rows. Adding a real trending-projects mini-grid (reusing
+  the `TrendingSection` data path) would be a visible upgrade for
+  truly-empty categories.
+- **Synonym hit-or-miss heuristics.** `findRelevantSynonyms()` in
+  DiscoverRail is a simple substring + token-overlap scorer. For some
+  queries it will fall back to the hardcoded popular list when there
+  IS a matching synonym entry but with a token < 3 chars. Tighter
+  fuzzy match (e.g. allow 2-char tokens for known-distinctive words
+  like "ai" / "ml") could increase coverage.
+- **Per-category trending fallback.** When a query truly returns
+  zero across all sources AND the resilience chain can't find related
+  synonyms, the DiscoverRail falls back to its hardcoded popular list
+  — useful but not category-aware. If the user filtered to "Papers"
+  and got zero, the rail should pull arxiv/zenodo trending titles
+  instead of a global popular list.
+- **Resilience chain dedupe key.** The chain dedupes by query string
+  exact-match. `mouse tapper` + `tapper` + `mouse` are all distinct
+  strings, but if a user query happens to be `tapper` already, the
+  chain might attempt `tapper` again and the dedupe would catch it.
+  Worth verifying with edge cases.
+- **DiscoverRail mobile layout.** The full variant has good padding
+  but on narrow viewports the three sections stack into ~6 wrapped
+  rows of chips. Could consider collapsing all chip rows onto one
+  horizontal scroll container at xs.
+- **Track 2 "trending in this category" deferred.** The brief asked
+  for a real "Trending — not exact match" mini-grid inside the rail.
+  Today the rail only does chip-style sections. Wiring a 4-card
+  GitHub-trending-by-language grid into the rail would add a real
+  fallback "look at these projects" affordance, not just chip
+  suggestions.
+
+### What this iteration deliberately did NOT do
+
+- Add new search sources or adapters.
+- Restructure sidebar / topbar / landing.
+- Rebuild the project card or DetailDrawer.
+- Change BM25 ranking math.
+- Add an in-rail trending-projects mini-grid (deferred — see hand-off).
