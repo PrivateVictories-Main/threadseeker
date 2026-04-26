@@ -11,6 +11,7 @@ import { TrendingSection } from "@/components/TrendingSection";
 import { CATEGORY_DEFS, type CategoryKey } from "@/components/CategoryNav";
 import { FeaturedProjects } from "@/components/FeaturedProjects";
 import { DirectJumps } from "@/components/DirectJumps";
+import { RegistryJumps } from "@/components/RegistryJumps";
 import { CardSkeleton } from "@/components/CardSkeleton";
 import { CategoryGrid } from "@/components/CategoryGrid";
 import { LandingHero } from "@/components/LandingHero";
@@ -592,13 +593,13 @@ export default function Home() {
                 }}
               />
 
-              {/* DIRECT JUMPS — npm/PyPI/crates/Docker quick-jump pills. */}
+              {/* REGISTRY JUMPS — npm/PyPI/crates/Docker quick links. */}
               <div className="ts-landing-row">
                 <h2 className="ts-section-header">{"// Direct jumps"}</h2>
                 <p className="text-[12.5px] text-slate-500 mt-1 mb-3">
-                  Type a bare package name to jump straight to its registry page.
+                  Open a registry directly without going through ThreadSeeker.
                 </p>
-                <DirectJumps query={"react"} />
+                <RegistryJumps />
               </div>
 
               {/* SOURCES — collapsible disclosure, kept for power users. */}
