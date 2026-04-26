@@ -1054,6 +1054,68 @@ export default function Home() {
                       />
                     </div>
 
+                    {/* Iter-25 / Overhaul K — Track 3 edge case: when
+                        activeSourceFilter is set and that source returned
+                        zero projects (but other sources had results),
+                        view.length is 0 but resultCount > 0. Surface a
+                        targeted callout that suggests pivoting to the
+                        sources that DO have results, rather than letting
+                        the user stare at an empty grid. */}
+                    {activeSourceFilter && view.length === 0 && projects.length > 0 && (() => {
+                      const counts = new Map<SourceType, number>();
+                      for (const p of projects) {
+                        counts.set(p.source, (counts.get(p.source) ?? 0) + 1);
+                      }
+                      const altSources = [...counts.entries()]
+                        .filter(([s]) => s !== activeSourceFilter)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 5);
+                      return (
+                        <div className="ts-discover-rail">
+                          <div className="ts-discover-head">
+                            <h2 className="ts-section-header">
+                              {"// Nothing on "}
+                              <strong>{getSourceConfig(activeSourceFilter).name}</strong>
+                            </h2>
+                            <p className="ts-discover-banner">
+                              {projects.length} result{projects.length === 1 ? "" : "s"} on other sources — pivot to one of these:
+                            </p>
+                          </div>
+                          <div className="ts-discover-section">
+                            <span className="ts-discover-label">Try</span>
+                            <div className="ts-discover-chips">
+                              {altSources.map(([src, n]) => {
+                                const cfg = getSourceConfig(src);
+                                return (
+                                  <button
+                                    key={src}
+                                    type="button"
+                                    onClick={() => setActiveSourceFilter(src)}
+                                    className="ts-discover-chip"
+                                    title={`Switch to ${cfg.name}`}
+                                  >
+                                    {cfg.name}
+                                    <span className="text-slate-400 ml-1 tabular-nums text-[11px]">
+                                      ({n})
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                              <button
+                                type="button"
+                                onClick={() => setActiveSourceFilter(null)}
+                                className="ts-discover-chip is-primary"
+                                title="Clear source filter"
+                              >
+                                Show all sources
+                                <ArrowRight className="w-3 h-3 ml-1" aria-hidden />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* Result list — grid OR list view. Iter-24:
                         view swap is wrapped in AnimatePresence so the
                         outgoing layout fades + drifts out before the
