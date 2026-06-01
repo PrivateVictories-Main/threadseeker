@@ -35,6 +35,7 @@ import {
   expandQuery,
   rankCorpus,
   buildSearchQuery,
+  coreSearchQuery,
   sparseFraction,
   nextRelaxation,
   type RelaxationTier,
@@ -306,6 +307,12 @@ export default function Home() {
 
       try {
         const expansion = expandQuery(freeText);
+        // Long natural-language queries are reduced to their key content terms
+        // for the upstream fetch (upstream APIs AND-match and return nothing on
+        // a 30-token paragraph). The FULL freeText still drives BM25 re-ranking
+        // below, so a specific paragraph both *returns* results and *ranks*
+        // them by the full intent. Short queries are unchanged.
+        const fetchQuery = coreSearchQuery(freeText);
         const hueByIntent: Record<string, number> = {
           project_search: 220,
           how_to: 150,
@@ -319,15 +326,15 @@ export default function Home() {
           document.documentElement.style.setProperty("--ts-intent-hue", String(hueByIntent[expansion.intent] ?? 220));
         }
         const overrides: Partial<Record<SourceType, string>> = {};
-        const orExpanded = buildSearchQuery(freeText, expansion, { supportsOr: true });
-        if (orExpanded !== freeText) {
+        const orExpanded = buildSearchQuery(fetchQuery, expansion, { supportsOr: true });
+        if (orExpanded !== fetchQuery) {
           overrides.github = orExpanded;
           overrides.gitlab = orExpanded;
           overrides.codeberg = orExpanded;
         }
 
         const results = await searchAllSources(
-          freeText,
+          fetchQuery,
           targetSources,
           true,
           overrides,

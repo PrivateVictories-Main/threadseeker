@@ -798,6 +798,10 @@ export const SYNONYMS: SynonymEntry[] = [
 export interface ExpandQueryResult {
   /** Lowercased tokens — user's raw query words PLUS triggered expansions. */
   expandedTerms: string[];
+  /** Only the triggered synonym expansions (canonical project/lib names),
+   *  WITHOUT the user's own query tokens. Used to build focused OR-queries for
+   *  OR-supporting sources without dragging in paragraph filler words. */
+  synonymTerms: string[];
   /** "owner/repo" fingerprints the ranker should boost. */
   boostFullNames: string[];
   /** Regex-based query intent for per-source weighting. */
@@ -834,6 +838,7 @@ export function expandQuery(raw: string): ExpandQueryResult {
   const tokenSet = new Set(userTokens);
 
   const expanded = new Set<string>(userTokens);
+  const synonymsAdded = new Set<string>();
   const boosts = new Set<string>();
 
   for (const entry of SYNONYMS) {
@@ -843,7 +848,11 @@ export function expandQuery(raw: string): ExpandQueryResult {
       const allRequired = entry.requires.every((r) => matchesQuery(r, q, tokenSet));
       if (!allRequired) continue;
     }
-    for (const e of entry.expandTo) expanded.add(e.toLowerCase());
+    for (const e of entry.expandTo) {
+      const lc = e.toLowerCase();
+      expanded.add(lc);
+      if (!tokenSet.has(lc)) synonymsAdded.add(lc);
+    }
     for (const b of entry.boostProjects ?? []) boosts.add(b.toLowerCase());
   }
 
@@ -851,6 +860,7 @@ export function expandQuery(raw: string): ExpandQueryResult {
 
   return {
     expandedTerms: Array.from(expanded),
+    synonymTerms: Array.from(synonymsAdded),
     boostFullNames: Array.from(boosts),
     intent,
     normalizedQuery: q,

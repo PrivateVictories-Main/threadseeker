@@ -62,6 +62,56 @@ export function significantTokens(raw: string): string[] {
     .filter((t) => t.length >= 2 && !STOP_WORDS.has(t));
 }
 
+// Query-framing words that carry no retrieval signal in a natural-language
+// query ("I'm looking for a simple library that…"). Distinct from STOP_WORDS
+// (grammatical glue) — these are the verbs/adjectives people wrap a request in.
+// Domain nouns like "framework", "library", "orm", "css" are deliberately NOT
+// here: they're often the most useful term.
+const FILLER_WORDS = new Set([
+  "looking", "look", "find", "finding", "search", "searching", "want", "wanted",
+  "need", "needed", "needing", "recommend", "recommendation", "recommendations",
+  "suggest", "suggestion", "best", "good", "great", "simple", "easy", "fast",
+  "lightweight", "modern", "popular", "something", "anything", "someone",
+  "please", "help", "trying", "try", "build", "building", "make", "making",
+  "create", "creating", "use", "using", "used", "like", "would", "could",
+  "should", "really", "very", "just", "able", "way", "ways", "able", "any",
+  "some", "my", "me", "your", "our", "their", "can", "will", "want", "im",
+  "ive", "id", "dont", "let", "lets", "get", "getting", "know", "ideally",
+  "basically", "essentially", "prefer", "preferably", "open", "source",
+  "opensource", "project", "projects", "tool", "tools", "thing", "things",
+]);
+
+/** Extract the meaningful content terms from a query: significant tokens with
+ *  query-framing filler removed, de-duplicated, order preserved. */
+export function extractKeyTerms(raw: string): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of significantTokens(raw)) {
+    if (FILLER_WORDS.has(t) || seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+  }
+  return out;
+}
+
+// Above this many significant tokens, a query reads as a sentence/paragraph
+// rather than a search phrase, so we reduce it to key terms before hitting
+// upstream APIs (which AND-match and return nothing on a 30-token query).
+const LONG_QUERY_TOKEN_THRESHOLD = 7;
+
+/** The query string to send to upstream source APIs. Short queries pass
+ *  through verbatim (so existing behavior is unchanged); long natural-language
+ *  queries are reduced to their top content terms so upstream AND-search still
+ *  returns results. The FULL original text is still used for BM25 re-ranking,
+ *  so precision isn't lost — only the upstream recall is unblocked. */
+export function coreSearchQuery(raw: string, maxTerms = 6): string {
+  const trimmed = raw.trim();
+  const sig = significantTokens(trimmed);
+  if (sig.length <= LONG_QUERY_TOKEN_THRESHOLD) return trimmed;
+  const key = extractKeyTerms(trimmed).slice(0, maxTerms);
+  return key.length > 0 ? key.join(" ") : trimmed;
+}
+
 /** Pick the longest significant token. Ties broken by appearance order. */
 export function pickDistinctiveToken(raw: string): string | null {
   const toks = significantTokens(raw);

@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   significantTokens,
+  extractKeyTerms,
+  coreSearchQuery,
   pickDistinctiveToken,
   pickFirstToken,
   buildTokenPlan,
@@ -21,6 +23,33 @@ describe("significantTokens", () => {
   });
   it("returns empty for blank input", () => {
     expect(significantTokens("   ")).toEqual([]);
+  });
+});
+
+describe("extractKeyTerms", () => {
+  it("drops query-framing filler, keeps domain terms", () => {
+    const terms = extractKeyTerms(
+      "I'm looking for a simple library to manage state in react",
+    );
+    expect(terms).toEqual(expect.arrayContaining(["library", "state", "react"]));
+    expect(terms).not.toEqual(expect.arrayContaining(["looking", "simple"]));
+  });
+});
+
+describe("coreSearchQuery", () => {
+  it("passes a short query through unchanged", () => {
+    expect(coreSearchQuery("react state management")).toBe("react state management");
+  });
+  it("reduces a long natural-language query to key content terms", () => {
+    const long =
+      "I am looking for an open source library that helps me manage global " +
+      "state in a react application with typescript support and good devtools";
+    const core = coreSearchQuery(long);
+    const toks = core.split(/\s+/);
+    expect(toks.length).toBeLessThanOrEqual(6);
+    // The meaningful terms survive; the framing words don't.
+    expect(core).toMatch(/react|state|typescript/);
+    expect(core).not.toMatch(/\blooking\b|\bfor\b|\bgood\b/);
   });
 });
 

@@ -16,6 +16,19 @@ const INTENT_SCALE = 800;
 const K1 = 1.2;
 const B = 0.75;
 
+// BM25F field weights. A term in the project *name* matters far more than the
+// same term buried in a description — so a low-star exact-name match can beat a
+// 45k-star repo that merely mentions the term in passing. (Previously every
+// field was flattened into one bag, so a name hit scored like a description
+// hit.) name 4× · fullName 2× · topics 2× · description 1× · language 1×.
+const FIELD_WEIGHTS = {
+  name: 4,
+  fullName: 2,
+  topics: 2,
+  description: 1,
+  language: 1,
+} as const;
+
 function tokenize(text: string): string[] {
   return (text || "")
     .toLowerCase()
@@ -23,10 +36,59 @@ function tokenize(text: string): string[] {
     .filter((t) => t.length > 1);
 }
 
-function docTokens(p: UnifiedProject): string[] {
-  const lang = p.language ?? "";
-  return tokenize(
-    [p.name, p.fullName, p.description, (p.topics || []).join(" "), lang].join(" "),
+interface DocFields {
+  name: string[];
+  fullName: string[];
+  topics: string[];
+  description: string[];
+  language: string[];
+}
+
+function docFields(p: UnifiedProject): DocFields {
+  return {
+    name: tokenize(p.name),
+    fullName: tokenize(p.fullName),
+    topics: tokenize((p.topics || []).join(" ")),
+    description: tokenize(p.description ?? ""),
+    language: tokenize(p.language ?? ""),
+  };
+}
+
+// Weighted document length: Σ_field weight_field × |tokens_field|.
+function weightedLen(f: DocFields): number {
+  return (
+    FIELD_WEIGHTS.name * f.name.length +
+    FIELD_WEIGHTS.fullName * f.fullName.length +
+    FIELD_WEIGHTS.topics * f.topics.length +
+    FIELD_WEIGHTS.description * f.description.length +
+    FIELD_WEIGHTS.language * f.language.length
+  );
+}
+
+// BM25F weighted term frequency: combine per-field counts with field weights
+// BEFORE the saturation function, so a name hit contributes its full weight.
+function weightedTf(f: DocFields, term: string): number {
+  const c = (arr: string[]) => {
+    let n = 0;
+    for (const t of arr) if (t === term) n++;
+    return n;
+  };
+  return (
+    FIELD_WEIGHTS.name * c(f.name) +
+    FIELD_WEIGHTS.fullName * c(f.fullName) +
+    FIELD_WEIGHTS.topics * c(f.topics) +
+    FIELD_WEIGHTS.description * c(f.description) +
+    FIELD_WEIGHTS.language * c(f.language)
+  );
+}
+
+function inAnyField(f: DocFields, term: string): boolean {
+  return (
+    f.name.includes(term) ||
+    f.fullName.includes(term) ||
+    f.topics.includes(term) ||
+    f.description.includes(term) ||
+    f.language.includes(term)
   );
 }
 
@@ -40,10 +102,10 @@ export function rankCorpus(
 ): UnifiedProject[] {
   if (projects.length === 0) return [];
 
-  const docs = projects.map(docTokens);
-  const docLens = docs.map((d) => d.length);
-  const avgDocLen = docLens.reduce((a, b) => a + b, 0) / docs.length || 1;
-  const N = docs.length;
+  const fields = projects.map(docFields);
+  const wLens = fields.map(weightedLen);
+  const avgWLen = wLens.reduce((a, b) => a + b, 0) / fields.length || 1;
+  const N = fields.length;
 
   const userTokens = tokenize(rawQuery);
   const expansionTokens = expansion.expandedTerms
@@ -55,7 +117,7 @@ export function rankCorpus(
 
   const df: Record<string, number> = {};
   for (const term of allTerms) {
-    df[term] = docs.filter((d) => d.includes(term)).length;
+    df[term] = fields.filter((f) => inAnyField(f, term)).length;
   }
   const idf: Record<string, number> = {};
   for (const term of allTerms) {
@@ -63,20 +125,32 @@ export function rankCorpus(
   }
 
   const boostSet = new Set(expansion.boostFullNames.map((s) => s.toLowerCase()));
+  const queryLc = rawQuery.trim().toLowerCase();
 
   const scored = projects.map((p, i) => {
-    const doc = docs[i];
-    const docLen = docLens[i];
+    const f = fields[i];
+    const wLen = wLens[i];
     let bm25 = 0;
     for (const term of allTerms) {
-      const tf = doc.filter((t) => t === term).length;
-      if (tf === 0) continue;
-      const num = tf * (K1 + 1);
-      const denom = tf + K1 * (1 - B + (B * docLen) / avgDocLen);
+      const wtf = weightedTf(f, term);
+      if (wtf === 0) continue;
+      const num = wtf * (K1 + 1);
+      const denom = wtf + K1 * (1 - B + (B * wLen) / avgWLen);
       bm25 += termWeight(term) * idf[term] * (num / denom);
     }
 
     let score = bm25 * 1000;
+
+    // Exact-name boost — the single strongest "this is THE answer" signal.
+    // A query that *is* a project's name (zustand → pmndrs/zustand) or whose
+    // token equals the name should win outright, regardless of star count.
+    const nameLc = p.name.toLowerCase();
+    const fullLc = p.fullName.toLowerCase();
+    if (queryLc && (nameLc === queryLc || fullLc === queryLc || fullLc.endsWith(`/${queryLc}`))) {
+      score += 3000;
+    } else if (userTokens.includes(nameLc)) {
+      score += 1500;
+    }
 
     // Popularity
     if (p.stars > 0) score += Math.min(Math.log10(p.stars + 1) * 400, 3500);

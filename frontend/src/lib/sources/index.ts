@@ -12,6 +12,7 @@
 //   index.ts         — this file; re-exports + the orchestrator
 
 import { UnifiedProject, SearchResult, SearchProgressCallback, SourceType } from "./types";
+import { significantTokens } from "./resilience";
 import {
   searchGitHub,
   searchHuggingFace,
@@ -52,6 +53,8 @@ export * from "./merge";
 export * from "./adapters";
 export {
   significantTokens,
+  extractKeyTerms,
+  coreSearchQuery,
   pickDistinctiveToken,
   pickFirstToken,
   buildTokenPlan,
@@ -237,8 +240,15 @@ export function buildSearchQuery(
   opts: { supportsOr: boolean },
 ): string {
   if (!opts.supportsOr) return rawQuery;
-  const topN = expansion.expandedTerms.slice(0, 5);
-  if (topN.length <= 1) return rawQuery;
-  // GitHub-style: "raw OR term1 OR term2"
-  return topN.map((t) => (t.includes(" ") ? `"${t}"` : t)).join(" OR ");
+  // OR-join the query's own content tokens with the curated synonym
+  // expansions (canonical lib/project names). Deliberately uses
+  // significantTokens(rawQuery) + synonymTerms rather than the raw
+  // expandedTerms: for a reduced long query that keeps the OR query focused
+  // on real content terms instead of dragging in paragraph filler.
+  const base = significantTokens(rawQuery);
+  const extras = expansion.synonymTerms.filter((t) => !base.includes(t));
+  const terms = [...base, ...extras].slice(0, 6);
+  if (terms.length <= 1) return rawQuery;
+  // GitHub-style: `term1 OR term2 OR "two words"`
+  return terms.map((t) => (t.includes(" ") ? `"${t}"` : t)).join(" OR ");
 }
