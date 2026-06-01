@@ -5,6 +5,13 @@
 
 import type { SourceType, UnifiedProject } from "./types";
 import type { ExpandQueryResult } from "./synonyms";
+import { INTENT_WEIGHTS } from "./intent";
+
+// How hard the regex-detected query intent nudges matching sources. A weight
+// of 0.7 (e.g. huggingface for a model_search) → +560, comparable to a
+// ~30-star repo's popularity bonus: enough to break ties toward the right
+// source, never enough to float a junk result over a strong one.
+const INTENT_SCALE = 800;
 
 const K1 = 1.2;
 const B = 0.75;
@@ -73,8 +80,16 @@ export function rankCorpus(
 
     // Popularity
     if (p.stars > 0) score += Math.min(Math.log10(p.stars + 1) * 400, 3500);
-    if (p.downloads && p.downloads > 0) {
-      score += Math.min(Math.log10(p.downloads + 1) * 200, 2000);
+    // Some registries (npm) expose weekly downloads but not `downloads`;
+    // fall back so package popularity still counts.
+    const downloads = p.downloads || p.weeklyDownloads || 0;
+    if (downloads > 0) {
+      score += Math.min(Math.log10(downloads + 1) * 200, 2000);
+    }
+    // Honest 0..1 popularity (npm search score) for sources with no star or
+    // download count. Capped at +2400 — on par with a few-thousand-star repo.
+    if (p.popularityScore && p.popularityScore > 0) {
+      score += Math.min(p.popularityScore, 1) * 2400;
     }
 
     // Recency
@@ -95,6 +110,13 @@ export function rankCorpus(
       conda: 115, zenodo: 105, nuget: 120, wordpress: 105, maven: 120,
     };
     score += srcBonus[p.source] ?? 0;
+
+    // Intent weighting — nudge the sources that match the regex-detected
+    // query intent (e.g. "llama 3 model" → huggingface up; "how to deploy …"
+    // → reddit/discussion up). Previously computed but only used to tint the
+    // background hue; now it actually moves results.
+    const intentWeight = INTENT_WEIGHTS[expansion.intent]?.[p.source];
+    if (intentWeight) score += intentWeight * INTENT_SCALE;
 
     // Trending
     if (p.stars >= 1000 && ageDays < 90) score += 800;

@@ -13,6 +13,8 @@ function mk(p: Partial<UnifiedProject>): UnifiedProject {
     url: p.url ?? "http://example.com",
     stars: p.stars ?? 0,
     downloads: p.downloads,
+    weeklyDownloads: p.weeklyDownloads,
+    popularityScore: p.popularityScore,
     language: p.language ?? null,
     topics: p.topics ?? [],
     license: p.license,
@@ -66,5 +68,37 @@ describe("rankCorpus", () => {
 
   it("does not throw on empty corpus", () => {
     expect(() => rankCorpus([], "anything", expandQuery("anything"))).not.toThrow();
+  });
+
+  it("empty updatedAt is treated as no-signal, NOT as fresh (no fake recency boost)", () => {
+    // Regression guard for the adapters that used to stamp updatedAt=now().
+    const fresh = new Date(Date.now() - 2 * 86400000).toISOString();
+    const projects: UnifiedProject[] = [
+      mk({ id: "a", name: "foo-empty", updatedAt: "", stars: 100 }),
+      mk({ id: "b", name: "foo-fresh", updatedAt: fresh, stars: 100 }),
+    ];
+    const ranked = rankCorpus(projects, "foo", expandQuery("foo"));
+    // The genuinely-fresh repo wins; the empty-timestamp repo gets no boost.
+    expect(ranked[0].name).toBe("foo-fresh");
+  });
+
+  it("npm popularityScore lifts a starless package over a zero-popularity peer", () => {
+    const projects: UnifiedProject[] = [
+      mk({ id: "a", source: "npm", name: "foo-lib", description: "a foo helper", stars: 0, popularityScore: 0 }),
+      mk({ id: "b", source: "npm", name: "foo-util", description: "a foo helper", stars: 0, popularityScore: 0.95 }),
+    ];
+    const ranked = rankCorpus(projects, "foo", expandQuery("foo"));
+    expect(ranked[0].name).toBe("foo-util");
+  });
+
+  it("intent weighting lifts the matching source (model query → huggingface over github)", () => {
+    const projects: UnifiedProject[] = [
+      mk({ id: "a", source: "github", name: "llama", description: "llama model weights" }),
+      mk({ id: "b", source: "huggingface", name: "llama", description: "llama model weights" }),
+    ];
+    const exp = expandQuery("llama model");
+    expect(exp.intent).toBe("model_search");
+    const ranked = rankCorpus(projects, "llama model", exp);
+    expect(ranked[0].source).toBe("huggingface");
   });
 });

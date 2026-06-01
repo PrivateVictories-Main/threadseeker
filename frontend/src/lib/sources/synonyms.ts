@@ -806,18 +806,41 @@ export interface ExpandQueryResult {
   normalizedQuery: string;
 }
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// True when `needle` matches the query as a whole word/token rather than an
+// arbitrary substring. The old `q.includes(needle)` fired "orm" on "platform",
+// "rag" on "storage", and "go" on "google" — polluting expansion + boosts.
+//   - multi-word phrase ("state management") → word-boundary match in q
+//   - single token ("orm", "go")            → exact token (naive plural-tolerant)
+function matchesQuery(needle: string, q: string, tokenSet: Set<string>): boolean {
+  const t = needle.toLowerCase().trim();
+  if (!t) return false;
+  if (t.includes(" ")) {
+    return new RegExp(`(?:^|[^a-z0-9])${escapeRegExp(t)}(?:[^a-z0-9]|$)`).test(q);
+  }
+  return (
+    tokenSet.has(t) ||
+    tokenSet.has(`${t}s`) ||
+    (t.endsWith("s") && tokenSet.has(t.slice(0, -1)))
+  );
+}
+
 export function expandQuery(raw: string): ExpandQueryResult {
   const q = raw.toLowerCase().trim();
   const userTokens = q.split(/\s+/).filter((t) => t.length > 1);
+  const tokenSet = new Set(userTokens);
 
   const expanded = new Set<string>(userTokens);
   const boosts = new Set<string>();
 
   for (const entry of SYNONYMS) {
-    const triggered = entry.triggers.some((t) => q.includes(t.toLowerCase()));
+    const triggered = entry.triggers.some((t) => matchesQuery(t, q, tokenSet));
     if (!triggered) continue;
     if (entry.requires) {
-      const allRequired = entry.requires.every((r) => q.includes(r.toLowerCase()));
+      const allRequired = entry.requires.every((r) => matchesQuery(r, q, tokenSet));
       if (!allRequired) continue;
     }
     for (const e of entry.expandTo) expanded.add(e.toLowerCase());

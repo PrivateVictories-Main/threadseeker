@@ -290,7 +290,7 @@ export async function searchHuggingFace(
         name: item.author || item.id.split("/")[0],
         avatar: `https://cdn-avatars.huggingface.co/v1/production/uploads/${item.id.split("/")[0]}/avatar.jpg`,
       },
-      updatedAt: item.lastModified || new Date().toISOString(),
+      updatedAt: item.lastModified || "",
       license: item.license,
       // Iter-15: explicit fields make the metric-grid renderer
       // unambiguous on HF — `stars` doubles as `upvotes` on thread
@@ -309,7 +309,7 @@ export async function searchArxiv(query: string): Promise<SearchResult> {
   const results = data.results || [];
   return {
     projects: results.map((p: any) => {
-      const published = p.published || p.updated || new Date().toISOString();
+      const published = p.published || p.updated || "";
       const year = (() => {
         const d = new Date(published);
         return Number.isNaN(d.getTime()) ? undefined : d.getUTCFullYear();
@@ -352,7 +352,7 @@ export async function searchPapersWithCode(query: string): Promise<SearchResult>
     const results = data.results || [];
     return {
       projects: results.slice(0, 30).map((p: any) => {
-        const published = p.published || new Date().toISOString();
+        const published = p.published || "";
         const year = (() => {
           const d = new Date(published);
           return Number.isNaN(d.getTime()) ? undefined : d.getUTCFullYear();
@@ -427,7 +427,12 @@ export async function searchNpm(
       fullName: item.package.name,
       description: item.package.description,
       url: item.package.links.npm,
-      stars: item.score.detail.quality * 1000,
+      // npm packages have no GitHub-style stars. The search API only exposes
+      // a 0..1 quality/popularity/maintenance score. Surfacing quality*1000
+      // as fake "stars" made a 0.9-quality package read as "900 stars" and
+      // out-rank real high-star repos. Use 0 here and feed npm's genuine
+      // popularity signal to the ranker via popularityScore (see ranking-bm25).
+      stars: 0,
       downloads: item.package.downloads || 0,
       language: "JavaScript",
       topics: item.package.keywords || [],
@@ -451,6 +456,9 @@ export async function searchNpm(
             ? item.downloads
             : item.package.downloads?.weekly,
       lastPublished: item.package.date,
+      // npm's own 0..1 popularity score (downloads + dependents), the honest
+      // replacement for the old fake-stars popularity proxy.
+      popularityScore: item.score?.detail?.popularity,
     })),
     totalCount: allResults.length,
     source: "npm",
@@ -563,7 +571,7 @@ export async function searchCrates(query: string): Promise<SearchResult> {
         language: "Rust",
         topics: c.keywords || c.categories || [],
         author: { name: "crates.io", avatar: "" },
-        updatedAt: c.updated_at || new Date().toISOString(),
+        updatedAt: c.updated_at || "",
         license: c.license,
         version: c.max_stable_version || c.newest_version,
         homepage: c.homepage || c.documentation || c.repository,
@@ -604,7 +612,7 @@ export async function searchPackagist(query: string): Promise<SearchResult> {
           name: p.name.split("/")[0] || "unknown",
           avatar: "",
         },
-        updatedAt: new Date().toISOString(),
+        updatedAt: "",
       })),
       totalCount: results.length,
       source: "packagist",
@@ -639,7 +647,7 @@ export async function searchRubyGems(query: string): Promise<SearchResult> {
           name: (g.authors || "unknown").split(",")[0].trim(),
           avatar: "",
         },
-        updatedAt: g.version_created_at || new Date().toISOString(),
+        updatedAt: g.version_created_at || "",
         license: Array.isArray(g.licenses) ? g.licenses.join(", ") : g.licenses,
         version: g.version,
         homepage: g.homepage_uri || g.source_code_uri,
@@ -678,7 +686,7 @@ export async function searchJSR(query: string): Promise<SearchResult> {
           language: "TypeScript",
           topics: [],
           author: { name: `@${p.scope}`, avatar: "" },
-          updatedAt: p.updatedAt || p.latestVersion?.publishedAt || new Date().toISOString(),
+          updatedAt: p.updatedAt || p.latestVersion?.publishedAt || "",
         };
       }),
       totalCount: items.length,
@@ -762,7 +770,7 @@ export async function searchFlathub(query: string): Promise<SearchResult> {
           name: a.developer_name || "Flathub",
           avatar: a.icon || "",
         },
-        updatedAt: a.updated_at || new Date().toISOString(),
+        updatedAt: a.updated_at || "",
       })),
       totalCount: hits.length,
       source: "flathub",
@@ -829,7 +837,7 @@ export async function searchFDroid(query: string): Promise<SearchResult> {
         name: a.author || "F-Droid",
         avatar: a.icon || "",
       },
-      updatedAt: a.updated || new Date().toISOString(),
+      updatedAt: a.updated || "",
       license: a.license ?? undefined,
     })),
     totalCount: results.length,
@@ -862,7 +870,7 @@ export async function searchAUR(query: string): Promise<SearchResult> {
         },
         updatedAt: p.LastModified
           ? new Date(p.LastModified * 1000).toISOString()
-          : new Date().toISOString(),
+          : "",
         license: Array.isArray(p.License) ? p.License[0] : p.License,
       })),
       totalCount: results.length,
@@ -894,7 +902,7 @@ export async function searchOpenVsx(query: string): Promise<SearchResult> {
         language: null,
         topics: [ext.namespace].concat((ext.categories || []).slice(0, 3)).filter(Boolean),
         author: { name: ext.namespace || "unknown", avatar: "" },
-        updatedAt: ext.timestamp || new Date().toISOString(),
+        updatedAt: ext.timestamp || "",
         license: ext.license ?? undefined,
       })),
       totalCount: results.length,
@@ -930,7 +938,7 @@ export async function searchCondaForge(query: string): Promise<SearchResult> {
         language: null,
         topics: [p.owner],
         author: { name: p.owner, avatar: "" },
-        updatedAt: p.latest_version_timestamp || new Date().toISOString(),
+        updatedAt: p.latest_version_timestamp || "",
       })),
       totalCount: filtered.length,
       source: "conda",
@@ -964,7 +972,7 @@ export async function searchNuGet(query: string): Promise<SearchResult> {
           name: Array.isArray(p.authors) ? p.authors[0] : p.authors || "unknown",
           avatar: p.iconUrl || "",
         },
-        updatedAt: p.lastUpdated || new Date().toISOString(),
+        updatedAt: p.lastUpdated || "",
         license: p.licenseUrl,
         version: p.version,
         homepage: p.projectUrl,
@@ -1007,7 +1015,7 @@ export async function searchZenodo(query: string): Promise<SearchResult> {
             name: creators[0]?.name || "unknown",
             avatar: "",
           },
-          updatedAt: r.updated || r.created || m.publication_date || new Date().toISOString(),
+          updatedAt: r.updated || r.created || m.publication_date || "",
           license: m.license?.id,
         };
       }),
@@ -1048,7 +1056,7 @@ export async function searchMaven(query: string): Promise<SearchResult> {
             name: p.g,
             avatar: "",
           },
-          updatedAt: p.timestamp ? new Date(p.timestamp).toISOString() : new Date().toISOString(),
+          updatedAt: p.timestamp ? new Date(p.timestamp).toISOString() : "",
           version: p.latestVersion,
         };
       }),
@@ -1090,7 +1098,7 @@ export async function searchWordPress(query: string): Promise<SearchResult> {
         },
         updatedAt: p.last_updated
           ? new Date(String(p.last_updated).replace(/\s+GMT$/, "Z").replace(" ", "T")).toISOString()
-          : new Date().toISOString(),
+          : "",
       })),
       totalCount: plugins.length,
       source: "wordpress",
@@ -1181,7 +1189,7 @@ export async function searchLobsters(query: string): Promise<SearchResult> {
           name: s.submitter_user?.username || "unknown",
           avatar: s.submitter_user?.avatar_url || "",
         },
-        updatedAt: s.created_at || new Date().toISOString(),
+        updatedAt: s.created_at || "",
         upvotes: s.score || 0,
         comments: s.comment_count || 0,
         createdAt: s.created_at,
@@ -1222,7 +1230,7 @@ export async function searchStackOverflow(query: string): Promise<SearchResult> 
         },
         updatedAt: q.last_activity_date
           ? new Date(q.last_activity_date * 1000).toISOString()
-          : new Date().toISOString(),
+          : "",
         upvotes: q.score || 0,
         comments: q.answer_count || 0,
         createdAt: q.creation_date
@@ -1264,7 +1272,7 @@ export async function searchDevTo(query: string): Promise<SearchResult> {
           name: a.user?.name || a.user?.username || "unknown",
           avatar: a.user?.profile_image_90 || a.user?.profile_image || "",
         },
-        updatedAt: a.published_at || a.created_at || new Date().toISOString(),
+        updatedAt: a.published_at || a.created_at || "",
         upvotes: a.public_reactions_count || a.positive_reactions_count || 0,
         comments: a.comments_count || 0,
         createdAt: a.created_at || a.published_at,

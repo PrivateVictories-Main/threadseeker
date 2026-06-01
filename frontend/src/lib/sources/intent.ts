@@ -34,7 +34,7 @@ const INTENT_PATTERNS: Record<Exclude<Intent, "general">, RegExp[]> = {
   ],
 };
 
-const INTENT_WEIGHTS: Record<Intent, Record<string, number>> = {
+export const INTENT_WEIGHTS: Record<Intent, Record<string, number>> = {
   project_search: { github: 0.7, reddit: 0.2, huggingface: 0.1 },
   how_to: { reddit: 0.6, github: 0.3, huggingface: 0.1 },
   recommendation: { reddit: 0.6, github: 0.25, huggingface: 0.15 },

@@ -82,6 +82,11 @@ export interface UnifiedProject {
 
   // Package-shape metrics (npm / pypi / etc)
   weeklyDownloads?: number;
+  // Upstream-computed popularity in [0,1] (e.g. npm search's
+  // score.detail.popularity). An honest popularity signal for sources that
+  // expose no star/download count; consumed by the ranker, never shown as a
+  // star count in the UI.
+  popularityScore?: number;
   // Latest publish timestamp (ISO). Distinct from `updatedAt` which on
   // package registries usually mirrors the latest release; some sources
   // expose both, some only one.

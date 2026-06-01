@@ -64,6 +64,43 @@ describe("expandQuery", () => {
   });
 });
 
+describe("expandQuery token-boundary matching (no substring false positives)", () => {
+  it("'platform' does NOT trigger the 'orm' entry", () => {
+    const result = expandQuery("web platform features");
+    expect(result.expandedTerms).not.toEqual(
+      expect.arrayContaining(["drizzle", "prisma"]),
+    );
+  });
+
+  it("'storage' does NOT trigger the 'rag' entry", () => {
+    const result = expandQuery("object storage server");
+    expect(result.expandedTerms).not.toEqual(
+      expect.arrayContaining(["llamaindex", "haystack"]),
+    );
+  });
+
+  it("'google' substring does NOT satisfy the go-web `requires: [go]`", () => {
+    const result = expandQuery("web framework for google cloud");
+    expect(result.expandedTerms).not.toEqual(
+      expect.arrayContaining(["gin", "echo", "fiber"]),
+    );
+  });
+
+  it("single-token triggers still fire on an exact token", () => {
+    const result = expandQuery("orm for typescript");
+    expect(result.expandedTerms).toEqual(
+      expect.arrayContaining(["prisma", "drizzle"]),
+    );
+  });
+
+  it("naive plural tolerance — 'orms' still triggers the orm entry", () => {
+    const result = expandQuery("typescript orms");
+    expect(result.expandedTerms).toEqual(
+      expect.arrayContaining(["prisma", "drizzle"]),
+    );
+  });
+});
+
 describe("SYNONYMS coverage", () => {
   it("has at least 45 concept entries", () => {
     expect(SYNONYMS.length).toBeGreaterThanOrEqual(45);
