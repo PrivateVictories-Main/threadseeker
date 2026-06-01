@@ -3,6 +3,7 @@
 import type { UnifiedProject } from "@/lib/sources/types";
 import { Highlight } from "./Highlight";
 import { Avatar } from "./card/Avatar";
+import { useCardTilt } from "./card/useCardTilt";
 import { SourceBadge } from "./card/SourceBadge";
 import { CardActions, type CopyItem } from "./card/CardActions";
 import { PopularityBadge } from "./card/PopularityBadge";
@@ -66,6 +67,7 @@ export function UnifiedProjectCard({
   query,
 }: Props) {
   const { isBookmarked, toggle } = useBookmark(project);
+  const tilt = useCardTilt();
   const bookmarkControls = useAnimationControls();
   const pulseControls = useAnimationControls();
   const reducedMotion = useReducedMotion();
@@ -133,6 +135,9 @@ export function UnifiedProjectCard({
       resultUrl={project.url}
     >
       <article
+        ref={tilt.ref}
+        onMouseMove={tilt.onMouseMove}
+        onMouseLeave={tilt.onMouseLeave}
         className={`ts-card glass${isSparse ? " ts-card-sparse" : ""}`}
         data-source={project.source}
         data-pop={popClass ?? undefined}
@@ -144,6 +149,9 @@ export function UnifiedProjectCard({
             reduced-motion handling already live in globals.css; this is the
             element that was missing. */}
         <span className="ts-scanline" aria-hidden />
+
+        {/* Pointer-tracked spotlight (paired with the 3D tilt hook). */}
+        <span className="ts-card-spotlight" aria-hidden />
 
         {/* Bookmark-pulse ring overlay */}
         <motion.span

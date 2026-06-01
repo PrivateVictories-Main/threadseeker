@@ -721,7 +721,11 @@ export default function Home() {
             >
               {/* HERO CARD — glass panel ~50vh, headline + tagline, no
                   search bar (search is in the top bar). */}
-              <LandingHero sourceCount={ALL_SOURCES.length} />
+              <LandingHero
+                sourceCount={ALL_SOURCES.length}
+                sources={ALL_SOURCES}
+                onSearch={handleSearch}
+              />
 
               {/* STAT TILES ROW — repurposed below the hero. */}
               <LandingStatTiles sourceCount={ALL_SOURCES.length} />

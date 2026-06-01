@@ -1,44 +1,72 @@
 "use client";
 
-// Iter-23 / Major Overhaul I — landing hero card.
+// Iter-26 — landing hero as a real entry point.
 //
-// Replaces the previous centered "search-on-hero" layout. The hero is
-// now a glass-strong rounded panel taking ~50vh, containing: a small
-// caption, a two-line headline, a supporting tagline, and a decorative
-// blob layer behind it. The actual SearchBar lives in the persistent
-// AppTopBar — this hero exists purely to set the tone of the landing
-// page.
+// The hero is a glass panel whose backdrop is the SourceConstellation (the
+// signature centerpiece — 28 brand-colored source nodes woven by a drifting
+// thread). On top: caption, headline, tagline, a FOCAL search bar, and
+// one-click example-query chips. Previously the hero was all-text with only a
+// "press /" hint — the most valuable real estate on a search product offered
+// no input.
+
+import { SourceConstellation } from "./SourceConstellation";
+import { SearchBar } from "./SearchBar";
+import type { SourceType } from "@/lib/sources/types";
 
 interface Props {
   sourceCount: number;
+  sources: SourceType[];
+  onSearch: (query: string) => void;
 }
 
-export function LandingHero({ sourceCount }: Props) {
+// Diverse intent shapes so the chips read as "you can search anything".
+const EXAMPLES = [
+  "react state management",
+  "rust http framework",
+  "local llm runtime",
+  "vector database",
+  "self-hosted photo library",
+];
+
+export function LandingHero({ sourceCount, sources, onSearch }: Props) {
   return (
     <section className="ts-landing-hero" aria-label="ThreadSeeker introduction">
-      <div className="ts-landing-hero-blob is-tr" aria-hidden />
-      <div className="ts-landing-hero-blob is-bl" aria-hidden />
-      <div className="ts-landing-hero-blob is-tl" aria-hidden />
-      <div className="ts-landing-hero-grid" aria-hidden />
+      <SourceConstellation sources={sources} />
 
       <div className="ts-landing-hero-inner">
         <span className="ts-hero-caption" aria-hidden>
           Open-Source Index
         </span>
         <h1 className="ts-hero-headline text-balance">
-          Find what&apos;s worth{" "}
-          <span className="ts-hero-accent">building on.</span>
+          The whole open-source world,{" "}
+          <span className="ts-hero-accent">one thread.</span>
         </h1>
         <p className="ts-landing-hero-tagline">
-          One query across {sourceCount} platforms — repositories, packages,
-          AI models, and community threads. No accounts, no tracking.
+          One query across {sourceCount} platforms — repositories, packages, AI
+          models, and community threads. No accounts, no tracking.
         </p>
-        <div className="ts-landing-hero-meta">
-          <span>Search above</span>
-          <kbd>/</kbd>
-          <span>or</span>
-          <kbd>⌘K</kbd>
-          <span>to focus</span>
+
+        <div className="ts-hero-search">
+          <SearchBar
+            onSearch={onSearch}
+            isLoading={false}
+            size="hero"
+            sourceCount={sourceCount}
+          />
+        </div>
+
+        <div className="ts-hero-examples" aria-label="Example searches">
+          <span className="ts-hero-examples-label">Try</span>
+          {EXAMPLES.map((ex) => (
+            <button
+              key={ex}
+              type="button"
+              className="ts-hero-example-chip"
+              onClick={() => onSearch(ex)}
+            >
+              {ex}
+            </button>
+          ))}
         </div>
       </div>
     </section>
