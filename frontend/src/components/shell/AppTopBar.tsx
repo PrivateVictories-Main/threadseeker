@@ -17,6 +17,7 @@ import { motion } from "framer-motion";
 import { Menu, X as XIcon } from "lucide-react";
 import { CountUp } from "@/components/motion/CountUp";
 import { SearchBar } from "@/components/SearchBar";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import {
   COMMAND_PALETTE_OPEN_EVENT,
 } from "@/components/CommandPalette";
@@ -156,8 +157,9 @@ export function AppTopBar({
           </div>
         )}
 
-        {/* RIGHT — ⌘K hint chip + clear. */}
+        {/* RIGHT — theme toggle + ⌘K hint chip + clear. */}
         <div className="ts-topbar-right">
+          <ThemeToggle />
           <motion.button
             type="button"
             onClick={() =>

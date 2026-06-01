@@ -121,6 +121,123 @@ body {
   position: relative;
 }
 
+/* ── Dark theme ───────────────────────────────────────────────────────────
+   Token-driven chrome adapts via tokens.css. This block handles (a) the
+   shadcn HSL vars so the ui/ primitives (dialog, dropdown, sonner) follow,
+   (b) a dark scrollbar, and (c) a remap layer for the ~30 raw Tailwind color
+   utilities still scattered through the components — placed UNLAYERED so it
+   outranks Tailwind's @layer utilities, and via `.dark X` so it outranks the
+   base utility too. Newer components use tokens and skip this entirely. */
+@layer base {
+  .dark {
+    --background: 230 32% 8%;
+    --foreground: 222 30% 92%;
+    --card: 229 30% 12%;
+    --card-foreground: 222 30% 92%;
+    --popover: 229 30% 11%;
+    --popover-foreground: 222 30% 92%;
+    --primary: 239 84% 74%;
+    --primary-foreground: 230 32% 8%;
+    --secondary: 230 20% 18%;
+    --secondary-foreground: 222 30% 92%;
+    --muted: 230 18% 18%;
+    --muted-foreground: 220 14% 65%;
+    --accent: 230 20% 20%;
+    --accent-foreground: 222 30% 92%;
+    --destructive: 0 62% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 233 24% 24%;
+    --input: 233 24% 22%;
+    --ring: 239 84% 74%;
+  }
+}
+
+.dark html {
+  scrollbar-color: rgba(129, 140, 248, 0.32) transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(129, 140, 248, 0.22);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(129, 140, 248, 0.40);
+}
+
+/* Raw-utility remap — text */
+.dark .text-slate-900 { color: #eef2fb; }
+.dark .text-slate-800 { color: #dbe2f0; }
+.dark .text-slate-700 { color: #c4cee1; }
+.dark .text-slate-600 { color: #aab6cd; }
+.dark .text-slate-500 { color: #95a2bb; }
+.dark .text-slate-400 { color: #7d8aa6; }
+.dark .text-slate-300 { color: #5d6b86; }
+.dark .text-indigo-800,
+.dark .text-indigo-700,
+.dark .text-indigo-600 { color: #a5b4fc; }
+.dark .text-indigo-500,
+.dark .text-indigo-400,
+.dark .text-indigo-300 { color: #818cf8; }
+.dark .text-amber-800,
+.dark .text-amber-700 { color: #fbbf24; }
+.dark .text-amber-600,
+.dark .text-amber-500 { color: #f59e0b; }
+
+/* Raw-utility remap — surfaces (white → dark glass at matching alpha) */
+.dark .bg-white,
+.dark .bg-white\/90 { background-color: rgba(33, 40, 64, 0.92); }
+.dark .bg-white\/85 { background-color: rgba(33, 40, 64, 0.82); }
+.dark .bg-white\/80 { background-color: rgba(33, 40, 64, 0.74); }
+.dark .bg-white\/70 { background-color: rgba(33, 40, 64, 0.62); }
+.dark .bg-white\/60 { background-color: rgba(33, 40, 64, 0.52); }
+.dark .bg-white\/50 { background-color: rgba(33, 40, 64, 0.42); }
+.dark .bg-slate-50 { background-color: rgba(30, 36, 58, 0.6); }
+.dark .bg-indigo-50,
+.dark .bg-indigo-50\/90,
+.dark .bg-indigo-50\/70 { background-color: rgba(129, 140, 248, 0.10); }
+.dark .bg-indigo-100 { background-color: rgba(129, 140, 248, 0.16); }
+
+/* Raw-utility remap — borders (keep indigo, translucent for dark) */
+.dark .border-indigo-100 { border-color: rgba(129, 140, 248, 0.14); }
+.dark .border-indigo-200 { border-color: rgba(129, 140, 248, 0.22); }
+.dark .border-indigo-300 { border-color: rgba(129, 140, 248, 0.30); }
+.dark .border-indigo-400 { border-color: rgba(129, 140, 248, 0.42); }
+
+/* Raw-utility remap — hover variants */
+.dark .hover\:text-indigo-800:hover,
+.dark .hover\:text-indigo-700:hover,
+.dark .hover\:text-indigo-600:hover { color: #c7d2fe; }
+.dark .hover\:text-slate-800:hover,
+.dark .hover\:text-slate-700:hover { color: #dbe2f0; }
+.dark .hover\:text-amber-800:hover { color: #fbbf24; }
+.dark .hover\:bg-white:hover { background-color: rgba(40, 48, 76, 0.95); }
+.dark .hover\:bg-white\/60:hover { background-color: rgba(40, 48, 76, 0.6); }
+.dark .hover\:bg-slate-50:hover { background-color: rgba(40, 48, 76, 0.6); }
+.dark .hover\:bg-amber-100\/80:hover { background-color: rgba(245, 158, 11, 0.16); }
+.dark .hover\:border-indigo-400:hover { border-color: rgba(129, 140, 248, 0.5); }
+.dark .hover\:border-indigo-300:hover { border-color: rgba(129, 140, 248, 0.4); }
+.dark .hover\:border-amber-300:hover { border-color: rgba(245, 158, 11, 0.4); }
+
+/* Component surfaces that hardcode a white background (don't read the surface
+   token) — remapped to dark glass at matching emphasis. */
+.dark .ts-card:hover,
+.dark .ts-category-tile:hover:not(.is-active),
+.dark .ts-registry-pill:hover,
+.dark .ts-list-row:hover { background-color: rgba(44, 52, 82, 0.94); }
+.dark .ts-category-tile,
+.dark .ts-registry-pill,
+.dark .ts-view-toggle,
+.dark .ts-list-row,
+.dark .ts-discover-chip { background-color: rgba(36, 43, 68, 0.70); }
+.dark .ts-list-row:nth-of-type(2n) { background-color: rgba(36, 43, 68, 0.50); }
+.dark .ts-brand-version,
+.dark .ts-stat-cell,
+.dark .ts-no-results-banner { background-color: rgba(36, 43, 68, 0.50); }
+.dark .ts-sidebar-cmdk kbd,
+.dark .ts-topbar-cmdk kbd,
+.dark .ts-landing-hero-meta kbd { background: rgba(44, 52, 82, 0.80); }
+.dark .ts-category-tile.is-active .ts-category-tile-icon { background: rgba(129, 140, 248, 0.20); }
+.dark .toaster [data-close-button] { background: rgba(44, 52, 82, 0.80) !important; }
+.dark .toaster [data-close-button]:hover { background: rgba(60, 70, 104, 0.95) !important; }
+
 /* Atmospheric depth layer — Overhaul D adds a fourth, hue-rotated radial.
    Four soft radial spots that float over the flat linear gradient:
      - Top-left  (intent hue, large)         — primary mood spot
@@ -3214,6 +3331,28 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   .ts-topbar-cmdk:hover {
     background: rgba(99, 102, 241, 0.12);
     border-color: rgba(99, 102, 241, 0.24);
+  }
+}
+
+.ts-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.14);
+  color: var(--ts-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+@media (hover: hover) {
+  .ts-theme-toggle:hover {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.24);
+    color: var(--ts-accent-strong);
   }
 }
 

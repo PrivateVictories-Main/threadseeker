@@ -3,6 +3,7 @@ import { Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { MotionProvider } from "@/components/motion/MotionProvider";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -52,8 +53,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#eef2ff",
-  colorScheme: "light",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#eef2ff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1020" },
+  ],
+  colorScheme: "light dark",
   width: "device-width",
   initialScale: 1,
 };
@@ -64,7 +68,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Warm up DNS + TLS for every host we fetch directly from the browser.
             Saves ~50-150ms per source on the first query. */}
@@ -115,7 +119,14 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen`}
       >
-        <MotionProvider>{children}</MotionProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <MotionProvider>{children}</MotionProvider>
+        </ThemeProvider>
         <Toaster
           position="bottom-right"
           // 4-toast stack: a burst of copy-success toasts (e.g.
@@ -138,9 +149,10 @@ export default function RootLayout({
             // hot-active flow.
             duration: 3200,
             style: {
-              background: "rgba(255, 255, 255, 0.94)",
-              border: "1px solid rgba(99, 102, 241, 0.22)",
-              color: "#0f172a",
+              // Token-driven so the toast adapts to light/dark.
+              background: "var(--ts-surface-strong)",
+              border: "1px solid var(--ts-border)",
+              color: "var(--ts-text)",
               // Layered shadow: a tight inner ring for definition + a
               // softer outer drop so the toast reads as floating glass
               // above the gradient body without a single flat shadow

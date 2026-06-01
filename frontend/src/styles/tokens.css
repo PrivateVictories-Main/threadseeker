@@ -69,6 +69,59 @@
   --ts-intent-hue: 220;
 }
 
+/* ── Dark theme ──────────────────────────────────────────────────────────
+   Deep indigo-slate glass. next-themes adds class="dark" to <html>. Every
+   token below is a remap of the light values above; component classes that
+   reference these tokens (.glass, .ts-card, .btn, .ts-source, …) adapt for
+   free. Raw Tailwind color utilities are remapped separately in globals.css.
+   The gradient stays intent-hue-aware so the subtle per-query tint survives. */
+.dark {
+  --ts-bg-gradient: linear-gradient(
+    140deg,
+    hsl(var(--ts-intent-hue), 30%, 7%) 0%,
+    hsl(calc(var(--ts-intent-hue) + 14), 32%, 10%) 48%,
+    hsl(calc(var(--ts-intent-hue) + 30), 28%, 8%) 100%
+  );
+
+  /* Glass surfaces — translucent deep slate, lit subtly from above. */
+  --ts-surface: rgba(30, 36, 58, 0.66);
+  --ts-surface-strong: rgba(33, 40, 64, 0.90);
+  --ts-surface-sticky: rgba(24, 29, 48, 0.78);
+  --ts-border: rgba(129, 140, 248, 0.20);
+  --ts-border-soft: rgba(129, 140, 248, 0.12);
+  --ts-glass-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --ts-glass-rim:   inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+  --ts-glass-ring: 0 0 0 1px rgba(129, 140, 248, 0.16);
+
+  /* Accent — lightened so indigo reads on dark surfaces. */
+  --ts-accent: #818cf8;
+  --ts-accent-strong: #a5b4fc;
+  --ts-accent-soft: rgba(129, 140, 248, 0.20);
+  --ts-accent-gradient: linear-gradient(135deg, #818cf8, #a78bfa);
+
+  /* Text — light inks on dark glass. */
+  --ts-text: #e7ecf5;
+  --ts-text-muted: #c2ccde;
+  --ts-text-subtle: #94a3b8;
+  --ts-text-faint: #6b7894;
+
+  /* Shadows — deeper/blacker with wider spread for floating-on-dark depth. */
+  --ts-shadow-sm:
+    0 1px 2px rgba(0, 0, 0, 0.30),
+    0 1px 3px rgba(0, 0, 0, 0.28);
+  --ts-shadow-rest:
+    0 1px 2px rgba(0, 0, 0, 0.30),
+    0 8px 24px rgba(0, 0, 0, 0.38),
+    0 32px 64px rgba(0, 0, 0, 0.46);
+  --ts-shadow-hover:
+    0 4px 12px rgba(0, 0, 0, 0.40),
+    0 16px 48px rgba(0, 0, 0, 0.50),
+    0 48px 96px rgba(0, 0, 0, 0.58);
+  --ts-shadow-sticky:
+    0 1px 0 rgba(129, 102, 241, 0.10),
+    0 8px 20px rgba(0, 0, 0, 0.40);
+}
+
 @property --ts-intent-hue {
   syntax: "<number>";
   inherits: true;
