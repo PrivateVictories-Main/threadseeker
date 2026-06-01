@@ -59,7 +59,6 @@ function resultsCacheKey(query: string, sources: SourceType[]): string {
   return `${RESULTS_CACHE_PREFIX}${key}`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function loadResultsCache(
   query: string,
   sources: SourceType[],
@@ -76,7 +75,6 @@ function loadResultsCache(
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function saveResultsCache(
   query: string,
   sources: SourceType[],
@@ -289,6 +287,14 @@ export default function Home() {
       setFailedTrayOpen(false);
       setHasSearched(true);
 
+      // Stale-while-revalidate: if this exact query + source set was searched
+      // in the last few minutes, paint the cached results immediately (no
+      // skeleton flash) while the live search below refreshes them.
+      const cachedResults = loadResultsCache(freeText, targetSources);
+      if (cachedResults && cachedResults.length > 0) {
+        setProjects(cachedResults);
+      }
+
       setHistory((prev) => {
         const next = [q, ...prev.filter((h) => h !== q)].slice(0, HISTORY_MAX);
         saveHistory(next);
@@ -371,6 +377,9 @@ export default function Home() {
         const mergedCorpus: UnifiedProject[] = results;
         const ranked = rankCorpus(mergeRelatedProjects(mergedCorpus), freeText, expansion);
         setProjects(ranked);
+        // Cache the fresh ranked set so a quick re-search (or history click)
+        // repaints instantly via the stale-while-revalidate seed above.
+        saveResultsCache(freeText, targetSources, ranked);
 
         // Iter-25 / Overhaul K — resilience loop. If the strict pass came
         // back thin, walk the relaxation chain (tokens → fuzzy-synonyms

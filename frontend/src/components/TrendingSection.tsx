@@ -152,11 +152,44 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
     };
   }, [lang, retryNonce]);
 
+  // Refresh-on-focus (stale-while-revalidate): when the tab regains focus and
+  // the current language's cache is older than 5 min, refetch in the background
+  // and soft-swap — so returning to the tab shows fresh trending without a
+  // reload. The /api/gh edge cache keeps this cheap.
+  useEffect(() => {
+    const REFRESH_AFTER_MS = 5 * 60 * 1000;
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      let stale = true;
+      try {
+        const raw = sessionStorage.getItem(cacheKey(lang));
+        if (raw) {
+          const { at } = JSON.parse(raw);
+          stale = typeof at !== "number" || Date.now() - at > REFRESH_AFTER_MS;
+        }
+      } catch {
+        /* ignore */
+      }
+      if (!stale) return;
+      fetchTrending(lang)
+        .then((data) => {
+          if (data.length > 0) {
+            setRepos(data);
+            saveCache(lang, data);
+          }
+        })
+        .catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [lang]);
+
   return (
     <div className="glass section-container mt-12">
       <h2 className="ts-section-header flex items-center justify-center gap-2 mb-3">
         <Flame className="w-3 h-3 text-amber-600" aria-hidden />
         {"// Trending "}<strong>this week</strong>
+        <span className="ts-live-dot" title="Refreshes when you return to the tab" aria-hidden />
       </h2>
 
       {/* Language tabs — underline-bar active state for a tabbed-interface
