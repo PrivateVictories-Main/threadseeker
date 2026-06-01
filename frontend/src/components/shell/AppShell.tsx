@@ -40,8 +40,12 @@ interface Props {
   onDebouncedChange: (v: string) => void;
   resultCount: number;
   pendingCount: number;
+  /** Total sources queried this run — drives the topbar "loading X of N" readout. */
+  totalQueriedCount?: number;
   durationMs: number | null;
   inResultsMode: boolean;
+  /** Label of the active category, surfaced in the topbar breadcrumb. */
+  activeCategoryLabel?: string;
   onClear: () => void;
   /**
    * Iter-24 — when the DetailDrawer is open AND the viewport is xl+,
@@ -68,8 +72,10 @@ export function AppShell({
   onDebouncedChange,
   resultCount,
   pendingCount,
+  totalQueriedCount,
   durationMs,
   inResultsMode,
+  activeCategoryLabel,
   onClear,
   drawerPinned = false,
   children,
@@ -139,10 +145,12 @@ export function AppShell({
           onDebouncedChange={onDebouncedChange}
           resultCount={resultCount}
           pendingCount={pendingCount}
+          totalQueriedCount={totalQueriedCount}
           durationMs={durationMs}
           mobileNavOpen={mobileNavOpen}
           onMobileNavToggle={() => setMobileNavOpen((v) => !v)}
           inResultsMode={inResultsMode}
+          activeCategoryLabel={activeCategoryLabel}
           onClear={onClear}
         />
         <main id="main-content" className="ts-shell-main">

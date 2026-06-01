@@ -16,12 +16,15 @@ const nextConfig = {
     ],
   },
 
+  // Type + lint errors fail the build. CI runs the same gates (tsc/lint) so
+  // regressions never ship green. Flipped 2026-06-01 after clearing the
+  // pre-existing AppShell prop-passthrough + test type errors.
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
 
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
 };
 

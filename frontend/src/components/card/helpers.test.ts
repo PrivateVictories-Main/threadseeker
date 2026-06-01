@@ -383,7 +383,7 @@ describe("cardStatRow (Iter-21 / Overhaul G unified single-row stat strip)", () 
       source: "github",
       stars: 0,
       forks: 0,
-      license: null,
+      license: undefined,
       updatedAt: "",
     });
     const segs = cardStatRow(p);

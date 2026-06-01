@@ -361,7 +361,7 @@ export default function Home() {
         );
 
         if (searchRunIdRef.current !== runId) return;
-        let mergedCorpus: UnifiedProject[] = results;
+        const mergedCorpus: UnifiedProject[] = results;
         const ranked = rankCorpus(mergeRelatedProjects(mergedCorpus), freeText, expansion);
         setProjects(ranked);
 
