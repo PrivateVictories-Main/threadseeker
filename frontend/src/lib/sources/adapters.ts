@@ -15,6 +15,8 @@
 import { SearchResult } from "./types";
 import { searchRedditViaBackend } from "../api-client";
 import { ghFetch } from "../github";
+import { expandQuery } from "./synonyms";
+import { significantTokens } from "./resilience";
 
 // --- Shared transport helpers ---
 
@@ -466,8 +468,16 @@ export async function searchNpm(
   };
 }
 
-// PyPI has no public search API. We hit the per-project JSON endpoint with
-// the exact name plus a handful of common variants.
+// PyPI has no usable free search API — the JSON API is per-package (exact
+// name) and the search page is bot-walled. So we resolve a set of *candidate
+// package names* and look each up by exact name:
+//   - the raw query + its dash-joined form (catches "fastapi", "http-client")
+//   - each significant token (catches single-word concepts)
+//   - the curated synonym expansions, which ARE canonical package names
+//     (e.g. "http client" → httpx/requests; "web scraping" → scrapy/beautifulsoup)
+// That last source turns a concept query into real PyPI hits, which the old
+// `python-X` name-guessing never could. Misses simply 404 and are dropped; the
+// ranker (BM25F + recency) sorts the survivors by the full query.
 export async function searchPyPI(
   query: string,
   deepSearch: boolean = true,
@@ -475,11 +485,19 @@ export async function searchPyPI(
   const allResults: any[] = [];
   const seenNames = new Set<string>();
 
-  const terms = [query];
-  if (deepSearch) {
-    const q = query.toLowerCase().replace(/\s+/g, "-");
-    terms.push(`python-${q}`, `${q}-python`, `py${q.replace(/-/g, "")}`);
+  const lc = query.toLowerCase().trim();
+  const dash = lc.replace(/\s+/g, "-");
+  const candidates = new Set<string>([lc, dash]);
+  for (const t of significantTokens(query)) candidates.add(t);
+  for (const s of expandQuery(query).synonymTerms) {
+    candidates.add(s.replace(/\s+/g, "-"));
   }
+  if (deepSearch) {
+    candidates.add(`python-${dash}`);
+    candidates.add(`${dash}-python`);
+  }
+  // Bound the fan-out of per-package JSON lookups.
+  const terms = Array.from(candidates).filter(Boolean).slice(0, 12);
 
   const fetches = terms.map(async (term) => {
     try {
@@ -490,7 +508,7 @@ export async function searchPyPI(
   });
 
   for (const data of await Promise.all(fetches)) {
-    if (data && !seenNames.has(data.info.name)) {
+    if (data && data.info && !seenNames.has(data.info.name)) {
       seenNames.add(data.info.name);
       allResults.push(data);
     }
@@ -1249,8 +1267,13 @@ export async function searchStackOverflow(query: string): Promise<SearchResult> 
 
 export async function searchDevTo(query: string): Promise<SearchResult> {
   try {
-    // Dev.to has no direct search endpoint — pivot on tag + top latest.
-    const tag = query.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    // Dev.to has no search endpoint — it filters by a single tag, and tags are
+    // single lowercase words. "rust web framework" mashed into one tag
+    // ("rustwebframework") matched nothing; use the first significant token
+    // ("rust") so multi-word queries actually return articles.
+    const firstTok = significantTokens(query)[0];
+    const tag = (firstTok || query.toLowerCase().replace(/[^a-z0-9]+/g, "")).slice(0, 40);
+    if (!tag) return { projects: [], totalCount: 0, source: "devto" };
     const response = await fetch(
       `https://dev.to/api/articles?tag=${encodeURIComponent(tag)}&per_page=30&top=7`,
       { headers: { Accept: "application/json" } },
