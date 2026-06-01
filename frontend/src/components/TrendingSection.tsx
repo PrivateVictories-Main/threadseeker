@@ -1,12 +1,13 @@
 "use client";
 
 // Trending recently-created GitHub repos shown on the landing page, with a
-// small language filter tab row. One unauthenticated call to api.github.com
-// per language; result cached in sessionStorage for 30 min per language so
-// tabbing back & forth doesn't burn the 10-rpm rate limit.
+// small language filter tab row. One call per language via /api/gh (server-side
+// token + edge cache), additionally cached in sessionStorage for 30 min per
+// language so tabbing back & forth never re-hits the network.
 
 import { useEffect, useLayoutEffect, useState } from "react";
 import { Flame, Star, ArrowUpRight, RefreshCw } from "lucide-react";
+import { ghFetch } from "@/lib/github";
 
 interface TrendingRepo {
   name: string;
@@ -45,11 +46,10 @@ async function fetchTrending(lang: LangKey): Promise<TrendingRepo[]> {
     order: "desc",
     per_page: "8",
   });
-  const res = await fetch(
+  const res = await ghFetch(
     `https://api.github.com/search/repositories?${params}`,
-    { headers: { Accept: "application/vnd.github.v3+json" } },
   );
-  if (!res.ok) return [];
+  if (!res || !res.ok) return [];
   const data = await res.json();
   return (data.items || []).map((r: {
     name: string;

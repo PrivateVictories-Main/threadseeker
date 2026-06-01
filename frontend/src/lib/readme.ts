@@ -3,6 +3,7 @@
 // renderer or risking XSS from rendered HTML.
 
 import type { SourceType } from "./sources";
+import { ghFetch } from "./github";
 
 const CACHE = new Map<string, string>();
 
@@ -20,11 +21,14 @@ export async function fetchReadmeExcerpt(
   let raw: string | null = null;
   try {
     if (source === "github") {
-      const res = await fetch(
+      // Via /api/gh (token + edge cache) with the raw media type; falls back
+      // to a direct call in plain dev. README fetches on card-expand used to
+      // burn the same unauthenticated budget as search.
+      const res = await ghFetch(
         `https://api.github.com/repos/${encodeURI(fullName)}/readme`,
-        { headers: { Accept: "application/vnd.github.v3.raw" } },
+        "application/vnd.github.v3.raw",
       );
-      if (res.ok) raw = await res.text();
+      if (res && res.ok) raw = await res.text();
     } else if (source === "codeberg") {
       // Codeberg (Gitea) — /repos/{owner}/{repo}/readme returns JSON with
       // base64 content by default.

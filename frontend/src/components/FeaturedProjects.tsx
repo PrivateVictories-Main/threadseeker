@@ -5,6 +5,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { UnifiedProjectCard } from "./UnifiedProjectCard";
 import { CardSkeleton } from "./CardSkeleton";
 import type { UnifiedProject } from "@/lib/sources/types";
+import { ghFetch } from "@/lib/github";
 
 // Iter-22 / Overhaul H — Track 2 (the headline visible change)
 //
@@ -16,11 +17,10 @@ import type { UnifiedProject } from "@/lib/sources/types";
 // Data flow:
 //   1. On first mount, read `threadseeker:featured:v1` from sessionStorage.
 //   2. If present and < 24h old, render immediately (zero network).
-//   3. Otherwise call api.github.com/repos/{owner}/{repo} for each pinned
-//      slug and map into UnifiedProject. One request per repo (3 total)
-//      keeps us well under the 60-request/hour unauthenticated rate
-//      limit. If any single fetch fails the others still render — partial
-//      degradation rather than hard fail.
+//   3. Otherwise fetch each pinned slug via /api/gh (server-side token + edge
+//      cache; direct fallback in plain dev) and map into UnifiedProject. If any
+//      single fetch fails the others still render — partial degradation rather
+//      than hard fail.
 //   4. Cache the merged result with a 24h TTL.
 
 const FEATURED_SLUGS = [
@@ -68,10 +68,8 @@ function saveCache(data: UnifiedProject[]) {
 
 async function fetchRepo(slug: string): Promise<UnifiedProject | null> {
   try {
-    const response = await fetch(`https://api.github.com/repos/${slug}`, {
-      headers: { Accept: "application/vnd.github.v3+json" },
-    });
-    if (!response.ok) return null;
+    const response = await ghFetch(`https://api.github.com/repos/${slug}`);
+    if (!response || !response.ok) return null;
     const item = await response.json();
     return {
       id: `github-${item.id}`,

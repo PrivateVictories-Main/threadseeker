@@ -33,13 +33,20 @@ The `frontend/functions/` directory is picked up automatically — each file und
 
 ## 3. Environment variables
 
-**None are required.** The frontend talks to `/api/*` same-origin, so there's no
-`NEXT_PUBLIC_BACKEND_URL` to set, and no API keys for any source.
+**None are required to run.** The frontend talks to `/api/*` same-origin and every
+source works keyless. One **optional** secret is worth setting:
+
+| Secret | Optional? | Purpose |
+|---|---|---|
+| `GITHUB_TOKEN` | Optional | Passed by `/api/gh` as a Bearer token on GitHub API calls. Lifts the flagship source from the shared unauthenticated limit (10 req/min search / 60 req/hr core) to 30 req/min / 5000 req/hr. Without it, GitHub still works — just unauthenticated. A fine-grained PAT with public-repo read access is plenty. |
+
+Set it under **Settings → Environment variables → Add (Encrypt)** on the Pages
+project (Production + Preview). For `wrangler pages dev`, put it in a git-ignored
+`.dev.vars` file instead.
 
 > Heads-up for future work: an optional LLM query-understanding / synthesis layer
-> is planned. When it lands it will read a single secret (e.g. `GROQ_API_KEY`) set
-> on the Pages project, and degrade gracefully to the deterministic ranker when the
-> secret is absent. It is **not** wired up today, so don't set it yet.
+> is planned. When it lands it will read its own secret (e.g. `GROQ_API_KEY`) and
+> degrade gracefully to the deterministic ranker when absent. Not wired up today.
 
 ## 4. Deploy
 

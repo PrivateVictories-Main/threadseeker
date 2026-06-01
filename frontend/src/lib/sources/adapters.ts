@@ -14,6 +14,7 @@
 
 import { SearchResult } from "./types";
 import { searchRedditViaBackend } from "../api-client";
+import { ghFetch } from "../github";
 
 // --- Shared transport helpers ---
 
@@ -70,7 +71,8 @@ export async function searchGitHub(
     ? [`${query} in:name,description,topics`, query]
     : [query];
 
-  // Two parallel queries stay well under the 10 rpm unauthenticated limit.
+  // Routed through /api/gh (server-side token + edge cache) in production, with
+  // a transparent direct fallback in plain dev — see lib/github.ts.
   const responses = await Promise.all(
     searchStrategies.map(async (searchQuery) => {
       const params = new URLSearchParams({
@@ -81,12 +83,11 @@ export async function searchGitHub(
         per_page: "50",
       });
       try {
-        const response = await fetch(
+        const response = await ghFetch(
           `https://api.github.com/search/repositories?${params}`,
-          { headers: { Accept: "application/vnd.github.v3+json" } },
         );
-        if (!response.ok) {
-          if (response.status === 403) console.warn("GitHub rate limit reached");
+        if (!response || !response.ok) {
+          if (response?.status === 403) console.warn("GitHub rate limit reached");
           return [];
         }
         const data = await response.json();
