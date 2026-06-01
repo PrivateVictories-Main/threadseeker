@@ -352,6 +352,18 @@ body > * {
   border-color: var(--ts-border-soft);
   color: var(--ts-text-muted);
 }
+/* Transient copy feedback — green confirm / amber failure on the copy
+   buttons. Replaces the old fire-and-forget that always claimed success. */
+.btn.is-copied {
+  color: #15803d;
+  border-color: rgba(22, 163, 74, 0.42);
+  background: rgba(22, 163, 74, 0.10);
+}
+.btn.is-copy-failed {
+  color: #b91c1c;
+  border-color: rgba(220, 38, 38, 0.42);
+  background: rgba(220, 38, 38, 0.10);
+}
 /* Gate hover affordances on hover-capable pointers. On touch, :hover
    sticks after a tap (until next scroll/tap), leaving the lifted/colored
    state until the user touches elsewhere. Transform-bearing hovers are
@@ -670,7 +682,7 @@ button.topic-chip-interactive {
 /* Source badge — small pill identifying which platform the hit came from.
    Color per source keeps the grid scannable at a glance. */
 .ts-source {
-  display: inline-flex; align-items: center;
+  display: inline-flex; align-items: center; gap: 5px;
   /* Overhaul B — mono source badge. Reads as a label tag (e.g. `[NPM]`,
      `[GITHUB]`) rather than sans-serif content. Tight uppercase letter-
      spacing keeps the per-source color palette legible. */
@@ -684,6 +696,11 @@ button.topic-chip-interactive {
   line-height: 1;
   white-space: nowrap;
   letter-spacing: 0.06em;
+}
+.ts-source-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 .ts-source-github       { color: #1f2937; background: rgba(31,41,55,0.08);  border-color: rgba(31,41,55,0.18); }
 .ts-source-huggingface  { color: #b45309; background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.25); }

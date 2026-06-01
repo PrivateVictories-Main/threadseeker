@@ -19,12 +19,12 @@
 
 import type { UnifiedProject } from "@/lib/sources/types";
 import { Highlight } from "./Highlight";
+import { Avatar } from "./card/Avatar";
 import { motion } from "framer-motion";
 import { Star, ExternalLink, Heart, ChevronRight } from "lucide-react";
 import { useBookmark } from "@/lib/bookmarks";
 import { getSourceConfig } from "@/lib/sources";
 import {
-  avatarFallbackHue,
   formatCount,
   formatRelativeShort,
   popularityClass,
@@ -96,24 +96,13 @@ export function ProjectListRow({
       transition={{ delay: ((index ?? 0) % 12) * 0.018 }}
     >
       {/* Avatar */}
-      {avatar ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={avatar}
-          alt=""
-          className="ts-list-avatar"
-          loading="lazy"
-          referrerPolicy="no-referrer"
-        />
-      ) : (
-        <div
-          className="ts-list-avatar ts-list-avatar-fallback"
-          aria-hidden
-          style={{ ["--ts-fallback-hue" as string]: avatarFallbackHue(project.id) }}
-        >
-          {project.name.charAt(0).toUpperCase()}
-        </div>
-      )}
+      <Avatar
+        src={avatar}
+        name={project.name}
+        id={project.id}
+        className="ts-list-avatar"
+        fallbackClassName="ts-list-avatar-fallback"
+      />
 
       {/* Identity block */}
       <div className="ts-list-identity">

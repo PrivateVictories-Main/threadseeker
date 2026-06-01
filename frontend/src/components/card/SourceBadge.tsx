@@ -1,4 +1,5 @@
 import type { SourceType } from "@/lib/sources/types";
+import { getSourceIcon } from "@/lib/sources/registry";
 
 const LABELS: Record<SourceType, string> = {
   github: "GitHub", huggingface: "Hugging Face", gitlab: "GitLab",
@@ -13,9 +14,11 @@ const LABELS: Record<SourceType, string> = {
 };
 
 export function SourceBadge({ source }: { source: SourceType }) {
+  const Icon = getSourceIcon(source);
   return (
     <span className={`ts-source ts-source-${source}`} aria-label={`Source: ${LABELS[source]}`}>
-      ◆ {LABELS[source]}
+      <Icon className="ts-source-icon" aria-hidden />
+      {LABELS[source]}
     </span>
   );
 }

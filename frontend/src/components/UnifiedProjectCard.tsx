@@ -2,6 +2,7 @@
 
 import type { UnifiedProject } from "@/lib/sources/types";
 import { Highlight } from "./Highlight";
+import { Avatar } from "./card/Avatar";
 import { SourceBadge } from "./card/SourceBadge";
 import { CardActions, type CopyItem } from "./card/CardActions";
 import { PopularityBadge } from "./card/PopularityBadge";
@@ -12,7 +13,6 @@ import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { bookmarkVariants } from "@/lib/motion";
 import { useBookmark } from "@/lib/bookmarks";
 import {
-  avatarFallbackHue,
   copyItemsForSource,
   openLabelForSource,
   popularityClass,
@@ -140,6 +140,11 @@ export function UnifiedProjectCard({
         {/* 3px source-tinted left edge */}
         <IdentityRibbon source={project.source} />
 
+        {/* Hover scanline — 1px indigo sweep top→bottom on hover. CSS +
+            reduced-motion handling already live in globals.css; this is the
+            element that was missing. */}
+        <span className="ts-scanline" aria-hidden />
+
         {/* Bookmark-pulse ring overlay */}
         <motion.span
           aria-hidden
@@ -190,24 +195,13 @@ export function UnifiedProjectCard({
 
         {/* IDENTITY BLOCK — avatar + name (+version) + subline */}
         <div className="ts-title-row">
-          {avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatar}
-              alt=""
-              className="ts-avatar"
-              loading="lazy"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <div
-              className="ts-avatar ts-avatar-fallback"
-              aria-hidden
-              style={{ ["--ts-fallback-hue" as string]: avatarFallbackHue(project.id) }}
-            >
-              {project.name.charAt(0).toUpperCase()}
-            </div>
-          )}
+          <Avatar
+            src={avatar}
+            name={project.name}
+            id={project.id}
+            className="ts-avatar"
+            fallbackClassName="ts-avatar-fallback"
+          />
           <h3 className="ts-title">
             <span className="ts-title-main-row">
               <span className="ts-title-main">
