@@ -39,14 +39,12 @@ source works keyless. One **optional** secret is worth setting:
 | Secret | Optional? | Purpose |
 |---|---|---|
 | `GITHUB_TOKEN` | Optional | Passed by `/api/gh` as a Bearer token on GitHub API calls. Lifts the flagship source from the shared unauthenticated limit (10 req/min search / 60 req/hr core) to 30 req/min / 5000 req/hr. Without it, GitHub still works — just unauthenticated. A fine-grained PAT with public-repo read access is plenty. |
+| `GROQ_API_KEY` | Optional | Unlocks the **AI layer**: `/api/optimize-queries` (natural-language → key terms for long queries) and `/api/synthesize` (a cross-source verdict above results). [Groq](https://console.groq.com) has a free tier and is fast (~sub-second), and both calls are edge-cached. Without the key the app falls back to the deterministic engine — no AI, everything else unchanged. |
 
-Set it under **Settings → Environment variables → Add (Encrypt)** on the Pages
-project (Production + Preview). For `wrangler pages dev`, put it in a git-ignored
-`.dev.vars` file instead.
-
-> Heads-up for future work: an optional LLM query-understanding / synthesis layer
-> is planned. When it lands it will read its own secret (e.g. `GROQ_API_KEY`) and
-> degrade gracefully to the deterministic ranker when absent. Not wired up today.
+Set these under **Settings → Environment variables → Add (Encrypt)** on the Pages
+project (Production + Preview). For `wrangler pages dev`, put them in a git-ignored
+`.dev.vars` file instead. The AI layer is purely additive — the deterministic
+search engine is always the baseline.
 
 ## 4. Deploy
 
@@ -67,6 +65,8 @@ Cloudflare builds on every push to the connected branch. That's it.
 | Homebrew (no search API) | Pages Function `/api/search-homebrew` | No |
 | F-Droid (no search API) | Pages Function `/api/search-fdroid` | No |
 | arXiv (Atom XML) | Pages Function `/api/search-arxiv` | No |
+| AI query understanding (long queries) | Pages Function `/api/optimize-queries` | `GROQ_API_KEY` (optional) |
+| AI cross-source verdict | Pages Function `/api/synthesize` | `GROQ_API_KEY` (optional) |
 
 ## Caching
 

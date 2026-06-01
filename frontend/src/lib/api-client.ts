@@ -65,3 +65,58 @@ export async function searchRedditViaBackend(
     return [];
   }
 }
+
+// ── Optional AI layer ──────────────────────────────────────────────────────
+// Both helpers return null on any failure / when the layer is disabled (no
+// GROQ_API_KEY) / when the Pages Functions aren't running (plain `next dev`),
+// so callers transparently fall back to the deterministic engine.
+
+export interface OptimizedQuery {
+  keyTerms: string[];
+  intent: string;
+}
+
+/** AI query understanding — natural language → concise key terms + intent. */
+export async function optimizeQuery(
+  query: string,
+): Promise<OptimizedQuery | null> {
+  try {
+    const res = await fetch(apiUrl("/optimize-queries"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data?.disabled || !Array.isArray(data?.keyTerms) || data.keyTerms.length === 0) {
+      return null;
+    }
+    return { keyTerms: data.keyTerms as string[], intent: data.intent ?? "general" };
+  } catch {
+    return null;
+  }
+}
+
+/** AI cross-source verdict on the top results. Returns the prose or null. */
+export async function synthesizeResults(
+  query: string,
+  projects: Array<{
+    name: string;
+    source: string;
+    description: string | null;
+    stars: number;
+  }>,
+): Promise<string | null> {
+  try {
+    const res = await fetch(apiUrl("/synthesize"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, projects }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.disabled || !data?.verdict ? null : String(data.verdict);
+  } catch {
+    return null;
+  }
+}

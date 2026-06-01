@@ -36,12 +36,15 @@ import {
   rankCorpus,
   buildSearchQuery,
   coreSearchQuery,
+  significantTokens,
   sparseFraction,
   nextRelaxation,
   type RelaxationTier,
   type RelaxedPlan,
 } from "@/lib/sources";
 import { parseQuery, applyOperators, describeOperators } from "@/lib/query-parser";
+import { optimizeQuery, synthesizeResults } from "@/lib/api-client";
+import { SynthesisCard } from "@/components/SynthesisCard";
 import { toast } from "sonner";
 import { ArrowRight, SearchX, Github, LayoutGrid, List as ListIcon } from "lucide-react";
 
@@ -180,6 +183,10 @@ export default function Home() {
   // actually executed, so the Discover rail can offer them as one-click
   // chips ("Did you mean autoclicker?").
   const [relaxedQueries, setRelaxedQueries] = useState<string[]>([]);
+  // Optional AI cross-source verdict (null when the AI layer is disabled / no
+  // key — the card then doesn't render).
+  const [synthesis, setSynthesis] = useState<string | null>(null);
+  const [synthLoading, setSynthLoading] = useState(false);
   // Iter-24 — viewport-aware drawer-pinned state. On xl+ (≥1280px) the
   // DetailDrawer becomes a sticky right rail instead of a slide-over
   // when there's a project to display. On smaller viewports we keep
@@ -310,6 +317,8 @@ export default function Home() {
       // stays null) or the post-strict resilience loop fills these.
       setRelaxationBanner(null);
       setRelaxedQueries([]);
+      setSynthesis(null);
+      setSynthLoading(false);
 
       try {
         const expansion = expandQuery(freeText);
@@ -318,7 +327,21 @@ export default function Home() {
         // a 30-token paragraph). The FULL freeText still drives BM25 re-ranking
         // below, so a specific paragraph both *returns* results and *ranks*
         // them by the full intent. Short queries are unchanged.
-        const fetchQuery = coreSearchQuery(freeText);
+        let fetchQuery = coreSearchQuery(freeText);
+        // For long queries, let the optional AI layer distill key terms — a
+        // better reduction than the deterministic one. Capped at 1.5s and
+        // falls back to fetchQuery when the layer is disabled / slow / absent,
+        // so search stays fast and never breaks without a key.
+        if (significantTokens(freeText).length > 7) {
+          const ai = await Promise.race([
+            optimizeQuery(freeText),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+          ]);
+          if (searchRunIdRef.current !== runId) return;
+          if (ai && ai.keyTerms.length > 0) {
+            fetchQuery = ai.keyTerms.join(" ");
+          }
+        }
         const hueByIntent: Record<string, number> = {
           project_search: 220,
           how_to: 150,
@@ -380,6 +403,29 @@ export default function Home() {
         // Cache the fresh ranked set so a quick re-search (or history click)
         // repaints instantly via the stale-while-revalidate seed above.
         saveResultsCache(freeText, targetSources, ranked);
+
+        // AI verdict — fire-and-forget, never blocks results. Renders when it
+        // resolves (or not at all when the layer is disabled / no key).
+        if (ranked.length > 0) {
+          setSynthLoading(true);
+          synthesizeResults(
+            freeText,
+            ranked.slice(0, 10).map((p) => ({
+              name: p.name,
+              source: p.source,
+              description: p.description,
+              stars: p.stars,
+            })),
+          )
+            .then((v) => {
+              if (searchRunIdRef.current !== runId) return;
+              setSynthesis(v);
+              setSynthLoading(false);
+            })
+            .catch(() => {
+              if (searchRunIdRef.current === runId) setSynthLoading(false);
+            });
+        }
 
         // Iter-25 / Overhaul K — resilience loop. If the strict pass came
         // back thin, walk the relaxation chain (tokens → fuzzy-synonyms
@@ -579,6 +625,8 @@ export default function Home() {
     setHasSearched(false);
     setActiveSourceFilter(null);
     setSortMode("relevance");
+    setSynthesis(null);
+    setSynthLoading(false);
     lastSubmittedRef.current = "";
     window.history.replaceState(null, "", window.location.pathname);
   }, []);
@@ -980,6 +1028,8 @@ export default function Home() {
                         </button>
                       </div>
                     )}
+
+                    <SynthesisCard verdict={synthesis} loading={synthLoading} />
 
                     <DirectJumps query={parsedQuery.freeText || query} />
 

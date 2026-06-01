@@ -888,6 +888,37 @@ button.topic-chip-interactive {
 @media (prefers-reduced-motion: reduce) {
   .ts-live-dot { animation: none; }
 }
+
+/* AI verdict card — the optional cross-source synthesis above the results. */
+.ts-synthesis {
+  border-radius: var(--ts-radius-md);
+  padding: 13px 16px;
+  border-left: 3px solid var(--ts-accent);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ts-synthesis-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: var(--ts-accent-strong);
+}
+.ts-synthesis-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ts-text-muted);
+}
+.ts-synthesis-pending {
+  color: var(--ts-text-faint);
+  font-style: italic;
+}
 .ts-source-github       { color: #1f2937; background: rgba(31,41,55,0.08);  border-color: rgba(31,41,55,0.18); }
 .ts-source-huggingface  { color: #b45309; background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.25); }
 .ts-source-gitlab       { color: #c2410c; background: rgba(234,88,12,0.10);  border-color: rgba(234,88,12,0.22); }

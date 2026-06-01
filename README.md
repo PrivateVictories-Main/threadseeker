@@ -120,9 +120,23 @@ server to run, and **no API keys required.**
    broadened and the UI says so.
 
 > The ranking layer is deterministic and runs entirely client-side — no API key,
-> no per-query cost. (An optional LLM-powered query-understanding + synthesis layer
-> is on the roadmap; the app is built so it degrades to this engine when no key is
-> configured.)
+> no per-query cost.
+
+### Optional AI layer
+
+Set a (free-tier) `GROQ_API_KEY` Pages secret and ThreadSeeker adds two AI
+touches on top of the deterministic engine:
+
+- **Query understanding** — long natural-language queries are distilled into key
+  search terms (`/api/optimize-queries`), with a 1.5s cap and a fall back to the
+  deterministic reduction.
+- **Cross-source verdict** — a short, opinionated AI summary of the top results
+  appears above the grid (`/api/synthesize`), rendered async so it never slows
+  the search.
+
+Both are **purely additive**: with no key set, neither renders and the
+deterministic engine is the baseline — so the app stays free to run with zero
+secrets. All Groq calls are edge-cached.
 
 ## Quickstart
 
