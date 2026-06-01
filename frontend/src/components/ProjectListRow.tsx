@@ -20,6 +20,7 @@
 import type { UnifiedProject } from "@/lib/sources/types";
 import { Highlight } from "./Highlight";
 import { Avatar } from "./card/Avatar";
+import { SourceMark } from "./card/SourceMark";
 import { motion } from "framer-motion";
 import { Star, ExternalLink, Heart, ChevronRight } from "lucide-react";
 import { useBookmark } from "@/lib/bookmarks";
@@ -56,7 +57,6 @@ export function ProjectListRow({
 }: Props) {
   const { isBookmarked, toggle } = useBookmark(project);
   const cfg = getSourceConfig(project.source);
-  const SourceIcon = cfg.lucideIcon;
   const popClass = popularityClass(project);
 
   const isRepo =
@@ -117,7 +117,7 @@ export function ProjectListRow({
         </a>
         <div className="ts-list-meta">
           <span className="ts-list-source">
-            <SourceIcon className="w-3 h-3" aria-hidden />
+            <SourceMark source={project.source} className="w-3 h-3" />
             <span>{cfg.name}</span>
           </span>
           {subline && (

@@ -7,6 +7,7 @@ import {
   getSourceConfig,
   groupSourcesByCategory,
 } from "@/lib/sources";
+import { SourceMark } from "./card/SourceMark";
 import { sheetVariants } from "@/lib/motion";
 
 interface SourceFilterProps {
@@ -162,7 +163,6 @@ export function SourceFilter({
                   >
                     {group.sources.map((source) => {
                       const config = getSourceConfig(source);
-                      const Icon = config.lucideIcon;
                       const isActive = selectedSources.includes(source);
                       // Tooltip via `title=` so unfamiliar acronyms (JSR,
                       // AUR, openvsx, conda-forge…) carry a one-line
@@ -182,7 +182,7 @@ export function SourceFilter({
                           title={tooltip}
                           aria-label={tooltip}
                         >
-                          <Icon className="w-3.5 h-3.5" aria-hidden />
+                          <SourceMark source={source} className="w-3.5 h-3.5" />
                           <span>{config.name}</span>
                         </button>
                       );

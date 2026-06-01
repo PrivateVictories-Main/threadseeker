@@ -91,6 +91,7 @@ export function CategoryGrid({ activeKey, onSelect }: Props) {
               key={cat.key}
               type="button"
               className={`ts-category-tile${isActive ? " is-active" : ""}`}
+              data-cat={cat.key}
               onClick={() => onSelect(cat.key)}
               aria-pressed={isActive}
               variants={tileChild}

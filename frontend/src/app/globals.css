@@ -819,6 +819,23 @@ button.topic-chip-interactive {
   height: 12px;
   flex-shrink: 0;
 }
+/* Brand marks carry their vendor color (theme-aware); fall back to dark hex
+   on dark glass so near-black brands (GitHub/Rust/conda) stay visible. */
+.ts-brandmark {
+  color: var(--brand, currentColor);
+  flex-shrink: 0;
+}
+.dark .ts-brandmark {
+  color: var(--brand-dark, var(--brand, currentColor));
+}
+/* In dark mode the per-source badge tints (defined for light glass) go
+   near-invisible, so neutralize the chip to glass and let the colored brand
+   mark carry the source identity. */
+.dark .ts-source {
+  background: rgba(129, 140, 248, 0.08);
+  border-color: rgba(129, 140, 248, 0.18);
+  color: var(--ts-text-subtle);
+}
 .ts-source-github       { color: #1f2937; background: rgba(31,41,55,0.08);  border-color: rgba(31,41,55,0.18); }
 .ts-source-huggingface  { color: #b45309; background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.25); }
 .ts-source-gitlab       { color: #c2410c; background: rgba(234,88,12,0.10);  border-color: rgba(234,88,12,0.22); }
@@ -3687,6 +3704,32 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   border: 1px solid rgba(99, 102, 241, 0.18);
   color: var(--ts-accent-strong);
 }
+
+/* Per-category accent — gives the 6 tiles distinct hues so the landing
+   reads as a colorful organized index rather than a wall of indigo. The
+   resting icon carries the hue; the active state keeps the unified white-on-
+   gradient treatment above. Colors are bright enough to read in both themes. */
+.ts-category-tile[data-cat="repos"]:not(.is-active) .ts-category-tile-icon {
+  color: #8b5cf6; background: rgba(139, 92, 246, 0.12); border-color: rgba(139, 92, 246, 0.22);
+}
+.ts-category-tile[data-cat="packages"]:not(.is-active) .ts-category-tile-icon {
+  color: #0d9488; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.22);
+}
+.ts-category-tile[data-cat="ai"]:not(.is-active) .ts-category-tile-icon {
+  color: #d97706; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.24);
+}
+.ts-category-tile[data-cat="papers"]:not(.is-active) .ts-category-tile-icon {
+  color: #e11d48; background: rgba(244, 63, 94, 0.12); border-color: rgba(244, 63, 94, 0.22);
+}
+.ts-category-tile[data-cat="threads"]:not(.is-active) .ts-category-tile-icon {
+  color: #0284c7; background: rgba(14, 165, 233, 0.12); border-color: rgba(14, 165, 233, 0.22);
+}
+/* Lighten the resting icon hues on dark glass for contrast. */
+.dark .ts-category-tile[data-cat="packages"]:not(.is-active) .ts-category-tile-icon { color: #2dd4bf; }
+.dark .ts-category-tile[data-cat="ai"]:not(.is-active) .ts-category-tile-icon { color: #fbbf24; }
+.dark .ts-category-tile[data-cat="papers"]:not(.is-active) .ts-category-tile-icon { color: #fb7185; }
+.dark .ts-category-tile[data-cat="threads"]:not(.is-active) .ts-category-tile-icon { color: #38bdf8; }
+.dark .ts-category-tile[data-cat="repos"]:not(.is-active) .ts-category-tile-icon { color: #a78bfa; }
 
 .ts-category-tile-text {
   flex: 1 1 auto;
