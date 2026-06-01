@@ -1,117 +1,101 @@
 # Deploying ThreadSeeker
 
-One deployment. One URL. No servers.
+**One deployment. One URL. No servers, no secrets.**
 
-ThreadSeeker is a fully static Next.js site plus a handful of Cloudflare
-Pages Functions that ship alongside it. The whole app — frontend, 24
-source adapters, AI query optimization, cross-source synthesis — runs on
-Cloudflare's free tier.
+ThreadSeeker is a fully static Next.js site plus a handful of Cloudflare Pages
+Functions that ship alongside it. The whole app — frontend, 28 source adapters,
+and the CORS/no-search-API helper functions — runs on Cloudflare's free tier with
+**no environment variables required.**
+
+The live deployment is at **https://threadseeker.pages.dev**.
 
 ---
 
 ## 1. Push the repo to GitHub
 
-Cloudflare Pages pulls from git.
+Cloudflare Pages builds from git on every push.
 
-## 2. Create a new Pages project
+## 2. Create a Pages project
 
-In the Cloudflare dashboard, create a Pages project and connect it to the
-GitHub repo. Use these settings:
+In the Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git**,
+pick the repo, and use these settings:
 
-- **Framework preset:** Next.js (Static HTML Export)
-- **Build command:** `NEXT_OUTPUT=export npm run build`
-- **Build output directory:** `out`
-- **Root directory:** `frontend`
-- **Node version:** 20
+| Setting | Value |
+|---|---|
+| Framework preset | Next.js (Static HTML Export) |
+| Build command | `NEXT_OUTPUT=export npm run build` |
+| Build output directory | `out` |
+| Root directory | `frontend` |
+| Node version | `22` |
 
-The `functions/` directory under `frontend/` is picked up automatically and
-deployed as Pages Functions — each file under `functions/api/` becomes a
-route at `/api/*` on the same domain as the site.
+The `frontend/functions/` directory is picked up automatically — each file under
+`functions/api/` becomes a route at `/api/*` on the same domain as the site.
 
-## 3. Environment variables & secrets
+## 3. Environment variables
 
-Set on the Pages project (Production + Preview):
+**None are required.** The frontend talks to `/api/*` same-origin, so there's no
+`NEXT_PUBLIC_BACKEND_URL` to set, and no API keys for any source.
 
-| Variable        | Type   | Purpose                                          |
-|-----------------|--------|--------------------------------------------------|
-| `GROQ_API_KEY`  | Secret | Powers AI query optimization + synthesis         |
-
-No other variables are needed. The frontend talks to `/api/*` same-origin,
-so there's no `NEXT_PUBLIC_BACKEND_URL` to configure.
-
-If `GROQ_API_KEY` isn't set, the AI features degrade gracefully — query
-optimization falls back to rule-based queries and the synthesis box hides
-itself. Everything else (20 other sources) still works.
+> Heads-up for future work: an optional LLM query-understanding / synthesis layer
+> is planned. When it lands it will read a single secret (e.g. `GROQ_API_KEY`) set
+> on the Pages project, and degrade gracefully to the deterministic ranker when the
+> secret is absent. It is **not** wired up today, so don't set it yet.
 
 ## 4. Deploy
 
-Cloudflare builds on every push. That's it.
+Cloudflare builds on every push to the connected branch. That's it.
 
 ---
 
 ## What runs where
 
-| Feature                                        | Where          | Needs secret?  |
-|------------------------------------------------|----------------|----------------|
-| GitHub / GitLab / Codeberg search              | Browser        | No             |
-| npm / PyPI / crates / Packagist / RubyGems / JSR / Open VSX | Browser | No      |
-| Hugging Face search                            | Browser        | No             |
-| Hacker News / Dev.to search                    | Browser        | No             |
-| Reddit search + sentiment                      | Pages Function | No             |
-| Docker Hub / Flathub / Lobsters / SO / Papers with Code / AUR / conda-forge | Pages Function (CORS proxy) | No |
-| Homebrew search                                | Pages Function | No             |
-| F-Droid search                                 | Pages Function | No             |
-| arXiv search                                   | Pages Function | No             |
-| AI query optimization                          | Pages Function | `GROQ_API_KEY` |
-| Cross-source synthesis                         | Pages Function | `GROQ_API_KEY` |
-
----
+| Feature | Where | Needs a key? |
+|---|---|---|
+| GitHub / GitLab / Codeberg | Browser (direct) | No |
+| npm / PyPI / crates / Packagist / RubyGems / JSR / Open VSX / NuGet / Maven / conda / Zenodo | Browser (direct) | No |
+| Hugging Face | Browser (direct) | No |
+| Hacker News / Dev.to / Stack Overflow | Browser (direct) | No |
+| Reddit (+ sentiment) | Pages Function `/api/search-reddit` | No |
+| Docker Hub / Flathub / Lobsters / Papers with Code / AUR / WordPress | Pages Function `/api/proxy` (CORS) | No |
+| Homebrew (no search API) | Pages Function `/api/search-homebrew` | No |
+| F-Droid (no search API) | Pages Function `/api/search-fdroid` | No |
+| arXiv (Atom XML) | Pages Function `/api/search-arxiv` | No |
 
 ## Caching
 
-Groq calls are edge-cached via the Cloudflare Cache API so the second person
-to search `"react state management"` never waits for an LLM call:
+The CORS proxy edge-caches upstream responses so common queries stay fast and stay
+within rate limits:
 
-- `/api/optimize-queries` — 24 h TTL, keyed by `[query, intent, year]`
-- `/api/synthesize` — 1 h TTL, keyed by `[query, top-8 project names]`
-- `/api/search-homebrew` — 30 min TTL per query; upstream index cached 24 h
-- `/api/search-fdroid` — 1 h in-isolate cache; upstream index cached 24 h
-- `/api/search-arxiv` — 6 h TTL per query
-- `/api/proxy` — 5 min TTL per upstream URL
+- `/api/proxy` — short per-URL TTL via the Cloudflare Cache API.
+- `/api/search-homebrew`, `/api/search-fdroid` — the large upstream indexes are
+  cached and filtered server-side.
+- `/api/search-arxiv` — per-query TTL.
 
 ---
 
 ## Local development
 
 ```bash
-# Install deps
 cd frontend
 npm install
 
-# Option A — frontend only (most sources work)
-# Works with the public-API sources. Sources that go through Pages
-# Functions (Reddit, Docker Hub, Flathub, Lobsters, Stack Overflow, Papers
-# with Code, Homebrew, F-Droid, arXiv, AI features) are disabled.
-echo "NEXT_PUBLIC_BACKEND_URL=disabled" > .env.local
+# Option A — frontend only (direct-CORS sources work)
 npm run dev
 # -> http://localhost:3000
 
-# Option B — frontend + Pages Functions (full feature set)
-# Requires the Cloudflare Wrangler CLI:
-npm install -g wrangler
-export GROQ_API_KEY=gsk_…              # your Groq key (optional)
+# Option B — frontend + Pages Functions (full source set: Reddit, Homebrew,
+# F-Droid, arXiv, and the CORS proxy)
 NEXT_OUTPUT=export npm run build
-wrangler pages dev out
-# -> http://localhost:8788
+npx wrangler pages dev out
+# -> http://localhost:8788  (serves the static site AND /api/* together)
 ```
 
-For Option B, hit the Wrangler URL directly — it serves both the static
-site and `/api/*` functions together, matching production exactly.
+For Option B, hit the Wrangler URL directly — it matches production exactly.
 
 ---
 
 ## Custom domain
 
-In the Pages project: **Custom domains → Set up a custom domain**, then
-add a CNAME at your registrar. Cloudflare provisions the cert
-automatically. No other changes needed.
+In the Pages project: **Custom domains → Set up a custom domain**, add the CNAME at
+your registrar, and Cloudflare provisions the certificate automatically. No other
+changes needed.

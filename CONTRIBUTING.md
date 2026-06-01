@@ -1,288 +1,152 @@
 # Contributing to ThreadSeeker
 
-First off, thank you for considering contributing to ThreadSeeker! 🎉
+Thanks for considering a contribution! 🎉 ThreadSeeker is a single TypeScript
+codebase — a Next.js static site plus a few Cloudflare Pages Functions. There is
+**no backend service, no database, and no Python** to set up.
 
 ## Table of Contents
 - [Code of Conduct](#code-of-conduct)
 - [How Can I Contribute?](#how-can-i-contribute)
 - [Development Setup](#development-setup)
+- [The Quality Gate](#the-quality-gate)
+- [Adding a New Source](#adding-a-new-source)
 - [Pull Request Process](#pull-request-process)
 - [Style Guidelines](#style-guidelines)
-- [Community](#community)
 
 ---
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by our Code of Conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to the project maintainers.
-
-### Our Standards
-
-- Be respectful and inclusive
-- Welcome newcomers and help them learn
-- Focus on what is best for the community
-- Show empathy towards other community members
+This project is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By
+participating, you're expected to uphold it. Be respectful, welcome newcomers, and
+focus on what's best for the project.
 
 ---
 
 ## How Can I Contribute?
 
 ### Reporting Bugs
-
-Before creating bug reports, please check existing issues. When you create a bug report, include as many details as possible:
-
-- **Use a clear and descriptive title**
-- **Describe the exact steps to reproduce the problem**
-- **Provide specific examples**
-- **Describe the behavior you observed and what you expected**
-- **Include screenshots if applicable**
-- **Include your environment details** (OS, Node.js version, Python version)
+Check existing issues first. A good bug report has a clear title, exact reproduction
+steps, the query you searched, what you expected vs. what you saw, your
+OS + browser, and a screenshot if it's visual.
 
 ### Suggesting Enhancements
+Open an issue describing the current behavior, the improvement, and why it's useful.
+New **source adapters** are especially welcome — see below.
 
-Enhancement suggestions are tracked as GitHub issues. When creating an enhancement suggestion:
-
-- **Use a clear and descriptive title**
-- **Provide a step-by-step description** of the suggested enhancement
-- **Provide specific examples** to demonstrate the steps
-- **Describe the current behavior** and explain the improved behavior
-- **Explain why this enhancement would be useful**
-
-### Your First Code Contribution
-
-Unsure where to begin? Look for issues labeled:
-- `good first issue` - Issues suitable for newcomers
-- `help wanted` - Issues that need attention
-
-### Pull Requests
-
-1. Fork the repo and create your branch from `main`
-2. If you've added code that should be tested, add tests
-3. Ensure the test suite passes
-4. Make sure your code lints
-5. Issue that pull request!
+### Good First Issues
+Look for the `good first issue` and `help wanted` labels.
 
 ---
 
 ## Development Setup
 
 ### Prerequisites
-- Node.js 18+
-- Python 3.10+
-- Git
+- **Node.js 22+**
+- **git**
 
-### Setup Instructions
+That's the whole list. (Optionally [Wrangler](https://developers.cloudflare.com/workers/wrangler/)
+to run the Pages Functions locally.)
 
-1. **Fork and Clone**
+### Setup
+
 ```bash
-git clone https://github.com/YOUR_USERNAME/RedditSearchEngine.git
-cd RedditSearchEngine
-```
+# 1. Fork, then clone your fork
+git clone https://github.com/YOUR_USERNAME/threadseeker.git
+cd threadseeker/frontend
 
-2. **Backend Setup**
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-echo "GROQ_API_KEY=your_key" > .env
-```
-
-3. **Frontend Setup**
-```bash
-cd ../frontend
+# 2. Install
 npm install
+
+# 3. Run the dev server (direct-CORS sources work without any functions)
+npm run dev            # http://localhost:3000
+
+# 4. (optional) Run with the Pages Functions for the full source set
+NEXT_OUTPUT=export npm run build
+npx wrangler pages dev out   # http://localhost:8788
 ```
 
-4. **Run Development Servers**
+Everything lives under `frontend/`:
+
+```
+frontend/src/
+  app/                  Next.js App Router (page.tsx, layout.tsx)
+  components/           UI — SearchBar, UnifiedProjectCard, shell/, motion/, card/
+  lib/
+    sources/            the search engine:
+      types.ts            shared shapes
+      registry.ts         per-source display config + native search URLs
+      adapters.ts         one function per upstream API
+      index.ts            orchestrator (parallel fan-out, streaming)
+      ranking-bm25.ts     cross-source BM25 re-ranker
+      synonyms.ts         query-expansion dictionary
+      intent.ts           regex intent classifier
+      merge.ts            cross-platform de-duplication
+      resilience.ts       query-relaxation chain
+frontend/functions/api/   Cloudflare Pages Functions (Reddit, Homebrew, F-Droid,
+                          arXiv, CORS proxy)
+```
+
+---
+
+## The Quality Gate
+
+CI runs the exact same checks on every push. Run them locally before opening a PR:
+
 ```bash
-# Terminal 1 - Backend
-cd backend && source venv/bin/activate
-python -m uvicorn main:app --reload --port 8000
-
-# Terminal 2 - Frontend
-cd frontend && npm run dev
+cd frontend
+npm run lint           # ESLint (next lint)
+npx tsc --noEmit       # type-check
+npm run test           # vitest unit suite
+npm run build          # static export build  (set NEXT_OUTPUT=export)
 ```
+
+If you touched ranking, expansion, or adapters, also run the live-API search-quality
+harness and make sure you didn't regress it:
+
+```bash
+npm run backtest       # precision@3 / MRR / winner-at-#1 + per-miss breakdown
+```
+
+---
+
+## Adding a New Source
+
+Sources must be **free** and reachable without a server we operate. A new adapter is
+usually ~40 lines on the existing pattern:
+
+1. Add the source key to `SourceType` in `src/lib/sources/types.ts`.
+2. Add display config (name, icon, color, category) in `src/lib/sources/registry.ts`
+   and a native search URL in `getSourceSearchUrl`.
+3. Write `searchYourSource(query)` in `src/lib/sources/adapters.ts` returning the
+   shared `SearchResult` shape. It must **never throw** — return empty on failure.
+4. Wire it into the orchestrator in `src/lib/sources/index.ts`.
+5. If the upstream blocks CORS, route it through `/api/proxy` (add the host to the
+   allowlist in `functions/api/proxy.ts`); if it has no search API, add a dedicated
+   Pages Function.
+6. Add a copy/install command in `src/lib/actions.ts` if it makes sense.
 
 ---
 
 ## Pull Request Process
 
-1. **Update Documentation**: Update README.md with details of changes if applicable
-2. **Follow Style Guidelines**: Ensure your code follows our style guidelines
-3. **Write Good Commit Messages**: Use conventional commits format
-4. **Test Your Changes**: Make sure everything works as expected
-5. **Update Changelog**: Add your changes to CHANGELOG.md if applicable
-6. **Get Reviews**: Wait for at least one maintainer to review your PR
-7. **Address Feedback**: Make requested changes promptly
-
-### Commit Message Format
-
-We use [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-<type>(<scope>): <subject>
-
-<body>
-
-<footer>
-```
-
-**Types:**
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, etc.)
-- `refactor`: Code refactoring
-- `perf`: Performance improvements
-- `test`: Adding or updating tests
-- `chore`: Maintenance tasks
-
-**Examples:**
-```
-feat(autocomplete): add fuzzy spell-checking with Levenshtein distance
-
-Implemented advanced spell-checking algorithm that catches typos
-not in the dictionary using edit distance calculation.
-
-Closes #123
-```
-
-```
-fix(frontend): resolve trending content not loading instantly
-
-Updated cache checking to run synchronously on mount for instant display.
-
-Fixes #456
-```
+1. Branch from the working branch.
+2. Add tests for new logic; keep the quality gate green.
+3. Use [Conventional Commits](https://www.conventionalcommits.org/)
+   (`feat(scope): …`, `fix(scope): …`, `docs: …`).
+4. Open the PR with a clear description of what changed and why.
 
 ---
 
 ## Style Guidelines
 
-### JavaScript/TypeScript
-
-- Use **ESLint** and **Prettier** (configs provided)
-- Use **TypeScript** for type safety
-- Prefer **functional components** with hooks
-- Use **meaningful variable names**
-- Add **JSDoc comments** for complex functions
-
-**Example:**
-```typescript
-/**
- * Calculates edit distance between two strings using Levenshtein algorithm
- * @param str1 - First string to compare
- * @param str2 - Second string to compare
- * @returns Edit distance between the strings
- */
-function levenshteinDistance(str1: string, str2: string): number {
-  // Implementation...
-}
-```
-
-### Python
-
-- Follow **PEP 8** style guide
-- Use **type hints** for function parameters and returns
-- Add **docstrings** for all functions and classes
-- Keep functions **small and focused**
-- Use **meaningful variable names**
-
-**Example:**
-```python
-def rank_github_results(results: list[GitHubResult], query: str) -> list[GitHubResult]:
-    """
-    Rank GitHub results by relevance to the search query.
-    
-    Args:
-        results: List of GitHub search results
-        query: Original search query
-        
-    Returns:
-        Sorted list of results by relevance score
-    """
-    # Implementation...
-```
-
-### CSS/Styling
-
-- Use **Tailwind CSS** utility classes
-- Follow **mobile-first** approach
-- Use **CSS variables** for theming
-- Keep custom CSS **minimal**
+- **TypeScript** throughout; functional components with hooks.
+- **Tailwind** utility classes; design tokens live in `src/styles/tokens.css` and
+  `src/app/globals.css`. Mobile-first; honor `prefers-reduced-motion`.
+- Match the surrounding code's naming, comment density, and idioms.
+- Keep adapters defensive (never throw) and the result shape normalized.
 
 ---
 
-## Testing
-
-### Frontend Testing
-```bash
-cd frontend
-npm test
-```
-
-### Backend Testing
-```bash
-cd backend
-pytest
-```
-
-### Manual Testing Checklist
-- [ ] Search works across all platforms
-- [ ] Autocomplete suggestions appear correctly
-- [ ] Voice input works (with permission)
-- [ ] Trending content loads instantly
-- [ ] Spell-checking catches typos
-- [ ] Results display correctly
-- [ ] Responsive design works on mobile
-- [ ] Dark mode displays properly
-
----
-
-## Documentation
-
-- Update README.md for user-facing changes
-- Update relevant docs in `/docs` folder
-- Add inline comments for complex logic
-- Update API documentation if backend changes
-- Add examples for new features
-
----
-
-## Community
-
-### Where to Ask Questions
-- **GitHub Discussions**: For general questions and ideas
-- **GitHub Issues**: For bugs and feature requests
-- **Pull Requests**: For code reviews and implementation discussions
-
-### Recognition
-
-Contributors will be recognized in:
-- README.md Contributors section
-- CHANGELOG.md for their contributions
-- Release notes when applicable
-
----
-
-## Additional Notes
-
-### Issue and Pull Request Labels
-
-- `bug`: Something isn't working
-- `enhancement`: New feature or request
-- `documentation`: Documentation improvements
-- `good first issue`: Good for newcomers
-- `help wanted`: Extra attention needed
-- `question`: Further information requested
-- `wontfix`: This will not be worked on
-- `duplicate`: This issue/PR already exists
-
----
-
-## Thank You! 🎉
-
-Your contributions to open source make projects like ThreadSeeker possible. We appreciate your time and effort!
-
-**Happy Coding!** 💻✨
+**Thank you!** Your contributions keep ThreadSeeker useful for everyone searching
+the open-source world. 💻
