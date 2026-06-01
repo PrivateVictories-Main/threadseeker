@@ -1,6 +1,7 @@
 "use client";
 
 import type { UnifiedProject } from "@/lib/sources/types";
+import { Highlight } from "./Highlight";
 import { SourceBadge } from "./card/SourceBadge";
 import { CardActions, type CopyItem } from "./card/CardActions";
 import { PopularityBadge } from "./card/PopularityBadge";
@@ -32,6 +33,9 @@ interface Props {
   index?: number;
   /** Extra outer-ring class (e.g. focus-ring on keyboard-focused card). */
   outerClassName?: string;
+  /** Active free-text query — matched terms get <mark>-highlighted in
+   *  name / description / topics so users see why a card matched. */
+  query?: string;
 }
 
 // Iter-21 / Overhaul G — HF-clean compact card.
@@ -59,6 +63,7 @@ export function UnifiedProjectCard({
   onOpenDetails,
   index,
   outerClassName,
+  query,
 }: Props) {
   const { isBookmarked, toggle } = useBookmark(project);
   const bookmarkControls = useAnimationControls();
@@ -205,7 +210,9 @@ export function UnifiedProjectCard({
           )}
           <h3 className="ts-title">
             <span className="ts-title-main-row">
-              <span className="ts-title-main">{project.name}</span>
+              <span className="ts-title-main">
+              <Highlight text={project.name} query={query} />
+            </span>
               {showVersion && (
                 <span className="ts-version-chip" title={`Latest version ${project.version}`}>
                   v{project.version}
@@ -218,7 +225,9 @@ export function UnifiedProjectCard({
 
         {/* DESCRIPTION — 2-line clamp (HF lean) */}
         {project.description ? (
-          <p className="ts-desc">{project.description}</p>
+          <p className="ts-desc">
+            <Highlight text={project.description} query={query} />
+          </p>
         ) : (
           <p className="ts-desc ts-desc-empty" aria-hidden>
             No description provided.
@@ -241,11 +250,11 @@ export function UnifiedProjectCard({
                   onClick={() => onTopicClick(t)}
                   title={`Search for ${t}`}
                 >
-                  {t}
+                  <Highlight text={t} query={query} />
                 </button>
               ) : (
                 <span key={t} className="topic-chip">
-                  {t}
+                  <Highlight text={t} query={query} />
                 </span>
               ),
             )}

@@ -18,6 +18,7 @@
 // chrome density.
 
 import type { UnifiedProject } from "@/lib/sources/types";
+import { Highlight } from "./Highlight";
 import { motion } from "framer-motion";
 import { Star, ExternalLink, Heart, ChevronRight } from "lucide-react";
 import { useBookmark } from "@/lib/bookmarks";
@@ -37,6 +38,8 @@ interface Props {
   onTopicClick?: (topic: string) => void;
   onOpenDetails?: (project: UnifiedProject) => void;
   focused?: boolean;
+  /** Active free-text query — matched terms get <mark>-highlighted. */
+  query?: string;
   /** Iter-24 — when set and matches this row's project id, picks up
    *  the indigo flash ring (used after the user opens a row's details
    *  drawer). */
@@ -49,6 +52,7 @@ export function ProjectListRow({
   onOpenDetails,
   focused,
   flashId,
+  query,
 }: Props) {
   const { isBookmarked, toggle } = useBookmark(project);
   const cfg = getSourceConfig(project.source);
@@ -120,7 +124,7 @@ export function ProjectListRow({
           className="ts-list-name"
           title={project.fullName}
         >
-          {project.name}
+          <Highlight text={project.name} query={query} />
         </a>
         <div className="ts-list-meta">
           <span className="ts-list-source">
@@ -150,7 +154,9 @@ export function ProjectListRow({
 
       {/* Description — 1-line clamp, hidden under sm. */}
       {project.description && (
-        <p className="ts-list-desc">{project.description}</p>
+        <p className="ts-list-desc">
+          <Highlight text={project.description} query={query} />
+        </p>
       )}
 
       {/* Stats + actions cluster on the right. */}

@@ -1136,6 +1136,7 @@ export default function Home() {
                               key={project.id}
                               project={project}
                               index={idx}
+                              query={parsedQuery.freeText || query}
                               onToast={showToast}
                               onTopicClick={(topic) => handleSearch(topic)}
                               onOpenDetails={(p) => {
@@ -1164,6 +1165,7 @@ export default function Home() {
                                 key={project.id}
                                 project={project}
                                 index={idx}
+                                query={parsedQuery.freeText || query}
                                 onToast={showToast}
                                 onTopicClick={(topic) => handleSearch(topic)}
                                 onOpenDetails={(p) => {
