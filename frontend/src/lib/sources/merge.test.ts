@@ -97,6 +97,30 @@ describe("mergeRelatedProjects", () => {
     expect(merged.length).toBe(2);
   });
 
+  it("picks the canonical source by priority, not by comparing stars-vs-downloads across sources", () => {
+    // A WordPress plugin with huge install counts must NOT out-rank the primary
+    // npm package as the canonical card just because installs > 0. Same shared
+    // description so they merge; npm (registry) outranks wordpress.
+    const npm = project({
+      source: "npm",
+      name: "gallery",
+      fullName: "gallery",
+      description: "responsive image gallery lightbox component",
+      downloads: 5_000,
+    });
+    const wordpress = project({
+      source: "wordpress",
+      name: "gallery",
+      fullName: "gallery",
+      description: "responsive image gallery lightbox component",
+      downloads: 2_000_000,
+    });
+    const merged = mergeRelatedProjects([wordpress, npm]);
+    expect(merged.length).toBe(1);
+    expect(merged[0].source).toBe("npm");
+    expect(merged[0].relatedSources?.some((r) => r.source === "wordpress")).toBe(true);
+  });
+
   it("GitHub repo wins over package registry as the primary card", () => {
     const github = project({
       source: "github",

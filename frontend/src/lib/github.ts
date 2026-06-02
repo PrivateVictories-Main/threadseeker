@@ -56,3 +56,45 @@ export async function ghJson<T = unknown>(githubUrl: string): Promise<T | null> 
     return null;
   }
 }
+
+// Per-session cache for repo language breakdowns (owner/repo -> percent map, or
+// null when unavailable). Mirrors the README excerpt cache so re-opening the
+// same repo's drawer — or opening it after a transient 403 — doesn't re-spend
+// the core API budget.
+const languageCache = new Map<string, Record<string, number> | null>();
+
+/**
+ * Real GitHub language breakdown as percentages, e.g. { TypeScript: 97.9, ... }.
+ * Returns null (cached) when the repo has no languages, the call fails, or the
+ * source isn't a "owner/repo" GitHub fullName.
+ */
+export async function fetchRepoLanguages(
+  fullName: string,
+): Promise<Record<string, number> | null> {
+  if (!fullName.includes("/")) return null;
+  if (languageCache.has(fullName)) return languageCache.get(fullName)!;
+  let result: Record<string, number> | null = null;
+  try {
+    const res = await ghFetch(
+      `https://api.github.com/repos/${fullName}/languages`,
+    );
+    if (res && res.ok) {
+      const data = (await res.json()) as Record<string, unknown>;
+      const total = Object.values(data).reduce<number>(
+        (s, v) => s + (typeof v === "number" ? v : 0),
+        0,
+      );
+      if (total > 0) {
+        const pct: Record<string, number> = {};
+        for (const [k, v] of Object.entries(data)) {
+          if (typeof v === "number") pct[k] = (v / total) * 100;
+        }
+        result = pct;
+      }
+    }
+  } catch {
+    /* keep null */
+  }
+  languageCache.set(fullName, result);
+  return result;
+}

@@ -61,11 +61,21 @@ export function mergeRelatedProjects(projects: UnifiedProject[]): UnifiedProject
     else groups.set(fp, [p]);
   }
 
-  const repoRank: Record<string, number> = {
-    github: 3,
-    gitlab: 2,
-    codeberg: 1,
+  // Canonical-source priority for picking the primary card of a merged group.
+  // Repos first, then primary package registries, then app stores / model hubs,
+  // then papers, then community threads. This avoids comparing incommensurable
+  // numbers (a 50k-star HF model vs a 1M-download npm pkg) across sources — the
+  // numeric popularity tiebreak only applies WITHIN the same source.
+  const sourceRank: Record<string, number> = {
+    github: 100, gitlab: 90, codeberg: 80,
+    npm: 72, pypi: 72, crates: 72, maven: 68, nuget: 68, rubygems: 66, packagist: 66,
+    conda: 62, huggingface: 60, jsr: 56, hex: 56,
+    dockerhub: 52, homebrew: 50, flathub: 50, fdroid: 48, openvsx: 46, aur: 44, wordpress: 40,
+    arxiv: 30, paperswithcode: 30, zenodo: 26,
+    stackoverflow: 12, hackernews: 10, reddit: 10, lobsters: 10, devto: 10,
   };
+  const popSignal = (p: UnifiedProject) =>
+    p.stars || p.downloads || p.weeklyDownloads || 0;
 
   const merged: UnifiedProject[] = [];
   for (const bucket of groups.values()) {
@@ -84,10 +94,11 @@ export function mergeRelatedProjects(projects: UnifiedProject[]): UnifiedProject
         continue;
       }
       const primary = [...sub].sort((a, b) => {
-        const ra = repoRank[a.source] ?? 0;
-        const rb = repoRank[b.source] ?? 0;
+        const ra = sourceRank[a.source] ?? 0;
+        const rb = sourceRank[b.source] ?? 0;
         if (ra !== rb) return rb - ra;
-        return (b.stars || b.downloads || 0) - (a.stars || a.downloads || 0);
+        // same (or equal-rank) source → compare a consistent popularity unit
+        return popSignal(b) - popSignal(a);
       })[0];
 
       const related: RelatedSource[] = sub

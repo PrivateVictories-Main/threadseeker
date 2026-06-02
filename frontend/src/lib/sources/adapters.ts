@@ -125,8 +125,13 @@ export async function searchGitHub(
       language: item.language,
       topics: item.topics || [],
       author: {
-        name: item.owner.login,
-        avatar: item.owner.avatar_url || `https://github.com/${item.owner.login}.png?size=96`,
+        // Optional-chain: a deleted/suspended/abuse-flagged owner is null, and
+        // an unguarded deref here throws out of .map() (outside the try/catch),
+        // silently zeroing the entire flagship GitHub source for the whole run.
+        name: item.owner?.login || item.full_name?.split("/")[0] || "unknown",
+        avatar:
+          item.owner?.avatar_url ||
+          (item.owner?.login ? `https://github.com/${item.owner.login}.png?size=96` : ""),
       },
       updatedAt: item.updated_at,
       license: item.license?.name || item.license?.spdx_id,
@@ -321,11 +326,12 @@ export async function searchArxiv(query: string): Promise<SearchResult> {
         return Number.isNaN(d.getTime()) ? undefined : d.getUTCFullYear();
       })();
       const authors = Array.isArray(p.authors) ? (p.authors as string[]) : [];
+      const pid = String(p.id || p.url || "");
       return {
-        id: `arxiv-${p.id}`,
+        id: `arxiv-${pid || p.title || "item"}`,
         source: "arxiv" as const,
-        name: p.title,
-        fullName: p.id.replace(/^https?:\/\/arxiv\.org\/abs\//, "arXiv:"),
+        name: p.title || "Untitled",
+        fullName: pid.replace(/^https?:\/\/arxiv\.org\/abs\//, "arXiv:") || "arXiv",
         description: p.summary || null,
         url: p.url,
         stars: 0,

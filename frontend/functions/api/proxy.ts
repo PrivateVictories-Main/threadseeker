@@ -4,7 +4,7 @@
 // is not a general-purpose open proxy.
 //
 // Every entry here is a public, read-only JSON endpoint.
-import { corsPreflight, jsonResponse } from "../_shared/http";
+import { corsPreflight, jsonResponse, crossOriginBlocked } from "../_shared/http";
 
 const HOST_ALLOWLIST = new Set<string>([
   "hub.docker.com",
@@ -29,6 +29,10 @@ const HOST_ALLOWLIST = new Set<string>([
 export const onRequestOptions: PagesFunction = async () => corsPreflight();
 
 export const onRequestGet: PagesFunction = async ({ request }) => {
+  // Block cross-origin browser abuse of the relay (same-origin GET passes;
+  // a foreign site's fetch is rejected). Origin-less callers stay allowed.
+  const blocked = crossOriginBlocked(request);
+  if (blocked) return blocked;
   const url = new URL(request.url);
   const target = url.searchParams.get("url");
   if (!target) return jsonResponse({ detail: "Missing ?url" }, 400);

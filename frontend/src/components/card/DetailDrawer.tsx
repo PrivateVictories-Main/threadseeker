@@ -24,7 +24,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X, ExternalLink } from "lucide-react";
 import type { UnifiedProject } from "@/lib/sources/types";
 import { fetchReadmeExcerpt, supportsReadme } from "@/lib/readme";
-import { ghFetch } from "@/lib/github";
+import { fetchRepoLanguages } from "@/lib/github";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { LanguageBar } from "./LanguageBar";
 import { CardMedia } from "./CardMedia";
@@ -64,26 +64,11 @@ export function DetailDrawer({ project, open, onClose }: Props) {
   // composition instead of a single fallback "100%" segment.
   useEffect(() => {
     if (!open || !project || project.source !== "github") return;
-    if (!project.fullName.includes("/") || langBreakdown) return;
+    if (langBreakdown) return;
     let cancelled = false;
-    ghFetch(`https://api.github.com/repos/${project.fullName}/languages`)
-      .then((r) => (r && r.ok ? r.json() : null))
-      .then((data: Record<string, number> | null) => {
-        if (cancelled || !data || typeof data !== "object") return;
-        const total = Object.values(data).reduce(
-          (s, v) => s + (typeof v === "number" ? v : 0),
-          0,
-        );
-        if (total <= 0) return;
-        const pct: Record<string, number> = {};
-        for (const [k, v] of Object.entries(data)) {
-          if (typeof v === "number") pct[k] = (v / total) * 100;
-        }
-        setLangBreakdown(pct);
-      })
-      .catch(() => {
-        /* network/cors/rate-limit — keep the single-language fallback */
-      });
+    fetchRepoLanguages(project.fullName).then((pct) => {
+      if (!cancelled && pct) setLangBreakdown(pct);
+    });
     return () => {
       cancelled = true;
     };

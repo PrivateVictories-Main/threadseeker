@@ -13,7 +13,7 @@
 //
 // Optional ?accept= lets callers request a non-JSON media type (e.g. the raw
 // README endpoint uses application/vnd.github.v3.raw).
-import { corsPreflight, jsonResponse } from "../_shared/http";
+import { corsPreflight, jsonResponse, crossOriginBlocked } from "../_shared/http";
 
 interface Env {
   GITHUB_TOKEN?: string;
@@ -25,6 +25,11 @@ const CACHE_TTL = 300; // 5 min — fresh enough to feel live, cheap enough to d
 export const onRequestOptions: PagesFunction = async () => corsPreflight();
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+  // Block cross-origin browser abuse of the token-authed relay (same-origin GET
+  // sends no Origin and passes; a foreign site's fetch is rejected). Origin-less
+  // callers stay allowed — the dashboard rate-limit rule is the backstop there.
+  const blocked = crossOriginBlocked(request);
+  if (blocked) return blocked;
   const url = new URL(request.url);
   const target = url.searchParams.get("url");
   const accept =
