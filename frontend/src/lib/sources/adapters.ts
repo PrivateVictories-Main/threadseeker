@@ -288,7 +288,11 @@ export async function searchHuggingFace(
   );
   for (const items of responses) {
     for (const item of items) {
-      if (item && !seenIds.has(item.id)) {
+      // Require a string id at ingestion — the .map() below does
+      // item.id.split("/") OUTSIDE the try/catch, so a missing/non-string id
+      // would throw and zero the whole HuggingFace source (same class as the
+      // GitHub owner-null bug).
+      if (item && typeof item.id === "string" && !seenIds.has(item.id)) {
         seenIds.add(item.id);
         allItems.push(item);
       }

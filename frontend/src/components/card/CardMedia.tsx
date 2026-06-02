@@ -34,8 +34,11 @@ export function CardMedia({
   const [ogFailed, setOgFailed] = useState(false);
   const brand = getBrandMark(source);
   const withinOgBudget = index === undefined || index < OG_IMAGE_LIMIT;
-  const showOg =
-    source === "github" && fullName.includes("/") && !ogFailed && withinOgBudget;
+  // Shape-validate owner/repo (safe path chars, exactly one slash) before
+  // interpolating into the OG image URL — a name with #/? could otherwise
+  // alter the request path/query. Falls back to the branded cover if invalid.
+  const isRepoPath = /^[\w.-]+\/[\w.-]+$/.test(fullName);
+  const showOg = source === "github" && isRepoPath && !ogFailed && withinOgBudget;
 
   if (showOg) {
     return (

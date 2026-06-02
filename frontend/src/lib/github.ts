@@ -71,7 +71,8 @@ const languageCache = new Map<string, Record<string, number> | null>();
 export async function fetchRepoLanguages(
   fullName: string,
 ): Promise<Record<string, number> | null> {
-  if (!fullName.includes("/")) return null;
+  // Shape-validate owner/repo before interpolating into the API path.
+  if (!/^[\w.-]+\/[\w.-]+$/.test(fullName)) return null;
   if (languageCache.has(fullName)) return languageCache.get(fullName)!;
   let result: Record<string, number> | null = null;
   try {

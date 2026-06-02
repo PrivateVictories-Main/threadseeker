@@ -32,6 +32,13 @@ import { toast } from "sonner";
 const HISTORY_KEY = "threadseeker:history:v1";
 const HISTORY_MAX = 8;
 
+// Valid intent labels the AI layer may return (mirrors the Intent union) — used
+// to validate ai.intent before letting it override the regex classifier.
+const AI_INTENTS = new Set([
+  "project_search", "how_to", "recommendation", "comparison",
+  "troubleshooting", "model_search", "general",
+]);
+
 // Per-tab cache of merged result sets so retyping a recent query or popping
 // back via browser history returns instantly instead of re-running every
 // source. Cap + TTL keep sessionStorage bounded.
@@ -203,6 +210,13 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
           if (searchRunIdRef.current !== runId) return;
           if (ai && ai.keyTerms.length > 0) {
             fetchQuery = ai.keyTerms.join(" ");
+          }
+          // Prefer the AI's intent over the regex classifier when it returned a
+          // valid label — the AI fires on exactly the long/ambiguous queries
+          // where the regex is weakest, and its intent feeds per-source ranking
+          // weights + the accent hue. (Was previously fetched and discarded.)
+          if (ai && AI_INTENTS.has(ai.intent)) {
+            expansion.intent = ai.intent as typeof expansion.intent;
           }
         }
         const hueByIntent: Record<string, number> = {
