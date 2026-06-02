@@ -15,18 +15,27 @@ import { getSourceConfig } from "@/lib/sources";
 //                       color + a large watermark of its real logo (or its
 //                       lucide glyph when no brand mark exists), with the
 //                       primary language called out.
+// Bound the number of heavy (~1200px) GitHub OG-banner requests: only the top
+// cards load the real banner; deeper GitHub cards fall back to the near-free
+// branded cover, so a broad query doesn't fire 100+ image requests.
+const OG_IMAGE_LIMIT = 36;
+
 export function CardMedia({
   source,
   fullName,
   language,
+  index,
 }: {
   source: SourceType;
   fullName: string;
   language?: string | null;
+  index?: number;
 }) {
   const [ogFailed, setOgFailed] = useState(false);
   const brand = getBrandMark(source);
-  const showOg = source === "github" && fullName.includes("/") && !ogFailed;
+  const withinOgBudget = index === undefined || index < OG_IMAGE_LIMIT;
+  const showOg =
+    source === "github" && fullName.includes("/") && !ogFailed && withinOgBudget;
 
   if (showOg) {
     return (

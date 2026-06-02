@@ -167,6 +167,7 @@ export function UnifiedProjectCard({
           source={project.source}
           fullName={project.fullName}
           language={project.language}
+          index={index}
         />
 
         {/* TOP ROW — source badge · popularity (text-only) · bookmark */}
