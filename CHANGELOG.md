@@ -37,7 +37,7 @@ Heavy security/quality audit pass. **29 live sources** (prior entries said 24).
 - Crawlable `<a href="/?q=…">` example chips, `rel=canonical`, generated
   `app/sitemap.ts`.
 - Pages Functions test harness + `useSearch` hook tests + a deterministic
-  ranking-quality gate (P@3 = 1.0) — **162 tests**; `@vitest/coverage-v8` +
+  ranking-quality gate; `@vitest/coverage-v8` +
   `test:coverage`.
 - Re-enabled `no-unused-vars` (error) / `no-explicit-any` (warn); deleted dead
   code (`actions.ts`, `Sparkline`).

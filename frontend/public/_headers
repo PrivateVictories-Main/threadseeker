@@ -10,8 +10,10 @@
 /_next/static/*
   Cache-Control: public, max-age=31536000, immutable
 
-# Generated metadata image.
+# Generated metadata image. Served extensionless, so set the type explicitly —
+# with the global nosniff, social scrapers can't recover it via MIME-sniffing.
 /opengraph-image
+  Content-Type: image/png
   Cache-Control: public, max-age=86400
 
 # CSP notes:

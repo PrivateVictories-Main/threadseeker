@@ -13,3 +13,10 @@
 name = "threadseeker"
 pages_build_output_dir = "out"
 compatibility_date = "2026-06-01"
+
+# Turn on Workers Logs for the Pages Functions so production errors (a throttled
+# upstream, a down Groq, a proxy 502) are observable instead of vanishing — the
+# first step out of "operationally blind". A real RUM beacon is the next step.
+[observability]
+enabled = true
+

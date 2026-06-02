@@ -124,7 +124,8 @@ usually ~40 lines on the existing pattern:
 5. If the upstream blocks CORS, route it through `/api/proxy` (add the host to the
    allowlist in `functions/api/proxy.ts`); if it has no search API, add a dedicated
    Pages Function.
-6. Add a copy/install command in `src/lib/actions.ts` if it makes sense.
+6. Add a copy/install command via `copyItemsForSource()` in
+   `src/components/card/helpers.ts` if it makes sense.
 
 ---
 
