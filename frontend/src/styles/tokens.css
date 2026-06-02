@@ -35,8 +35,10 @@
   /* Text — explicit dark inks, high contrast on light surfaces. */
   --ts-text: #0f172a;
   --ts-text-muted: #334155;
-  --ts-text-subtle: #64748b;
-  --ts-text-faint: #94a3b8;
+  --ts-text-subtle: #475569;
+  /* faint is used on real informational text (labels, captions, timestamps),
+     so it must clear WCAG AA (4.5:1) on white — #94a3b8 was 2.5:1. */
+  --ts-text-faint: #64748b;
 
   /* Iter-21 / Overhaul G — Spotify bubbly radii. Cards/sheets/drawer
      bump 18 → 22; mid panels stay 12; small chrome bumps 8 → 10 so
@@ -104,8 +106,9 @@
   /* Text — light inks on dark glass. */
   --ts-text: #e7ecf5;
   --ts-text-muted: #c2ccde;
-  --ts-text-subtle: #94a3b8;
-  --ts-text-faint: #6b7894;
+  --ts-text-subtle: #aab6cd;
+  /* AA on dark glass — #6b7894 was ~3.8:1. */
+  --ts-text-faint: #97a3ba;
 
   /* Shadows — deeper/blacker with wider spread for floating-on-dark depth. */
   --ts-shadow-sm:

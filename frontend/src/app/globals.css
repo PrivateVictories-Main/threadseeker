@@ -282,6 +282,11 @@ body::before {
      the body background's own transition cadence. */
   transition: background 800ms ease;
 }
+/* On dark, the 78-92%-lightness spots read as bright corner-glows on near-black;
+   dim the whole layer so it stays ambient mood-lighting, not headlights. */
+.dark body::before {
+  opacity: 0.4;
+}
 
 /* Subtle grain overlay — Overhaul D premium touch.
    Inline SVG turbulence + tiny opacity gives every page a faint texture
@@ -402,6 +407,7 @@ body > * {
 
 @supports not (backdrop-filter: blur(1px)) {
   .glass, .glass-strong, .glass-sticky { background: rgba(255, 255, 255, 0.96); }
+  .dark .glass, .dark .glass-strong, .dark .glass-sticky { background: rgba(33, 40, 64, 0.97); }
 }
 
 /* Selection — indigo-soft so the selected text reads inside the brand
@@ -547,6 +553,9 @@ body > * {
   pointer-events: none;
   opacity: 0;
   z-index: 2;
+  /* soft-light blends the highlight INTO the content beneath instead of
+     washing a flat indigo film over the card text under the cursor. */
+  mix-blend-mode: soft-light;
   background: radial-gradient(
     240px circle at var(--mx, 50%) var(--my, 50%),
     rgba(99, 102, 241, 0.12),
@@ -2066,6 +2075,11 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
      The shadow is indigo-tinted to harmonize with the floating blobs. */
   text-shadow: 0 2px 12px rgba(99, 102, 241, 0.10), 0 1px 2px rgba(30, 27, 75, 0.06);
   text-rendering: geometricPrecision;
+}
+/* On dark the light-indigo shadow reads as a halo, not depth — use a real
+   dark drop-shadow instead. */
+.dark .ts-hero-headline {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 @media (min-width: 400px) {
   .ts-hero-headline { font-size: 52px; }
@@ -4283,7 +4297,9 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 10.5px;
   letter-spacing: 0.04em;
-  color: #1e40af;
+  /* token-driven so it stays legible in dark (was hardcoded #1e40af = 1.92:1
+     on dark glass). */
+  color: var(--ts-accent-strong);
   background: rgba(99, 102, 241, 0.08);
   padding: 2px 7px;
   border-radius: 6px;
@@ -4795,6 +4811,11 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
     border-color: rgba(99, 102, 241, 0.45);
     color: var(--ts-accent-strong);
   }
+  .dark .ts-discover-chip:hover {
+    background: rgba(44, 52, 82, 0.94);
+    border-color: rgba(129, 140, 248, 0.45);
+    color: var(--ts-accent-strong);
+  }
 }
 
 .ts-discover-chip:active {
@@ -4802,11 +4823,9 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
 }
 
 .ts-discover-chip.is-primary {
-  background: linear-gradient(
-    180deg,
-    rgba(99, 102, 241, 0.96),
-    rgba(124, 58, 237, 0.96)
-  );
+  /* Use the ownable indigo-to-azure accent gradient (was indigo-to-violet,
+     the one CTA still carrying the retired violet). */
+  background: var(--ts-accent-gradient);
   color: #ffffff;
   border-color: transparent;
   box-shadow: 0 6px 18px -8px rgba(99, 102, 241, 0.55);
@@ -4815,11 +4834,7 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
 
 @media (hover: hover) {
   .ts-discover-chip.is-primary:hover {
-    background: linear-gradient(
-      180deg,
-      rgba(79, 82, 221, 1),
-      rgba(104, 38, 217, 1)
-    );
+    background: linear-gradient(135deg, #4338ca, #2563eb);
     color: #ffffff;
   }
 }
