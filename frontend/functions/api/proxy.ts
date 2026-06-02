@@ -41,8 +41,8 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
   if (parsed.protocol !== "https:") {
     return jsonResponse({ detail: "Only https allowed" }, 400);
   }
-  if (!HOST_ALLOWLIST.has(parsed.host)) {
-    return jsonResponse({ detail: `Host not allowlisted: ${parsed.host}` }, 400);
+  if (!HOST_ALLOWLIST.has(parsed.hostname)) {
+    return jsonResponse({ detail: `Host not allowlisted: ${parsed.hostname}` }, 400);
   }
 
   const cacheKey = new Request(request.url, { method: "GET" });

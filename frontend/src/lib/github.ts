@@ -26,11 +26,16 @@ export async function ghFetch(
         githubUrl,
       )}&accept=${encodeURIComponent(accept)}`;
       const res = await fetch(proxied);
-      // res.ok → authed proxy succeeded. Any non-ok (incl. 404 when the
-      // function isn't running under `next dev`) falls through to direct.
       if (res.ok) return res;
+      // Only fall through to a direct (unauthenticated) call when the proxy
+      // itself is ABSENT — a 404 from `next dev` serving the static 404 page
+      // (no Pages Functions). A non-404 status means the proxy ran and relayed
+      // a real GitHub response (e.g. 403 rate-limit, 422): an unauthenticated
+      // retry would be strictly worse AND double-bill the shared limit, so
+      // return the proxy's response and let the caller treat it as empty.
+      if (res.status !== 404) return res;
     } catch {
-      /* fall through to direct */
+      /* network error → fall through to a direct attempt */
     }
   }
   try {

@@ -34,14 +34,18 @@ const INTENT_PATTERNS: Record<Exclude<Intent, "general">, RegExp[]> = {
   ],
 };
 
+// Per-source ranking nudges by detected intent (multiplied by INTENT_SCALE in
+// the ranker). Extended beyond github/reddit/huggingface to the sources that
+// genuinely align with each intent — so a how-to lifts Q&A/blog sources and a
+// model query lifts the ML-paper sources, not just the original three.
 export const INTENT_WEIGHTS: Record<Intent, Record<string, number>> = {
-  project_search: { github: 0.7, reddit: 0.2, huggingface: 0.1 },
-  how_to: { reddit: 0.6, github: 0.3, huggingface: 0.1 },
-  recommendation: { reddit: 0.6, github: 0.25, huggingface: 0.15 },
-  comparison: { reddit: 0.5, github: 0.3, huggingface: 0.2 },
-  troubleshooting: { reddit: 0.7, github: 0.2, huggingface: 0.1 },
-  model_search: { huggingface: 0.7, github: 0.2, reddit: 0.1 },
-  general: { github: 0.4, reddit: 0.4, huggingface: 0.2 },
+  project_search: { github: 0.7, gitlab: 0.3, codeberg: 0.25, reddit: 0.2, huggingface: 0.1 },
+  how_to: { stackoverflow: 0.45, reddit: 0.4, devto: 0.3, github: 0.25, huggingface: 0.1 },
+  recommendation: { reddit: 0.5, lobsters: 0.3, github: 0.25, devto: 0.2, huggingface: 0.15 },
+  comparison: { reddit: 0.45, devto: 0.3, stackoverflow: 0.3, github: 0.3, huggingface: 0.2 },
+  troubleshooting: { stackoverflow: 0.6, reddit: 0.4, github: 0.2, lobsters: 0.15 },
+  model_search: { huggingface: 0.7, paperswithcode: 0.3, arxiv: 0.25, github: 0.2 },
+  general: { github: 0.4, reddit: 0.3, huggingface: 0.2, stackoverflow: 0.15 },
 };
 
 export function classifyIntent(query: string): {

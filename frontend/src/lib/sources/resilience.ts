@@ -79,6 +79,11 @@ const FILLER_WORDS = new Set([
   "ive", "id", "dont", "let", "lets", "get", "getting", "know", "ideally",
   "basically", "essentially", "prefer", "preferably", "open", "source",
   "opensource", "project", "projects", "tool", "tools", "thing", "things",
+  // interrogatives / quantifiers / comparison framing — non-content in a
+  // natural-language query ("which X is best", "how do I", "most popular Y").
+  "which", "what", "how", "most", "more", "all", "vs", "versus", "between",
+  "alternative", "alternatives", "compare", "comparison", "difference",
+  "does", "do", "is", "are",
 ]);
 
 /** Extract the meaningful content terms from a query: significant tokens with
