@@ -65,6 +65,7 @@ export async function searchGitHub(
   query: string,
   page: number = 1,
   deepSearch: boolean = true,
+  signal?: AbortSignal,
 ): Promise<SearchResult> {
   const allResults: any[] = [];
   const seenIds = new Set<number>();
@@ -87,6 +88,8 @@ export async function searchGitHub(
       try {
         const response = await ghFetch(
           `https://api.github.com/search/repositories?${params}`,
+          undefined,
+          signal,
         );
         if (!response || !response.ok) {
           if (response?.status === 403) console.warn("GitHub rate limit reached");

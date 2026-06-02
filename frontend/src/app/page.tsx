@@ -178,6 +178,10 @@ export default function Home() {
   }, []);
   const initialLoadDone = useRef(false);
   const searchRunIdRef = useRef(0);
+  // Aborts the in-flight search when a newer one supersedes it — cancels the
+  // GitHub network calls (rate-sensitive) and lets the orchestrator stop
+  // awaiting the rest, instead of letting abandoned fan-outs run to completion.
+  const searchAbortRef = useRef<AbortController | null>(null);
   const resultsGridRef = useRef<HTMLDivElement | null>(null);
   const lastSubmittedRef = useRef<string>("");
 
@@ -241,6 +245,12 @@ export default function Home() {
       searchRunIdRef.current += 1;
       const runId = searchRunIdRef.current;
       const startedAt = performance.now();
+
+      // Cancel the previous in-flight search before starting this one.
+      searchAbortRef.current?.abort();
+      const abortController = new AbortController();
+      searchAbortRef.current = abortController;
+      const signal = abortController.signal;
 
       setQuery(q);
       setProjects([]);
@@ -368,6 +378,7 @@ export default function Home() {
               });
             }
           },
+          signal,
         );
 
         if (searchRunIdRef.current !== runId) return;
@@ -430,6 +441,7 @@ export default function Home() {
               // confuse the "X of N sources" indicator. We've already
               // marked the strict pass as done.
               undefined,
+              signal,
             );
             if (searchRunIdRef.current !== runId) return;
 
@@ -595,6 +607,7 @@ export default function Home() {
 
   const handleClear = useCallback(() => {
     searchRunIdRef.current += 1;
+    searchAbortRef.current?.abort();
     setQuery("");
     setProjects([]);
     setIsLoading(false);

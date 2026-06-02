@@ -112,6 +112,7 @@ export async function searchAllSources(
   deepSearch: boolean = true,
   queryOverrides: Partial<Record<SourceType, string>> = {},
   onProgress?: SearchProgressCallback,
+  signal?: AbortSignal,
 ): Promise<UnifiedProject[]> {
   const q = (source: SourceType) => queryOverrides[source] || query;
   let remaining = sources.length;
@@ -126,13 +127,26 @@ export async function searchAllSources(
         PER_SOURCE_TIMEOUT_MS,
       ),
     );
-    return Promise.race([work(), timeout]);
+    // When a newer search supersedes this run, stop awaiting this source
+    // immediately (its result would be discarded anyway by the caller's
+    // run-id guard). The GitHub path additionally cancels its network call.
+    const aborted = new Promise<never>((_, reject) => {
+      if (!signal) return;
+      if (signal.aborted) {
+        reject(new Error(`${label} aborted`));
+      } else {
+        signal.addEventListener("abort", () => reject(new Error(`${label} aborted`)), {
+          once: true,
+        });
+      }
+    });
+    return Promise.race([work(), timeout, aborted]);
   };
 
   const runSource = async (source: SourceType): Promise<SearchResult> => {
     switch (source) {
       case "github":
-        return searchGitHub(q("github"), 1, deepSearch);
+        return searchGitHub(q("github"), 1, deepSearch, signal);
       case "huggingface":
         return searchHuggingFace(q("huggingface"), 1, deepSearch);
       case "gitlab":

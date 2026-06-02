@@ -19,13 +19,14 @@ const GH_DEFAULT_ACCEPT = "application/vnd.github.v3+json";
 export async function ghFetch(
   githubUrl: string,
   accept: string = GH_DEFAULT_ACCEPT,
+  signal?: AbortSignal,
 ): Promise<Response | null> {
   if (BASE !== "disabled") {
     try {
       const proxied = `${BASE}/api/gh?url=${encodeURIComponent(
         githubUrl,
       )}&accept=${encodeURIComponent(accept)}`;
-      const res = await fetch(proxied);
+      const res = await fetch(proxied, { signal });
       if (res.ok) return res;
       // Only fall through to a direct (unauthenticated) call when the proxy
       // itself is ABSENT — a 404 from `next dev` serving the static 404 page
@@ -39,7 +40,7 @@ export async function ghFetch(
     }
   }
   try {
-    return await fetch(githubUrl, { headers: { Accept: accept } });
+    return await fetch(githubUrl, { headers: { Accept: accept }, signal });
   } catch {
     return null;
   }
