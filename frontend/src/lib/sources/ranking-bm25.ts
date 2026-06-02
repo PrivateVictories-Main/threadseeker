@@ -166,16 +166,21 @@ export function rankCorpus(
       score += Math.min(p.popularityScore, 1) * 2400;
     }
 
-    // Recency — guard against blank/invalid updatedAt. Many registries don't
-    // expose a timestamp (they set updatedAt=""), so an unknown age is an
-    // EXPLICIT neutral: no freshness boost AND no staleness penalty. Previously
-    // this relied on `new Date("")` → NaN making every comparison incidentally
-    // false; making it explicit keeps blank-timestamp sources from being
-    // accidentally swept into a band (and lets a regression test pin it).
-    const updatedTs = p.updatedAt ? new Date(p.updatedAt).getTime() : NaN;
+    // Archived/read-only repos are dead ends — a heavy penalty so a deprecated
+    // 40k-star repo can't out-rank a maintained exact match.
+    if (p.archived) score -= 1800;
+
+    // Recency — prefer pushedAt (last commit = true activity) over updatedAt
+    // (bumps on any metadata change). Guard against blank/invalid timestamps:
+    // an unknown age is an EXPLICIT neutral (no boost, no penalty), rather than
+    // relying on `new Date("")` → NaN making comparisons incidentally false.
+    const recencyStamp = p.pushedAt || p.updatedAt;
+    const updatedTs = recencyStamp ? new Date(recencyStamp).getTime() : NaN;
     const hasAge = !Number.isNaN(updatedTs);
     const ageDays = hasAge ? (Date.now() - updatedTs) / 86_400_000 : Infinity;
-    if (hasAge) {
+    // Archived repos never count as fresh OR trending — only the penalty above.
+    const fresh = hasAge && !p.archived;
+    if (fresh) {
       if (ageDays < 7) score += 500;
       else if (ageDays < 30) score += 300;
       else if (ageDays < 90) score += 150;
@@ -203,9 +208,10 @@ export function rankCorpus(
     if (intentWeight) score += intentWeight * INTENT_SCALE;
 
     // Trending — only when we actually know the age (unknown age must not
-    // count as "recent" just because the sentinel compares low).
-    if (hasAge && p.stars >= 1000 && ageDays < 90) score += 800;
-    if (hasAge && p.stars >= 10_000 && ageDays < 180) score += 400;
+    // count as "recent" just because the sentinel compares low) and the repo
+    // isn't archived.
+    if (fresh && p.stars >= 1000 && ageDays < 90) score += 800;
+    if (fresh && p.stars >= 10_000 && ageDays < 180) score += 400;
 
     // Zero-signal penalty
     const noStars = p.stars === 0;

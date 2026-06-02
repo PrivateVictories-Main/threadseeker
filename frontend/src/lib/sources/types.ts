@@ -80,6 +80,11 @@ export interface UnifiedProject {
   forks?: number;
   openIssues?: number;
   watchers?: number;
+  // Repo lifecycle: archived/read-only repos are heavily de-prioritized in
+  // ranking. pushedAt (last commit) is a truer activity/staleness signal than
+  // updatedAt (which bumps on any metadata change, e.g. a new star).
+  archived?: boolean;
+  pushedAt?: string;
 
   // Package-shape metrics (npm / pypi / etc)
   weeklyDownloads?: number;

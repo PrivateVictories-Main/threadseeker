@@ -117,9 +117,13 @@ export function coreSearchQuery(raw: string, maxTerms = 6): string {
   return key.length > 0 ? key.join(" ") : trimmed;
 }
 
-/** Pick the longest significant token. Ties broken by appearance order. */
+/** Pick the longest CONTENT token (query-framing filler excluded). Relaxing to
+ *  a filler word like "lightweight" or "need" broadens away from the user's
+ *  intent; prefer key terms, falling back to significant tokens only if the
+ *  query is all filler. Ties broken by appearance order. */
 export function pickDistinctiveToken(raw: string): string | null {
-  const toks = significantTokens(raw);
+  const key = extractKeyTerms(raw);
+  const toks = key.length > 0 ? key : significantTokens(raw);
   if (toks.length === 0) return null;
   let best = toks[0];
   for (const t of toks) {
@@ -128,11 +132,11 @@ export function pickDistinctiveToken(raw: string): string | null {
   return best;
 }
 
-/** First significant token (raw appearance order). Used as the absolute
- *  last-resort relaxation plan. */
+/** First CONTENT token (filler excluded). Used as the absolute last-resort
+ *  relaxation plan — so it lands on a real term, not "need"/"best". */
 export function pickFirstToken(raw: string): string | null {
-  const toks = significantTokens(raw);
-  return toks[0] ?? null;
+  const key = extractKeyTerms(raw);
+  return key[0] ?? significantTokens(raw)[0] ?? null;
 }
 
 /** Build a multi-token plan: each significant token joined by space.

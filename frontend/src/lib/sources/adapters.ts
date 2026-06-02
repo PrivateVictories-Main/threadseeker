@@ -143,6 +143,8 @@ export async function searchGitHub(
       openIssues: item.open_issues_count,
       watchers: item.watchers_count,
       createdAt: item.created_at,
+      archived: item.archived === true,
+      pushedAt: item.pushed_at,
     })),
     totalCount: allResults.length,
     source: "github",

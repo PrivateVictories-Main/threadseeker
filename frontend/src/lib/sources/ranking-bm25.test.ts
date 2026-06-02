@@ -95,6 +95,16 @@ describe("rankCorpus", () => {
     expect(ranked[0].name).toBe("foo-fresh");
   });
 
+  it("archived repos are pushed below a maintained match despite far more stars", () => {
+    const archived = {
+      ...mk({ name: "foo-legacy", fullName: "x/foo-legacy", stars: 40000, description: "a foo toolkit" }),
+      archived: true,
+    };
+    const active = mk({ name: "foo-kit", fullName: "y/foo-kit", stars: 800, description: "a foo toolkit" });
+    const ranked = rankCorpus([archived, active], "foo toolkit", expandQuery("foo toolkit"));
+    expect(ranked[0].name).toBe("foo-kit");
+  });
+
   it("npm popularityScore lifts a starless package over a zero-popularity peer", () => {
     const projects: UnifiedProject[] = [
       mk({ id: "a", source: "npm", name: "foo-lib", description: "a foo helper", stars: 0, popularityScore: 0 }),
