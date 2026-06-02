@@ -220,9 +220,11 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
         const overrides: Partial<Record<SourceType, string>> = {};
         const orExpanded = buildSearchQuery(fetchQuery, expansion, { supportsOr: true });
         if (orExpanded !== fetchQuery) {
+          // ONLY GitHub parses boolean `OR` + quoted phrases. GitLab and
+          // Codeberg treat the operators as literal required substrings, which
+          // collapses recall catastrophically (verified live: GitLab 708 -> 7,
+          // Codeberg -> 0), so they keep the plain fetchQuery.
           overrides.github = orExpanded;
-          overrides.gitlab = orExpanded;
-          overrides.codeberg = orExpanded;
         }
 
         const results = await searchAllSources(
@@ -300,9 +302,8 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
             const relaxedOverrides: Partial<Record<SourceType, string>> = {};
             const relaxedOr = buildSearchQuery(plan.query, relaxedExpansion, { supportsOr: true });
             if (relaxedOr !== plan.query) {
+              // GitHub only — see the OR-syntax note on the primary fetch above.
               relaxedOverrides.github = relaxedOr;
-              relaxedOverrides.gitlab = relaxedOr;
-              relaxedOverrides.codeberg = relaxedOr;
             }
 
             const relaxedResults = await searchAllSources(

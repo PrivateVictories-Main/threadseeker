@@ -166,13 +166,22 @@ export function rankCorpus(
       score += Math.min(p.popularityScore, 1) * 2400;
     }
 
-    // Recency
-    const ageDays = (Date.now() - new Date(p.updatedAt).getTime()) / 86_400_000;
-    if (ageDays < 7) score += 500;
-    else if (ageDays < 30) score += 300;
-    else if (ageDays < 90) score += 150;
-    else if (ageDays > 730) score -= 500;
-    else if (ageDays > 365) score -= 200;
+    // Recency — guard against blank/invalid updatedAt. Many registries don't
+    // expose a timestamp (they set updatedAt=""), so an unknown age is an
+    // EXPLICIT neutral: no freshness boost AND no staleness penalty. Previously
+    // this relied on `new Date("")` → NaN making every comparison incidentally
+    // false; making it explicit keeps blank-timestamp sources from being
+    // accidentally swept into a band (and lets a regression test pin it).
+    const updatedTs = p.updatedAt ? new Date(p.updatedAt).getTime() : NaN;
+    const hasAge = !Number.isNaN(updatedTs);
+    const ageDays = hasAge ? (Date.now() - updatedTs) / 86_400_000 : Infinity;
+    if (hasAge) {
+      if (ageDays < 7) score += 500;
+      else if (ageDays < 30) score += 300;
+      else if (ageDays < 90) score += 150;
+      else if (ageDays > 730) score -= 500;
+      else if (ageDays > 365) score -= 200;
+    }
 
     // Source baseline
     const srcBonus: Record<SourceType, number> = {
@@ -193,9 +202,10 @@ export function rankCorpus(
     const intentWeight = INTENT_WEIGHTS[expansion.intent]?.[p.source];
     if (intentWeight) score += intentWeight * INTENT_SCALE;
 
-    // Trending
-    if (p.stars >= 1000 && ageDays < 90) score += 800;
-    if (p.stars >= 10_000 && ageDays < 180) score += 400;
+    // Trending — only when we actually know the age (unknown age must not
+    // count as "recent" just because the sentinel compares low).
+    if (hasAge && p.stars >= 1000 && ageDays < 90) score += 800;
+    if (hasAge && p.stars >= 10_000 && ageDays < 180) score += 400;
 
     // Zero-signal penalty
     const noStars = p.stars === 0;

@@ -37,9 +37,12 @@ export async function searchRedditViaBackend(
     const data = await response.json();
     const threads = (data.results || []) as Array<Record<string, any>>;
     return threads.map((t, idx) => {
+      // No created_utc -> leave timestamp blank (the no-signal convention every
+      // other adapter follows). Stamping new Date() here granted threads with a
+      // missing timestamp a spurious +500 freshness boost in the ranker.
       const created = t.created_utc
         ? new Date(t.created_utc * 1000).toISOString()
-        : new Date().toISOString();
+        : "";
       return {
         id: `reddit-${idx}-${encodeURIComponent(t.url || "")}`,
         source: "reddit" as const,

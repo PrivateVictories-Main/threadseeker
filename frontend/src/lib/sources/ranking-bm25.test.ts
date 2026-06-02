@@ -82,6 +82,19 @@ describe("rankCorpus", () => {
     expect(ranked[0].name).toBe("foo-fresh");
   });
 
+  it("blank updatedAt does NOT pick up the trending boost (age-gate is explicit, not NaN-incidental)", () => {
+    // A registry record with many stars but no timestamp must not be treated as
+    // "trending" just because a sentinel compares low — only a genuinely-recent,
+    // timestamped repo earns the trending lift. Both match the query equally.
+    const fresh = new Date(Date.now() - 3 * 86400000).toISOString();
+    const projects: UnifiedProject[] = [
+      mk({ id: "a", name: "foo-notime", updatedAt: "", stars: 50000, description: "a foo tool" }),
+      mk({ id: "b", name: "foo-fresh", updatedAt: fresh, stars: 50000, description: "a foo tool" }),
+    ];
+    const ranked = rankCorpus(projects, "foo", expandQuery("foo"));
+    expect(ranked[0].name).toBe("foo-fresh");
+  });
+
   it("npm popularityScore lifts a starless package over a zero-popularity peer", () => {
     const projects: UnifiedProject[] = [
       mk({ id: "a", source: "npm", name: "foo-lib", description: "a foo helper", stars: 0, popularityScore: 0 }),

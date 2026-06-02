@@ -703,8 +703,15 @@ export async function searchJSR(query: string): Promise<SearchResult> {
           fullName: full,
           description: p.description || null,
           url: `https://jsr.io/${full}`,
-          stars: p.score ?? 0,
+          // JSR has no stars and `p.score` is a 0-100 package-health score, not
+          // a star count — route it through the normalized 0..1 popularity
+          // channel instead of faking a star total (parity with the npm fix).
+          stars: 0,
           downloads: 0,
+          popularityScore:
+            typeof p.score === "number"
+              ? Math.max(0, Math.min(p.score, 100)) / 100
+              : undefined,
           language: "TypeScript",
           topics: [],
           author: { name: `@${p.scope}`, avatar: "" },
@@ -1153,7 +1160,11 @@ export async function searchWordPress(query: string): Promise<SearchResult> {
           ? stripHtml(decodeHtml(String(p.short_description))).slice(0, 300)
           : null,
         url: `https://wordpress.org/plugins/${p.slug}/`,
-        stars: Math.round((p.rating || 0) / 20), // convert 0-100 → 0-5
+        // WP plugins have no stars; rating is a quality metric (not popularity)
+        // and active_installs is the real popularity signal -> downloads below.
+        // Faking a 0-5 "star" count both mis-ranked and rendered "★ 5" beside
+        // a GitHub "★ 45,231". Leave stars empty.
+        stars: 0,
         downloads: p.active_installs || p.downloaded || 0,
         language: "PHP",
         topics: Object.keys(p.tags || {}).slice(0, 6),

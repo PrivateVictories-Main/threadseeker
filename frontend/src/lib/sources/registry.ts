@@ -113,7 +113,8 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-orange-500 to-red-500",
     borderColor: "border-orange-500/30",
     bgColor: "bg-orange-500/10",
-    supportsOr: true,
+    // GitLab's search treats OR/quotes as literal substrings (recall collapse).
+    supportsOr: false,
     category: "repos",
     tagline: "Code repositories on GitLab.com",
   },
@@ -173,7 +174,8 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     color: "from-emerald-500 to-teal-600",
     borderColor: "border-emerald-500/30",
     bgColor: "bg-emerald-500/10",
-    supportsOr: true,
+    // Codeberg (Gitea) search treats OR/quotes as literal substrings -> 0 hits.
+    supportsOr: false,
     category: "repos",
     tagline: "Non-profit, community-run GitHub alternative",
   },
