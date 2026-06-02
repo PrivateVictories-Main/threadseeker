@@ -162,8 +162,12 @@ export function UnifiedProjectCard({
           animate={pulseControls}
         />
 
-        {/* MEDIA — repo social-preview banner (GitHub OG), self-collapsing */}
-        <CardMedia fullName={project.fullName} source={project.source} />
+        {/* MEDIA — rich cover: GitHub OG banner, else a branded cover */}
+        <CardMedia
+          source={project.source}
+          fullName={project.fullName}
+          language={project.language}
+        />
 
         {/* TOP ROW — source badge · popularity (text-only) · bookmark */}
         <div className="ts-top">

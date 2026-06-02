@@ -583,6 +583,55 @@ body > * {
   .ts-card:hover .ts-card-media img { transform: none; }
 }
 
+/* Branded cover (non-GitHub sources, or a GitHub OG fallback): the source's own
+   vendor color as a soft gradient wash with a large watermark of its real logo,
+   so every card reads as a showcase tile — npm red, PyPI blue, the Rust gear,
+   the Docker whale — not a plain text block. */
+.ts-card-media-brand {
+  display: flex;
+  align-items: flex-end;
+  background:
+    radial-gradient(125% 135% at 82% 14%, color-mix(in srgb, var(--brand) 42%, transparent), transparent 60%),
+    linear-gradient(135deg, color-mix(in srgb, var(--brand) 18%, transparent), color-mix(in srgb, var(--brand) 4%, transparent));
+}
+.ts-card-media-watermark {
+  position: absolute;
+  right: -6%;
+  top: 50%;
+  width: 52%;
+  height: auto;
+  transform: translateY(-50%) rotate(-8deg);
+  fill: var(--brand);
+  opacity: 0.18;
+  transition: transform .5s cubic-bezier(0.32, 0.72, 0, 1), opacity .3s ease;
+}
+.ts-card:hover .ts-card-media-watermark {
+  transform: translateY(-50%) rotate(-4deg) scale(1.06);
+  opacity: 0.26;
+}
+.dark .ts-card-media-watermark { opacity: 0.22; }
+.ts-card-media-lang {
+  position: relative;
+  margin: 0 0 12px 16px;
+  padding: 3px 10px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ts-text);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius-full);
+  backdrop-filter: blur(8px);
+}
+.dark .ts-card-media-lang {
+  background: rgba(15, 20, 36, 0.55);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ts-card:hover .ts-card-media img { transform: none; }
+  .ts-card:hover .ts-card-media-watermark { transform: translateY(-50%) rotate(-8deg); }
+}
+
 /* Pointer-tracked spotlight — a soft radial highlight that follows the cursor
    on hover (position set by useCardTilt via --mx/--my), paired with the 3D
    tilt. Subtle enough to read as a sheen, not a scrim. Hidden under

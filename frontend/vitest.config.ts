@@ -10,6 +10,17 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
+    // Reset spies + restore any vi.stubGlobal (the Pages Functions tests stub
+    // fetch/caches) after every test, so nothing leaks across files and the
+    // suite is order-independent.
+    restoreMocks: true,
+    unstubGlobals: true,
+    // The jsdom environment is heavy to spin up; under parallel-worker CPU
+    // contention even a trivial render test can blow the default 5s budget
+    // (seen intermittently on CardActions). Give tests + hooks generous
+    // headroom so the suite is reliable, not flaky, in CI.
+    testTimeout: 20000,
+    hookTimeout: 20000,
     // e2e/ holds Playwright specs (run via `npm run test:e2e`), not vitest.
     exclude: [...configDefaults.exclude, "e2e/**"],
     coverage: {
