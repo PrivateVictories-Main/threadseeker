@@ -108,6 +108,12 @@ const DEFAULT_SOURCES: SourceType[] = [
 // slow upstream should not stall the "N sources remaining" UI counter.
 const PER_SOURCE_TIMEOUT_MS = 12_000;
 
+// Max sources fetched simultaneously. The browser caps ~6 connections/origin
+// and many adapters route through the same same-origin /api/proxy, so firing
+// all ~29 at once just queues + contends; a pool of 8 keeps the fast,
+// high-priority sources flowing without head-of-line blocking.
+const MAX_CONCURRENT_SOURCES = 8;
+
 export async function searchAllSources(
   query: string,
   sources: SourceType[] = DEFAULT_SOURCES,
@@ -210,7 +216,7 @@ export async function searchAllSources(
     }
   };
 
-  const searchPromises = sources.map(async (source) => {
+  const processSource = async (source: SourceType): Promise<SearchResult> => {
     let result: SearchResult;
     try {
       result = await withTimeout(source, () => runSource(source));
@@ -236,9 +242,25 @@ export async function searchAllSources(
       });
     }
     return result;
-  });
+  };
 
-  const results = await Promise.all(searchPromises);
+  // Bounded-concurrency worker pool: cap simultaneous in-flight sources so the
+  // browser's ~6-connections-per-origin pool isn't thrashed (many adapters
+  // share the same same-origin /api/proxy) and a slow upstream doesn't
+  // head-of-line-block the fast ones. Workers pull in priority order
+  // (DEFAULT_SOURCES is ordered high-signal-first), so the best sources start
+  // immediately and their tiles stream back first.
+  const results: SearchResult[] = new Array(sources.length);
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < sources.length) {
+      const i = nextIndex++;
+      results[i] = await processSource(sources[i]);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(MAX_CONCURRENT_SOURCES, sources.length) }, worker),
+  );
   const allProjects = results.flatMap((r) => r.projects);
 
   // Intentionally unsorted — final ranking is rankCorpus() in the caller.
