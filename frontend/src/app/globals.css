@@ -200,6 +200,12 @@ body {
 .dark .border-indigo-200 { border-color: rgba(129, 140, 248, 0.22); }
 .dark .border-indigo-300 { border-color: rgba(129, 140, 248, 0.30); }
 .dark .border-indigo-400 { border-color: rgba(129, 140, 248, 0.42); }
+/* Opacity-suffixed variants are emitted by Tailwind as SEPARATE classes, so the
+   remaps above miss them — without these, the /80,/70 dividers render the raw
+   near-white indigo-100 on dark glass (CommandPalette + TrendingSection). */
+.dark .border-indigo-100\/80 { border-color: rgba(129, 140, 248, 0.14); }
+.dark .border-indigo-100\/70 { border-color: rgba(129, 140, 248, 0.14); }
+.dark .border-indigo-200\/60 { border-color: rgba(129, 140, 248, 0.20); }
 
 /* Raw-utility remap — hover variants */
 .dark .hover\:text-indigo-800:hover,

@@ -30,6 +30,9 @@ const HERO_PLACEHOLDERS = [
   "Search every open-source platform…",
   "Try `mcp server`",
   "Try `react state management`",
+  // Demonstrate the dual word-OR-sentence promise: a full descriptive query
+  // works too (the engine reduces it to key terms — see coreSearchQuery).
+  "…or describe it: a self-hosted tool to sync notes, end-to-end encrypted",
   "Try `local llm runtime`",
   "Try `rust http framework`",
 ];
