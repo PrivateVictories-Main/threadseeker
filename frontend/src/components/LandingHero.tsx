@@ -58,14 +58,21 @@ export function LandingHero({ sourceCount, sources, onSearch }: Props) {
         <div className="ts-hero-examples" aria-label="Example searches">
           <span className="ts-hero-examples-label">Try</span>
           {EXAMPLES.map((ex) => (
-            <button
+            // Real crawlable anchor (the ?q= deep-link is honored on load), with
+            // onClick doing the in-place SPA search — progressive enhancement so
+            // Googlebot can discover the query space instead of hitting dead-end
+            // JS-only buttons.
+            <a
               key={ex}
-              type="button"
+              href={`/?q=${encodeURIComponent(ex)}`}
               className="ts-hero-example-chip"
-              onClick={() => onSearch(ex)}
+              onClick={(e) => {
+                e.preventDefault();
+                onSearch(ex);
+              }}
             >
               {ex}
-            </button>
+            </a>
           ))}
         </div>
       </div>

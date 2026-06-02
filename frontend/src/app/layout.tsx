@@ -32,6 +32,13 @@ export const metadata: Metadata = {
     "developer tools",
   ],
   authors: [{ name: "ThreadSeeker" }],
+  // Results are client-rendered, so every ?q= URL serves the same shell —
+  // consolidate them onto the canonical root so query-string variants don't
+  // dilute as duplicate content. (Per-page canonicals arrive with the planned
+  // statically-rendered search/[slug] routes.)
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "ThreadSeeker — Search open source everywhere",
     description:
