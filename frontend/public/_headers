@@ -1,3 +1,21 @@
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  Content-Security-Policy: frame-ancestors 'none'
+
+# Hashed Next static assets are immutable — cache hard.
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Generated metadata image.
+/opengraph-image
+  Cache-Control: public, max-age=86400
+
+# NOTE: a strict connect-src/script-src CSP is intentionally NOT set here.
+# The app fetches directly from ~40 upstream source hosts and ships an inline
+# theme + ld+json script, so a locked-down CSP would need that full host list
+# (and nonces) maintained alongside the adapters — a future hardening, not a
+# drop-in. frame-ancestors 'none' (clickjacking) is the safe subset applied now.

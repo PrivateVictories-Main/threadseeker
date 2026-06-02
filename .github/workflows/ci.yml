@@ -40,6 +40,9 @@ jobs:
       - name: Typecheck Pages Functions
         run: npx tsc -p functions/tsconfig.json --noEmit
 
+      - name: Audit (non-blocking)
+        run: npm audit --audit-level=high || true
+
       - name: Unit tests
         run: npm run test
 
