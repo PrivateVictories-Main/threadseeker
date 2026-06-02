@@ -60,6 +60,7 @@ export const CATEGORY_DEFS: CategoryDef[] = [
       "openvsx",
       "wordpress",
       "maven",
+      "hex",
     ],
   },
   { key: "ai", label: "AI Models", icon: Cpu, sources: ["huggingface", "paperswithcode"] },

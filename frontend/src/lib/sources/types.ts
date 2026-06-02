@@ -30,7 +30,8 @@ export type SourceType =
   | "zenodo"
   | "nuget"
   | "wordpress"
-  | "maven";
+  | "maven"
+  | "hex";
 
 export interface RelatedSource {
   source: SourceType;

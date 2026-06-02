@@ -65,7 +65,7 @@ export default function OpengraphImage() {
           <span style={{ color: "#818cf8" }}>one thread.</span>
         </div>
         <div style={{ fontSize: 30, marginTop: 30, color: "#aab6cd", maxWidth: 920 }}>
-          One query across 28 sources — GitHub, npm, PyPI, Hugging Face, Docker & more.
+          One query across 29 sources — GitHub, npm, PyPI, Hugging Face, Docker & more.
         </div>
         <div style={{ position: "absolute", bottom: 64, left: 84, fontSize: 26, color: "#7e8aa6", fontFamily: "monospace" }}>
           threadseeker.pages.dev

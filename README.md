@@ -4,7 +4,7 @@
 
 ### A search engine for the entire open-source world.
 
-One query. **28 sources.** Zero paid APIs, zero tracking, zero accounts.
+One query. **29 sources.** Zero paid APIs, zero tracking, zero accounts.
 
 [**▶ Live demo — threadseeker.pages.dev**](https://threadseeker.pages.dev)
 
@@ -17,7 +17,7 @@ One query. **28 sources.** Zero paid APIs, zero tracking, zero accounts.
 
 ThreadSeeker is **Google for open source**: type what you're looking for — a single
 word, an ecosystem (`rust http framework`), or a whole sentence — and it searches
-GitHub, Hugging Face, npm, PyPI, crates.io, and **23 other registries, repo hosts,
+GitHub, Hugging Face, npm, PyPI, crates.io, and **24 other registries, repo hosts,
 and dev communities in parallel**, ranks everything into one unified result grid,
 and hands you the install/clone command right on the card.
 
@@ -38,7 +38,7 @@ that into one search box and one ranked, de-duplicated result set — so you can
 
 ## Features
 
-- **28 sources, one unified card grid.** Repos, packages, AI models, papers, and
+- **29 sources, one unified card grid.** Repos, packages, AI models, papers, and
   community threads, all normalized to the same card shape.
 - **Search as broad or as specific as you like.** A one-word query and a full
   natural-language sentence both work — the ranker re-scores the live results with
@@ -68,7 +68,7 @@ that into one search box and one ranked, de-duplicated result set — so you can
 | Category | Platforms |
 |---|---|
 | **Repos** | GitHub · GitLab · Codeberg |
-| **Packages** | npm · PyPI · crates.io · Maven Central · NuGet · Packagist · RubyGems · JSR · conda-forge · Docker Hub · Flathub · Homebrew · F-Droid · AUR · Open VSX · WordPress |
+| **Packages** | npm · PyPI · crates.io · Maven Central · NuGet · Packagist · RubyGems · JSR · Hex · conda-forge · Docker Hub · Flathub · Homebrew · F-Droid · AUR · Open VSX · WordPress |
 | **AI & ML** | Hugging Face · Papers with Code |
 | **Scholarly** | arXiv · Zenodo |
 | **Community** | Hacker News · Reddit · Lobsters · Stack Overflow · Dev.to |
@@ -79,7 +79,7 @@ that into one search box and one ranked, de-duplicated result set — so you can
 ┌──────────────────────────┐        ┌───────────────────────────────┐
 │   Browser (Next.js SPA)  │ ─────► │  Public APIs (direct, CORS-OK) │
 │                          │        │  GitHub, GitLab, Codeberg, HF, │
-│  • fan-out to 28 sources │        │  npm, PyPI, crates, RubyGems,  │
+│  • fan-out to 29 sources │        │  npm, PyPI, crates, RubyGems,  │
 │  • BM25 re-rank + dedup  │        │  JSR, NuGet, Maven, Open VSX,  │
 │  • streaming + relaxation│        │  Zenodo, HN, Stack Overflow…   │
 └───────────┬──────────────┘        └───────────────────────────────┘

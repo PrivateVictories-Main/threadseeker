@@ -1091,6 +1091,49 @@ export async function searchMaven(query: string): Promise<SearchResult> {
   }
 }
 
+export async function searchHex(query: string): Promise<SearchResult> {
+  try {
+    // hex.pm has a clean search API but no browser CORS — proxy it. One call
+    // returns rich metadata (description, downloads, license, version, repo).
+    const url = `https://hex.pm/api/packages?search=${encodeURIComponent(query)}&sort=recent_downloads`;
+    const response = await fetchViaProxy(url);
+    if (!response.ok) return { projects: [], totalCount: 0, source: "hex" };
+    const data = await response.json();
+    const pkgs: any[] = Array.isArray(data) ? data.slice(0, 30) : [];
+    return {
+      projects: pkgs.map((p: any) => {
+        const meta = p.meta || {};
+        const dl = p.downloads || {};
+        return {
+          id: `hex-${p.name}`,
+          source: "hex" as const,
+          name: p.name,
+          fullName: p.name,
+          description: meta.description || null,
+          url: p.html_url || `https://hex.pm/packages/${p.name}`,
+          stars: 0,
+          downloads: dl.all || dl.recent || 0,
+          weeklyDownloads: dl.week,
+          language: "Elixir",
+          topics: [],
+          author: { name: "hex.pm", avatar: "" },
+          updatedAt: p.updated_at || "",
+          license: Array.isArray(meta.licenses) ? meta.licenses.join(", ") : undefined,
+          version: p.latest_stable_version || p.latest_version,
+          homepage: meta.links?.GitHub || p.docs_html_url || undefined,
+          lastPublished: p.updated_at,
+          createdAt: p.inserted_at,
+        };
+      }),
+      totalCount: pkgs.length,
+      source: "hex",
+    };
+  } catch (error) {
+    console.error("Hex search error:", error);
+    return { projects: [], totalCount: 0, source: "hex" };
+  }
+}
+
 export async function searchWordPress(query: string): Promise<SearchResult> {
   try {
     // api.wordpress.org ignores browser CORS, so proxy it. Edge-cache via

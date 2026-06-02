@@ -42,6 +42,7 @@ import {
   searchZenodo,
   searchWordPress,
   searchMaven,
+  searchHex,
 } from "./adapters";
 
 export * from "./types";
@@ -100,6 +101,7 @@ const DEFAULT_SOURCES: SourceType[] = [
   "nuget",
   "wordpress",
   "maven",
+  "hex",
 ];
 
 // If a source hasn't returned in this long we drop it for this run. One
@@ -201,6 +203,8 @@ export async function searchAllSources(
         return searchWordPress(q("wordpress"));
       case "maven":
         return searchMaven(q("maven"));
+      case "hex":
+        return searchHex(q("hex"));
       default:
         return { projects: [], totalCount: 0, source };
     }

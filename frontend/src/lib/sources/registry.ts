@@ -25,6 +25,7 @@ import {
   TreePine,
   Hash,
   Layers,
+  Hexagon,
   type LucideIcon,
 } from "lucide-react";
 import { SourceType } from "./types";
@@ -400,6 +401,17 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     category: "packages",
     tagline: "Java / JVM artifacts",
   },
+  hex: {
+    name: "Hex",
+    icon: "⬣",
+    lucideIcon: Hexagon,
+    color: "from-purple-600 to-fuchsia-700",
+    borderColor: "border-purple-500/30",
+    bgColor: "bg-purple-500/10",
+    supportsOr: false,
+    category: "packages",
+    tagline: "Elixir / Erlang packages",
+  },
 };
 
 // The canonical, exhaustive list of every source — derived from the config
@@ -525,6 +537,8 @@ export function getSourceSearchUrl(source: SourceType, query: string): string | 
       return `https://wordpress.org/plugins/search/${q}/`;
     case "maven":
       return `https://central.sonatype.com/search?q=${q}`;
+    case "hex":
+      return `https://hex.pm/packages?search=${q}`;
     default:
       return null;
   }

@@ -126,6 +126,20 @@ export function getProjectActions(project: UnifiedProject): ProjectAction[] {
       });
       break;
     }
+    case "hex": {
+      actions.push({
+        kind: "snippet",
+        label: "mix.exs",
+        command: `{:${project.name}, "~> ${project.version ?? "1.0"}"}`,
+        description: "Add under deps",
+      });
+      actions.push({
+        kind: "install",
+        label: "hex.info",
+        command: `mix hex.info ${project.name}`,
+      });
+      break;
+    }
     case "packagist": {
       actions.push({
         kind: "install",
