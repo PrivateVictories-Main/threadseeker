@@ -25,6 +25,7 @@ import { Toast } from "@/components/motion/Toast";
 import { RevealOnScroll } from "@/components/motion/RevealOnScroll";
 import { AppShell } from "@/components/shell/AppShell";
 import { modeVariants } from "@/lib/motion";
+import { safeHref } from "@/lib/utils";
 import {
   UnifiedProject,
   SourceType,
@@ -1113,7 +1114,7 @@ export default function Home() {
                         a.href ? (
                           <a
                             key={a.key}
-                            href={a.href}
+                            href={safeHref(a.href)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={`${pillClass} ${extra}`}
@@ -1133,7 +1134,7 @@ export default function Home() {
                         <div className="mt-2 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
                           {primary.href ? (
                             <a
-                              href={primary.href}
+                              href={safeHref(primary.href)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className={primaryMobileClass}

@@ -49,6 +49,7 @@ import {
   type StoredBookmark,
 } from "@/lib/bookmarks";
 import { getSourceConfig } from "@/lib/sources";
+import { safeHref } from "@/lib/utils";
 
 export type CategoryKey = "all" | "repos" | "packages" | "ai" | "papers" | "threads";
 
@@ -216,7 +217,7 @@ export function AppSidebar({
                 return (
                   <li key={b.id}>
                     <a
-                      href={b.url}
+                      href={safeHref(b.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="ts-sidebar-saved-row"

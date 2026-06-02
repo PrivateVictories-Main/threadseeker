@@ -55,12 +55,21 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   let upstream: Response;
   try {
-    upstream = await fetch(parsed.toString(), { headers });
+    // redirect:"manual" is load-bearing for SECURITY here: with the default
+    // redirect:follow, Cloudflare's fetch forwards the Authorization: Bearer
+    // <GITHUB_TOKEN> header to cross-host 3xx targets (GitHub issues cross-host
+    // 302s on archive/tarball/raw endpoints → codeload/objects.githubusercontent),
+    // leaking the token. We only ever call search/repos/readme, which return
+    // 200 inline, so refusing any redirect is safe and closes the exfil path.
+    upstream = await fetch(parsed.toString(), { headers, redirect: "manual" });
   } catch (e) {
     return jsonResponse(
       { detail: `GitHub fetch failed: ${(e as Error).message}` },
       502,
     );
+  }
+  if (upstream.status === 0 || (upstream.status >= 300 && upstream.status < 400)) {
+    return jsonResponse({ detail: "GitHub redirect refused" }, 502);
   }
 
   const body = await upstream.text();

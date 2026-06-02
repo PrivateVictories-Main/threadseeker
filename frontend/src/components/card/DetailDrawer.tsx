@@ -28,6 +28,7 @@ import { LanguageBar } from "./LanguageBar";
 import { SourceBadge } from "./SourceBadge";
 import { quickActionsForProject, formatRelativeShort, openLabelForSource } from "./helpers";
 import { drawerSurface, modalBackdrop } from "@/lib/motion";
+import { safeHref } from "@/lib/utils";
 
 interface Props {
   project: UnifiedProject | null;
@@ -208,7 +209,7 @@ export function DetailDrawer({ project, open, onClose }: Props) {
                         {r.url && (
                           <a
                             className="ts-drawer-release-link"
-                            href={r.url}
+                            href={safeHref(r.url)}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
@@ -249,7 +250,7 @@ export function DetailDrawer({ project, open, onClose }: Props) {
                     {related.map((r) => (
                       <a
                         key={`${r.source}-${r.fullName}`}
-                        href={r.url}
+                        href={safeHref(r.url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`ts-source ts-source-${r.source} ts-drawer-related-chip`}
@@ -270,7 +271,7 @@ export function DetailDrawer({ project, open, onClose }: Props) {
                     {quickActions.map((a) => (
                       <a
                         key={a.label}
-                        href={a.href}
+                        href={safeHref(a.href)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="ts-drawer-qa"
@@ -288,7 +289,7 @@ export function DetailDrawer({ project, open, onClose }: Props) {
             <footer className="ts-drawer-footer">
               <a
                 className="btn btn-primary ts-drawer-cta"
-                href={project.url}
+                href={safeHref(project.url)}
                 target="_blank"
                 rel="noopener noreferrer"
               >

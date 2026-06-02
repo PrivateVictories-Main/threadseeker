@@ -25,6 +25,7 @@ import { motion } from "framer-motion";
 import { Star, ExternalLink, Heart, ChevronRight } from "lucide-react";
 import { useBookmark } from "@/lib/bookmarks";
 import { getSourceConfig } from "@/lib/sources";
+import { safeHref } from "@/lib/utils";
 import {
   formatCount,
   formatRelativeShort,
@@ -107,7 +108,7 @@ export function ProjectListRow({
       {/* Identity block */}
       <div className="ts-list-identity">
         <a
-          href={project.url}
+          href={safeHref(project.url)}
           target="_blank"
           rel="noopener noreferrer"
           className="ts-list-name"
@@ -189,7 +190,7 @@ export function ProjectListRow({
           </motion.button>
         )}
         <a
-          href={project.url}
+          href={safeHref(project.url)}
           target="_blank"
           rel="noopener noreferrer"
           className="ts-list-open"

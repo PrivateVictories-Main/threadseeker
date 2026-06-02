@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy, AlertTriangle } from "lucide-react";
+import { safeHref } from "@/lib/utils";
 
 export interface CopyItem {
   label: string;
@@ -58,7 +59,7 @@ export function CardActions({
 
   return (
     <div className="ts-actions">
-      <a className="btn btn-primary" href={url} target="_blank" rel="noopener noreferrer">
+      <a className="btn btn-primary" href={safeHref(url)} target="_blank" rel="noopener noreferrer">
         {openLabel} →
       </a>
       {copyItems.map((item) => {

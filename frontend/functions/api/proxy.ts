@@ -54,6 +54,10 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
   let upstream: Response;
   try {
     upstream = await fetch(parsed.toString(), {
+      // Do NOT follow redirects: the allowlist only validates the first hop, so
+      // a 3xx Location to an off-allowlist host would turn an allowlisted open
+      // redirect into an SSRF pivot. Refuse any redirect outright.
+      redirect: "manual",
       headers: {
         Accept: "application/json, text/plain, */*",
         "User-Agent": "ThreadSeeker/1.0 (https://threadseeker.pages.dev)",
@@ -64,15 +68,25 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
   } catch (e) {
     return jsonResponse({ detail: `Upstream fetch failed: ${(e as Error).message}` }, 502);
   }
+  // status 0 == opaqueredirect (spec runtimes); 3xx == raw redirect (workerd).
+  if (upstream.status === 0 || (upstream.status >= 300 && upstream.status < 400)) {
+    return jsonResponse({ detail: "Upstream redirect refused" }, 502);
+  }
 
   const body = await upstream.text();
-  const contentType = upstream.headers.get("content-type") ?? "application/json";
+  const upstreamType = upstream.headers.get("content-type") ?? "application/json";
+  // Never reflect attacker-influenced HTML under our own origin. Force a JSON
+  // type for JSON bodies and a non-renderable text/plain + attachment for
+  // anything else, so /api/proxy can't be navigated to as an HTML page.
+  const isJson = /^application\/(json|[\w.+-]+\+json)\b/i.test(upstreamType);
   const resp = new Response(body, {
     status: upstream.status,
     headers: {
-      "Content-Type": contentType,
+      "Content-Type": isJson ? "application/json" : "text/plain; charset=utf-8",
+      "X-Content-Type-Options": "nosniff",
       "Access-Control-Allow-Origin": "*",
       "Cache-Control": "public, max-age=300, s-maxage=300",
+      ...(isJson ? {} : { "Content-Disposition": "attachment" }),
     },
   });
 

@@ -5,6 +5,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Guard an href against javascript:/data:/vbscript: scheme injection. Upstream
+// fields like a package homepage or a forum post URL are author-controlled, and
+// React 18 still renders a `javascript:` href in production — so every dynamic
+// href must pass through here. Returns the URL only for safe browsable schemes
+// (http/https/mailto) or internal links (/ #); anything else collapses to "#".
+export function safeHref(url: string | null | undefined): string {
+  if (!url) return "#";
+  const trimmed = url.trim();
+  if (trimmed.startsWith("/") || trimmed.startsWith("#")) return trimmed;
+  try {
+    const proto = new URL(trimmed, "https://threadseeker.pages.dev").protocol;
+    return proto === "https:" || proto === "http:" || proto === "mailto:"
+      ? trimmed
+      : "#";
+  } catch {
+    return "#";
+  }
+}
+
 export function formatNumber(num: number): string {
   if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + "M";
   if (num >= 1_000) return (num / 1_000).toFixed(1) + "k";

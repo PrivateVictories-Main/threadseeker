@@ -8,6 +8,7 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { Flame, Star, ArrowUpRight, RefreshCw } from "lucide-react";
 import { ghFetch } from "@/lib/github";
+import { safeHref } from "@/lib/utils";
 
 interface TrendingRepo {
   name: string;
@@ -313,7 +314,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
             return (
               <a
                 key={r.fullName}
-                href={r.url}
+                href={safeHref(r.url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => {
