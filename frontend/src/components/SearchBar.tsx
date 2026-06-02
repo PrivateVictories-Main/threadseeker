@@ -189,7 +189,7 @@ export function SearchBar({
               setQuery("");
               inputRef.current?.focus();
             }}
-            className={`relative flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors ${isCompact ? "w-9 h-9 sm:w-7 sm:h-7" : "w-11 h-11 sm:w-8 sm:h-8"} rounded-full`}
+            className={`relative flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors ${isCompact ? "w-11 h-11 sm:w-7 sm:h-7" : "w-11 h-11 sm:w-8 sm:h-8"} rounded-full`}
             aria-label="Clear search"
           >
             <X className={isCompact ? "w-3.5 h-3.5" : "w-4 h-4"} aria-hidden />

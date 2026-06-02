@@ -4200,16 +4200,23 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
     padding: 28px 32px 64px;
   }
 }
-/* Ultrawide: let the grid breathe to 4-5 columns on large displays instead of
-   stranding ~1900px of dead gutter on a 45" monitor (pairs with the
-   xl/2xl grid-cols utilities). */
-@media (min-width: 1600px) {
+/* Ultrawide: let the grid breathe on large displays instead of stranding huge
+   dead gutters. The container caps must track the Tailwind grid-cols breakpoints
+   exactly or cards SHRINK as the screen widens — 2xl:grid-cols-5 fires at 1536px,
+   so the first cap must too (was 1600 → a dead 1536-1599 band that crammed 5
+   cols into the 1280 base). The 2560 tier + min-[2560px]:grid-cols-6 fills a
+   real 3440px 45" display. */
+@media (min-width: 1536px) {
   .ts-results-inner { max-width: 1680px; }
   .ts-landing { max-width: 1680px; }
 }
 @media (min-width: 2100px) {
   .ts-results-inner { max-width: 2040px; }
   .ts-landing { max-width: 2040px; }
+}
+@media (min-width: 2560px) {
+  .ts-results-inner { max-width: 2560px; }
+  .ts-landing { max-width: 2560px; }
 }
 
 .ts-results-toolbar-row {

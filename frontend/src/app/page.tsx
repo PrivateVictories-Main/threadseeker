@@ -575,7 +575,7 @@ export default function Home() {
                         )}
                       </span>
                     </div>
-                    <div className="grid gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 auto-rows-fr">
+                    <div className="grid gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[2560px]:grid-cols-6 auto-rows-fr">
                       {Array.from({ length: 9 }).map((_, i) => (
                         <CardSkeleton key={i} sparse={skeletonsShouldBeSparse} />
                       ))}
@@ -869,7 +869,7 @@ export default function Home() {
                           <AnimatedGrid
                             ref={resultsGridRef}
                             keyed={query || parsedQuery.freeText}
-                            className="grid gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 auto-rows-fr"
+                            className="grid gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[2560px]:grid-cols-6 auto-rows-fr"
                           >
                             {view.map((project, idx) => (
                               <UnifiedProjectCard

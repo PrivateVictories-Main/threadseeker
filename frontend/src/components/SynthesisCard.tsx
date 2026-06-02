@@ -22,13 +22,17 @@ export function SynthesisCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
       aria-label="AI verdict"
+      // Live on the stable container so the verdict is announced when it
+      // replaces the pending placeholder (previously aria-live was only on the
+      // pending <p>, so the actual verdict — a different node — never announced).
+      aria-live="polite"
     >
       <span className="ts-synthesis-head">
         <Sparkles className="w-3.5 h-3.5" aria-hidden />
         AI verdict
       </span>
       {loading && !verdict ? (
-        <p className="ts-synthesis-text ts-synthesis-pending" aria-live="polite">
+        <p className="ts-synthesis-text ts-synthesis-pending">
           Reading the top results<span className="ts-loading-dots" aria-hidden />
         </p>
       ) : (
