@@ -7,7 +7,6 @@ import {
   Gitlab,
   Package,
   Package2,
-  Box,
   Boxes,
   Container,
   MessageCircle,
