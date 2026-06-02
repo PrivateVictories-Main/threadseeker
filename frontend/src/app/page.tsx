@@ -135,24 +135,34 @@ export default function Home() {
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
       if (!hasSearched) return;
+      // Don't let grid nav (j/k/Enter/Esc) leak to the background while any
+      // modal/drawer is open — otherwise Enter opens the background card and
+      // Escape double-fires. The overlay's own focus trap owns the keyboard.
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
 
       const grid = resultsGridRef.current;
       if (!grid) return;
       const cards = grid.querySelectorAll<HTMLElement>("[data-result-card]");
       if (cards.length === 0) return;
 
+      const scrollBehavior: ScrollBehavior = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches
+        ? "auto"
+        : "smooth";
+
       if (e.key === "j" || e.key === "ArrowDown") {
         e.preventDefault();
         setFocusedIdx((i) => {
           const next = Math.min(cards.length - 1, i < 0 ? 0 : i + 1);
-          cards[next]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          cards[next]?.scrollIntoView({ block: "nearest", behavior: scrollBehavior });
           return next;
         });
       } else if (e.key === "k" || e.key === "ArrowUp") {
         e.preventDefault();
         setFocusedIdx((i) => {
           const next = Math.max(0, i <= 0 ? 0 : i - 1);
-          cards[next]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          cards[next]?.scrollIntoView({ block: "nearest", behavior: scrollBehavior });
           return next;
         });
       } else if (e.key === "Enter" && focusedIdx >= 0) {

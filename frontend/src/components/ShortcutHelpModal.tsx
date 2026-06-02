@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HelpCircle, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { modalBackdrop, modalSurface } from "@/lib/motion";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 const SHORTCUTS: Array<{ keys: string[]; label: string }> = [
   { keys: ["⌘K", "Ctrl+K"], label: "Open the command palette" },
@@ -22,6 +23,8 @@ export const SHORTCUT_HELP_EVENT = "threadseeker:open-shortcut-help";
 
 export function ShortcutHelpModal() {
   const [open, setOpen] = useState(false);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(surfaceRef, open, () => setOpen(false));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -67,6 +70,7 @@ export function ShortcutHelpModal() {
           exit="exit"
         >
           <motion.div
+            ref={surfaceRef}
             onClick={(e) => e.stopPropagation()}
             className="glass-strong shortcut-modal w-full"
             variants={modalSurface}

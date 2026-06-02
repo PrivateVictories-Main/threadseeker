@@ -19,12 +19,13 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, ExternalLink } from "lucide-react";
 import type { UnifiedProject } from "@/lib/sources/types";
 import { fetchReadmeExcerpt, supportsReadme } from "@/lib/readme";
 import { ghFetch } from "@/lib/github";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { LanguageBar } from "./LanguageBar";
 import { CardMedia } from "./CardMedia";
 import { SourceBadge } from "./SourceBadge";
@@ -44,6 +45,9 @@ export function DetailDrawer({ project, open, onClose }: Props) {
   const [langBreakdown, setLangBreakdown] = useState<
     Record<string, number> | undefined
   >(undefined);
+  const panelRef = useRef<HTMLElement>(null);
+  // Focus containment + scroll-lock + Esc + focus-restore (WCAG 2.4.3/4.1.2).
+  useFocusTrap(panelRef, open && !!project, onClose);
 
   // Reset README + language state when the drawer's project changes — drawer is
   // a singleton at the page level, so opening a second card after closing the
@@ -109,20 +113,7 @@ export function DetailDrawer({ project, open, onClose }: Props) {
     };
   }, [open, project, readmeExcerpt]);
 
-  // Esc to close + body scroll lock when open.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [open, onClose]);
+  // (Esc + body-scroll-lock + focus trap/restore are handled by useFocusTrap.)
 
   const releases = project?.releases ?? [];
   const topComments = project?.topComments ?? [];
@@ -158,6 +149,7 @@ export function DetailDrawer({ project, open, onClose }: Props) {
           {/* Surface */}
           <motion.aside
             key="surface"
+            ref={panelRef}
             className="ts-drawer glass-strong"
             variants={drawerSurface}
             initial="hidden"

@@ -41,6 +41,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { modalBackdrop, modalSurface } from "@/lib/motion";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { SHORTCUT_HELP_EVENT } from "@/components/ShortcutHelpModal";
 import { getBookmarks, type StoredBookmark } from "@/lib/bookmarks";
 import { getSourceConfig, type SourceType } from "@/lib/sources";
@@ -110,6 +111,10 @@ export function CommandPalette({
   const [bookmarks, setBookmarks] = useState<StoredBookmark[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  // Trap Tab within the palette + restore focus on close (the palette already
+  // focuses the input on open; the trap just contains Tab + locks scroll).
+  useFocusTrap(panelRef, open, () => setOpen(false));
 
   // Open / close keyboard handlers. ⌘K / Ctrl+K toggles. Skipped only
   // when the global toggle should fire — text inputs (including the
@@ -406,6 +411,7 @@ export function CommandPalette({
           exit="exit"
         >
           <motion.div
+            ref={panelRef}
             onClick={(e) => e.stopPropagation()}
             className="glass-strong w-full max-w-2xl rounded-[22px] overflow-hidden flex flex-col shadow-2xl"
             style={{ maxHeight: "min(70vh, 560px)" }}
