@@ -6,7 +6,7 @@ import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
 import { ProjectListRow } from "@/components/ProjectListRow";
 import { DetailDrawer } from "@/components/card/DetailDrawer";
 import { SourceFilter } from "@/components/SourceFilter";
-import { ResultsToolbar, SortMode, applyResultsView } from "@/components/ResultsToolbar";
+import { ResultsToolbar, SortMode, SORT_MODES, applyResultsView } from "@/components/ResultsToolbar";
 import { TrendingSection } from "@/components/TrendingSection";
 import { CATEGORY_DEFS, type CategoryKey } from "@/components/CategoryNav";
 import { FeaturedProjects } from "@/components/FeaturedProjects";
@@ -403,29 +403,10 @@ export default function Home() {
         // Cache the fresh ranked set so a quick re-search (or history click)
         // repaints instantly via the stale-while-revalidate seed above.
         saveResultsCache(freeText, targetSources, ranked);
-
-        // AI verdict — fire-and-forget, never blocks results. Renders when it
-        // resolves (or not at all when the layer is disabled / no key).
-        if (ranked.length > 0) {
-          setSynthLoading(true);
-          synthesizeResults(
-            freeText,
-            ranked.slice(0, 10).map((p) => ({
-              name: p.name,
-              source: p.source,
-              description: p.description,
-              stars: p.stars,
-            })),
-          )
-            .then((v) => {
-              if (searchRunIdRef.current !== runId) return;
-              setSynthesis(v);
-              setSynthLoading(false);
-            })
-            .catch(() => {
-              if (searchRunIdRef.current === runId) setSynthLoading(false);
-            });
-        }
+        // Track the final displayed set so the AI verdict (fired after the
+        // relaxation loop below) summarizes what the user actually ends up
+        // seeing — not a stale strict-pass top-10.
+        let finalRanked = ranked;
 
         // Iter-25 / Overhaul K — resilience loop. If the strict pass came
         // back thin, walk the relaxation chain (tokens → fuzzy-synonyms
@@ -491,6 +472,7 @@ export default function Home() {
               expansion,
             );
             setProjects(reranked);
+            finalRanked = reranked;
             cumulative = reranked.length;
             lastTier = plan.tier;
             if (cumulative >= SATISFIED_AT) break;
@@ -500,6 +482,30 @@ export default function Home() {
             setRelaxedQueries(relaxedQueriesRun);
             setRelaxationBanner(firstBanner);
           }
+        }
+
+        // AI verdict — async, never blocks. Fired on the FINAL displayed set
+        // (after any relaxation) so it summarizes what the user actually sees.
+        // Renders only when the AI layer is active (a key is set).
+        if (finalRanked.length > 0) {
+          setSynthLoading(true);
+          synthesizeResults(
+            freeText,
+            finalRanked.slice(0, 10).map((p) => ({
+              name: p.name,
+              source: p.source,
+              description: p.description,
+              stars: p.stars,
+            })),
+          )
+            .then((v) => {
+              if (searchRunIdRef.current !== runId) return;
+              setSynthesis(v);
+              setSynthLoading(false);
+            })
+            .catch(() => {
+              if (searchRunIdRef.current === runId) setSynthLoading(false);
+            });
         }
       } catch (error) {
         if (searchRunIdRef.current !== runId) return;
@@ -537,7 +543,7 @@ export default function Home() {
       if (parsed.length > 0) setSelectedSources(parsed);
     }
 
-    if (urlSort && ["relevance", "stars", "recent"].includes(urlSort)) {
+    if (urlSort && (SORT_MODES as readonly string[]).includes(urlSort)) {
       setSortMode(urlSort as SortMode);
     }
 

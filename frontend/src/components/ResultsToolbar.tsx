@@ -23,6 +23,11 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: "downloads", label: "Most downloads" },
 ];
 
+// Single source of truth for the valid sort modes — used by page.tsx's
+// URL-state hydration (was a stale ["relevance","stars","recent"] that rejected
+// ?sort=updated/downloads and allowed a bogus "recent").
+export const SORT_MODES: readonly SortMode[] = SORT_OPTIONS.map((o) => o.value);
+
 // Past this many empty sources, the per-source "0" pills collapse into
 // a single "+N with no matches" summary so a sparse query (e.g. 20 of
 // 28 sources empty) doesn't fill the toolbar with a wall of quiet
