@@ -37,6 +37,7 @@ import {
   buildSearchQuery,
   coreSearchQuery,
   significantTokens,
+  ALL_SOURCE_TYPES,
   sparseFraction,
   nextRelaxation,
   type RelaxationTier,
@@ -112,36 +113,9 @@ function saveHistory(list: string[]) {
   }
 }
 
-const ALL_SOURCES: SourceType[] = [
-  "github",
-  "huggingface",
-  "gitlab",
-  "npm",
-  "pypi",
-  "crates",
-  "codeberg",
-  "packagist",
-  "rubygems",
-  "jsr",
-  "dockerhub",
-  "flathub",
-  "homebrew",
-  "fdroid",
-  "aur",
-  "openvsx",
-  "conda",
-  "nuget",
-  "wordpress",
-  "maven",
-  "paperswithcode",
-  "arxiv",
-  "zenodo",
-  "hackernews",
-  "reddit",
-  "lobsters",
-  "stackoverflow",
-  "devto",
-];
+// Derived from the source registry (exhaustive by construction) — no
+// hand-maintained array to drift when a source is added.
+const ALL_SOURCES: SourceType[] = ALL_SOURCE_TYPES;
 
 type ResultsView = "grid" | "list";
 

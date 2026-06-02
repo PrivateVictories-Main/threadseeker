@@ -402,6 +402,13 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
   },
 };
 
+// The canonical, exhaustive list of every source — derived from the config
+// Record (which the SourceType-keyed type forces to be complete) so adding a
+// source in ONE place can't drift from a hand-maintained array elsewhere.
+// Order = registry declaration order (high-signal repo/package hosts first),
+// which is also the streaming priority for the default search.
+export const ALL_SOURCE_TYPES = Object.keys(SOURCE_CONFIGS) as SourceType[];
+
 export function getSourceConfig(source: SourceType): SourceDisplayConfig {
   return SOURCE_CONFIGS[source];
 }
