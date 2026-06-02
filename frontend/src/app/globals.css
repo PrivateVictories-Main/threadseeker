@@ -1391,6 +1391,14 @@ button.topic-chip-interactive {
 .skeleton .shimmer-line  { width: 100%; }
 .skeleton .shimmer-short { width: 40%; }
 .skeleton .shimmer-pill  { width: 64px; height: 22px; border-radius: var(--ts-radius-full); }
+/* Cover placeholder — geometry-matches the card media zone (bleeds to the
+   edges, 2:1, rounded top) so the loading→loaded handoff has no reflow. */
+.skeleton .shimmer-cover {
+  width: auto;
+  margin: -24px -24px 4px;
+  aspect-ratio: 2 / 1;
+  border-radius: var(--ts-radius-lg) var(--ts-radius-lg) 0 0;
+}
 .shimmer-static { animation: none; background: rgba(var(--ts-accent-rgb),0.12); }
 
 /* Iter-19 / Track 1 — animated trailing dots for "loading" mono captions.

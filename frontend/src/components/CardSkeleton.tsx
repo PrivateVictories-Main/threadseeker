@@ -16,6 +16,9 @@ export function CardSkeleton({ sparse = false }: Props = {}) {
   if (sparse) {
     return (
       <div className="ts-card ts-card-sparse glass skeleton">
+        {/* Cover placeholder — mirrors the new card media zone so the grid
+            doesn't reflow when the real cover/banner paints in. */}
+        <Shimmer className="shimmer-cover" />
         <div className="flex items-center gap-2">
           <Shimmer className="shimmer-pill" />
           <Shimmer className="shimmer-pill ml-auto" style={{ width: "60px" }} />
@@ -36,10 +39,10 @@ export function CardSkeleton({ sparse = false }: Props = {}) {
   }
   return (
     <div className="ts-card glass skeleton">
-      {/* Iter-15: skeleton geometry mirrors the new info-density card. The
-          metric-grid block is the most distinctive new element, so the
-          skeleton seeds three equally-sized cells where the real grid will
-          land. The avatar shimmer is sized to the new 44px circle. */}
+      {/* Skeleton geometry mirrors the card: a cover banner up top, then badge
+          row, avatar + title, description, a single stat row, topics, actions —
+          so the grid doesn't reflow when real results paint in. */}
+      <Shimmer className="shimmer-cover" />
       <div className="flex items-center gap-2">
         <Shimmer className="shimmer-pill" />
         <Shimmer className="shimmer-pill ml-auto" style={{ width: "70px" }} />
@@ -52,17 +55,9 @@ export function CardSkeleton({ sparse = false }: Props = {}) {
         </div>
       </div>
       <Shimmer className="shimmer-line" />
-      <Shimmer className="shimmer-line" />
       <Shimmer className="shimmer-line shimmer-short" />
-      {/* Metric grid — three equal cells. */}
-      <div className="grid grid-cols-3 gap-2.5 py-3 border-y border-indigo-100">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="flex flex-col gap-1.5">
-            <Shimmer className="shimmer-line" style={{ height: "10px", width: "60%" }} />
-            <Shimmer className="shimmer-line" style={{ height: "16px", width: "70%" }} />
-          </div>
-        ))}
-      </div>
+      {/* Single stat row (matches the card's CardStatRow). */}
+      <Shimmer className="shimmer-line" style={{ height: "18px", width: "88%" }} />
       <div className="flex gap-1.5">
         <Shimmer className="shimmer-pill" />
         <Shimmer className="shimmer-pill" />
