@@ -21,7 +21,7 @@
 // the shell level so a future iteration can render a drawer overlay
 // without re-wiring the page.
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AppSidebar, type CategoryKey } from "./AppSidebar";
 import { AppTopBar } from "./AppTopBar";
@@ -86,6 +86,8 @@ export function AppShell({
   // Threshold of 8px so the change triggers as soon as the user starts
   // scrolling, but not on a 1-pixel jiggle from layout settle.
   const [scrolled, setScrolled] = useState(false);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const onScroll = () => {
@@ -97,8 +99,67 @@ export function AppShell({
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Mobile sidebar a11y. Below 768px the rail is an off-canvas slide-over, so
+  // (a) while CLOSED it must leave the tab order / AT tree (inert) — otherwise
+  // keyboard + screen-reader users hit phantom off-screen controls; on desktop
+  // it stays interactive.
+  useEffect(() => {
+    const sidebar = shellRef.current?.querySelector<HTMLElement>("[data-app-sidebar]");
+    if (!sidebar || typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => {
+      const offCanvas = mq.matches && !mobileNavOpen;
+      sidebar.inert = offCanvas;
+      sidebar.setAttribute("aria-hidden", offCanvas ? "true" : "false");
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, [mobileNavOpen]);
+
+  // (b) while OPEN on mobile: move focus into the rail, trap Tab within it,
+  // close on Escape, and restore focus to whatever opened it (the hamburger).
+  useEffect(() => {
+    if (!mobileNavOpen || typeof window === "undefined") return;
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
+    const sidebar = shellRef.current?.querySelector<HTMLElement>("[data-app-sidebar]");
+    if (!sidebar) return;
+    restoreFocusRef.current = document.activeElement as HTMLElement | null;
+    const focusables = () =>
+      Array.from(
+        sidebar.querySelectorAll<HTMLElement>(
+          'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null);
+    focusables()[0]?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileNavOpen(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const f = focusables();
+      if (f.length === 0) return;
+      const first = f[0];
+      const last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      restoreFocusRef.current?.focus?.();
+    };
+  }, [mobileNavOpen]);
+
   return (
     <div
+      ref={shellRef}
       className="ts-shell"
       data-mobile-nav={mobileNavOpen ? "open" : "closed"}
       data-scrolled={scrolled ? "1" : "0"}

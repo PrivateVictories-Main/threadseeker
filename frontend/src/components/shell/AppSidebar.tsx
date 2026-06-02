@@ -101,7 +101,9 @@ export function AppSidebar({
 
   return (
     <motion.aside
+      id="ts-app-sidebar"
       className="ts-sidebar glass-strong"
+      data-app-sidebar=""
       aria-label="ThreadSeeker navigation"
       // Iter-24 — fade-slide in from the left so the page reads first
       // and the rail arrives a beat later. Honored under

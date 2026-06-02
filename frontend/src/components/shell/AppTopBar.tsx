@@ -82,6 +82,7 @@ export function AppTopBar({
           className="ts-topbar-hamburger md:hidden"
           aria-label={mobileNavOpen ? "Close navigation" : "Open navigation"}
           aria-expanded={mobileNavOpen}
+          aria-controls="ts-app-sidebar"
         >
           {mobileNavOpen ? (
             <XIcon className="w-4 h-4" aria-hidden />
