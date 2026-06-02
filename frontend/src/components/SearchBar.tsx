@@ -16,7 +16,7 @@ interface SearchBarProps {
   initialValue?: string;
   /**
    * Active source count. When provided on the hero variant, drives the trailing
-   * mono indicator pill (e.g. `28 sources · ~80ms`). Decorative — no behavior.
+   * mono indicator pill showing the live source count. Decorative — no behavior.
    */
   sourceCount?: number;
 }
@@ -27,7 +27,7 @@ interface SearchBarProps {
 // short and ordered to surface different intent shapes (free-text, ecosystem,
 // concept).
 const HERO_PLACEHOLDERS = [
-  "Search 28 platforms…",
+  "Search every open-source platform…",
   "Try `mcp server`",
   "Try `react state management`",
   "Try `local llm runtime`",
@@ -193,14 +193,11 @@ export function SearchBar({
           </button>
         )}
 
-        {/* Trailing mono meta — sources count + average timing. Hidden on
-            phone widths to keep the bar compact (the `/` hint already
-            anchors the left edge). */}
+        {/* Trailing mono meta — live source count. Hidden on phone widths to
+            keep the bar compact (the `/` hint already anchors the left edge). */}
         {!isCompact && typeof sourceCount === "number" && !query && (
           <span className="ts-cmd-meta relative" aria-hidden>
             <span>{sourceCount} sources</span>
-            <span className="ts-cmd-meta-dot" />
-            <span>~80ms</span>
           </span>
         )}
 

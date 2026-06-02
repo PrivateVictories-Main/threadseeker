@@ -2476,14 +2476,6 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
 @media (min-width: 640px) {
   .ts-cmd-meta { display: inline-flex; }
 }
-.ts-cmd-meta-dot {
-  display: inline-block;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--ts-text-faint);
-}
-
 /* Indeterminate sticky progress bar — when source count keeps the bar
    honest at <100% but we want to communicate "still working", swap to a
    left-to-right looping shimmer. Uses the same gradient palette as the

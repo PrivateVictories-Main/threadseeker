@@ -26,6 +26,13 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+
+  experimental: {
+    // Barrel-optimize the big icon/animation packages so only the icons/exports
+    // actually imported are bundled (lucide-react and simple-icons each ship
+    // thousands of named exports).
+    optimizePackageImports: ["lucide-react", "simple-icons", "framer-motion"],
+  },
 };
 
 export default nextConfig;

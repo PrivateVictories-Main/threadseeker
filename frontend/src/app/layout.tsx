@@ -103,10 +103,19 @@ export default function RootLayout({
             }),
           }}
         />
+        {/* Full TLS warmup only for the hosts the LANDING actually touches
+            (trending avatars + the flagship API). Opening 15 connections on
+            every load wastes the browser's preconnect budget. */}
         {[
-          "https://api.github.com",
           "https://avatars.githubusercontent.com",
+          "https://api.github.com",
           "https://huggingface.co",
+        ].map((href) => (
+          <link key={href} rel="preconnect" href={href} crossOrigin="anonymous" />
+        ))}
+        {/* The rest are only hit once a query fires — warm just their DNS so the
+            first search is fast without paying 12 idle TLS handshakes upfront. */}
+        {[
           "https://gitlab.com",
           "https://registry.npmjs.org",
           "https://pypi.org",
@@ -120,7 +129,7 @@ export default function RootLayout({
           "https://jsr.io",
           "https://www.reddit.com",
         ].map((href) => (
-          <link key={href} rel="preconnect" href={href} crossOrigin="anonymous" />
+          <link key={href} rel="dns-prefetch" href={href} />
         ))}
       </head>
       <body
