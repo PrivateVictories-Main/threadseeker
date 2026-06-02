@@ -14,7 +14,12 @@
 import {
   searchAllSources,
   mergeRelatedProjects,
+  rankCorpus,
+  expandQuery,
+  coreSearchQuery,
+  buildSearchQuery,
   UnifiedProject,
+  SourceType,
 } from "../src/lib/sources";
 import { BACKTEST_QUERIES, type BacktestQuery, type QueryCategory } from "./backtest-queries";
 
@@ -56,9 +61,24 @@ interface QueryResult {
 }
 
 async function runQuery(q: BacktestQuery, topN: number): Promise<QueryResult> {
-  const raw = await searchAllSources(q.query);
-  const merged = mergeRelatedProjects(raw);
-  const top = merged.slice(0, Math.max(topN, 10));
+  // Mirror the production search pipeline (page.tsx handleSearch) so the
+  // harness scores what users actually SEE: deterministic key-term reduction
+  // for the upstream fetch + OR-expansion for OR-sources, then the BM25F
+  // re-rank over the merged corpus. (The AI optimize step is absent here —
+  // matching the no-key production path, which falls back to coreSearchQuery.)
+  const freeText = q.query;
+  const expansion = expandQuery(freeText);
+  const fetchQuery = coreSearchQuery(freeText);
+  const overrides: Partial<Record<SourceType, string>> = {};
+  const orExpanded = buildSearchQuery(fetchQuery, expansion, { supportsOr: true });
+  if (orExpanded !== fetchQuery) {
+    overrides.github = orExpanded;
+    overrides.gitlab = orExpanded;
+    overrides.codeberg = orExpanded;
+  }
+  const raw = await searchAllSources(fetchQuery, undefined, true, overrides);
+  const ranked = rankCorpus(mergeRelatedProjects(raw), freeText, expansion);
+  const top = ranked.slice(0, Math.max(topN, 10));
 
   const matched = top.slice(0, topN).filter((p) =>
     q.expected.some((e) => projectMatches(p, e)),

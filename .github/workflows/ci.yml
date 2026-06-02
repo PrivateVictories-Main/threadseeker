@@ -37,6 +37,9 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      - name: Typecheck Pages Functions
+        run: npx tsc -p functions/tsconfig.json --noEmit
+
       - name: Unit tests
         run: npm run test
 

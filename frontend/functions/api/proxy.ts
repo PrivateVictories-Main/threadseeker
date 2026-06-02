@@ -46,7 +46,6 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
   }
 
   const cacheKey = new Request(request.url, { method: "GET" });
-  // @ts-expect-error caches.default is available in the Workers runtime
   const cache: Cache = caches.default;
   const hit = await cache.match(cacheKey);
   if (hit) return hit;

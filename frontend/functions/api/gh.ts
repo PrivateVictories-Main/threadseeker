@@ -43,7 +43,6 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   // Cache keyed by the full request (url + accept).
   const cacheKey = new Request(request.url, { method: "GET" });
-  // @ts-expect-error caches.default is available in the Workers runtime
   const cache: Cache = caches.default;
   const hit = await cache.match(cacheKey);
   if (hit) return hit;

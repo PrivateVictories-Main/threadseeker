@@ -52,7 +52,6 @@ export async function cachedJson(
   // Build a deterministic cache key URL — Cache API requires a GET.
   const keyUrl = `${url.origin}${url.pathname}?k=${encodeURIComponent(cacheKeyParts.join("|"))}`;
   const cacheKey = new Request(keyUrl, { method: "GET" });
-  // @ts-expect-error — caches.default is available in the Workers runtime.
   const cache: Cache = caches.default;
   const hit = await cache.match(cacheKey);
   if (hit) return hit;
