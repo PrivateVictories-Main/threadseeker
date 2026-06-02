@@ -32,6 +32,43 @@ const FEATURED_SLUGS = [
 const CACHE_KEY = "threadseeker:featured:v1";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+// Static fallback so the hero is NEVER empty — if GitHub is rate-limited on a
+// cold visit (the worst first-impression failure mode, since Featured +
+// Trending + OG covers are all GitHub-backed), the section still renders these
+// curated, stable flagship repos. Star counts are approximate (these don't
+// swing) and updatedAt is blank so no stale "updated X ago" is shown. The OG
+// cover banners still load — they come from opengraph.githubassets.com, a
+// different host than the rate-limited api.github.com.
+const FEATURED_FALLBACK: UnifiedProject[] = [
+  {
+    id: "github-fallback-nextjs", source: "github", name: "next.js",
+    fullName: "vercel/next.js",
+    description: "The React Framework — created and maintained by Vercel.",
+    url: "https://github.com/vercel/next.js", stars: 128000, language: "TypeScript",
+    topics: ["react", "framework", "ssr", "static-site-generator", "vercel"],
+    author: { name: "vercel", avatar: "https://github.com/vercel.png?size=96" },
+    updatedAt: "", homepage: "https://nextjs.org",
+  },
+  {
+    id: "github-fallback-transformers", source: "github", name: "transformers",
+    fullName: "huggingface/transformers",
+    description: "State-of-the-art Machine Learning for PyTorch, TensorFlow, and JAX.",
+    url: "https://github.com/huggingface/transformers", stars: 138000, language: "Python",
+    topics: ["machine-learning", "nlp", "pytorch", "transformers", "llm"],
+    author: { name: "huggingface", avatar: "https://github.com/huggingface.png?size=96" },
+    updatedAt: "", homepage: "https://huggingface.co/transformers",
+  },
+  {
+    id: "github-fallback-tailwind", source: "github", name: "tailwindcss",
+    fullName: "tailwindlabs/tailwindcss",
+    description: "A utility-first CSS framework for rapid UI development.",
+    url: "https://github.com/tailwindlabs/tailwindcss", stars: 84000, language: "TypeScript",
+    topics: ["css", "framework", "ui", "design"],
+    author: { name: "tailwindlabs", avatar: "https://github.com/tailwindlabs.png?size=96" },
+    updatedAt: "", homepage: "https://tailwindcss.com",
+  },
+];
+
 interface CachedShape {
   at: number;
   data: UnifiedProject[];
@@ -82,10 +119,10 @@ async function fetchRepo(slug: string): Promise<UnifiedProject | null> {
       language: item.language ?? null,
       topics: item.topics ?? [],
       author: {
-        name: item.owner.login,
+        name: item.owner?.login || item.full_name?.split("/")[0] || "unknown",
         avatar:
-          item.owner.avatar_url ||
-          `https://github.com/${item.owner.login}.png?size=96`,
+          item.owner?.avatar_url ||
+          (item.owner?.login ? `https://github.com/${item.owner.login}.png?size=96` : ""),
       },
       updatedAt: item.updated_at,
       license: item.license?.name || item.license?.spdx_id,
@@ -102,7 +139,6 @@ async function fetchRepo(slug: string): Promise<UnifiedProject | null> {
 
 export function FeaturedProjects({ onTopicClick, onOpenDetails, onToast }: Props) {
   const [projects, setProjects] = useState<UnifiedProject[] | null>(null);
-  const [error, setError] = useState(false);
 
   useEffect(() => {
     const cached = loadCache();
@@ -115,8 +151,10 @@ export function FeaturedProjects({ onTopicClick, onOpenDetails, onToast }: Props
       const results = await Promise.all(FEATURED_SLUGS.map((s) => fetchRepo(s)));
       const filtered = results.filter((p): p is UnifiedProject => !!p);
       if (cancelled) return;
+      // GitHub down / rate-limited → render the static fallback so the hero is
+      // never empty. Don't cache the fallback (so a later load retries live).
       if (filtered.length === 0) {
-        setError(true);
+        setProjects(FEATURED_FALLBACK);
         return;
       }
       setProjects(filtered);
@@ -126,10 +164,6 @@ export function FeaturedProjects({ onTopicClick, onOpenDetails, onToast }: Props
       cancelled = true;
     };
   }, []);
-
-  // Hide section entirely when GitHub is unreachable — graceful empty
-  // state instead of a broken "Featured" header with nothing under it.
-  if (error) return null;
 
   return (
     <section className="ts-featured" aria-labelledby="ts-featured-head">
