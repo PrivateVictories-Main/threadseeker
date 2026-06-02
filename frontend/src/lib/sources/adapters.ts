@@ -22,14 +22,21 @@ import { significantTokens } from "./resilience";
 
 // For hosts whose CORS is missing or inconsistent. The Pages Function adds
 // a host allowlist and edge caching on top.
-async function fetchViaProxy(targetUrl: string): Promise<Response> {
+async function fetchViaProxy(
+  targetUrl: string,
+  signal?: AbortSignal,
+): Promise<Response> {
   const base = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "";
   const proxied = `${base}/api/proxy?url=${encodeURIComponent(targetUrl)}`;
-  return fetch(proxied);
+  return fetch(proxied, { signal });
 }
 
 // For sources backed by a dedicated Pages Function (e.g. /api/search-arxiv).
-async function callBackend<T>(path: string, body: unknown): Promise<T | null> {
+async function callBackend<T>(
+  path: string,
+  body: unknown,
+  signal?: AbortSignal,
+): Promise<T | null> {
   const base = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "";
   if (base === "disabled") return null;
   try {
@@ -37,6 +44,7 @@ async function callBackend<T>(path: string, body: unknown): Promise<T | null> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal,
     });
     if (!res.ok) return null;
     return (await res.json()) as T;
@@ -316,8 +324,8 @@ export async function searchHuggingFace(
   };
 }
 
-export async function searchArxiv(query: string): Promise<SearchResult> {
-  const data = await callBackend<{ results: any[] }>("/search-arxiv", { query });
+export async function searchArxiv(query: string, signal?: AbortSignal): Promise<SearchResult> {
+  const data = await callBackend<{ results: any[] }>("/search-arxiv", { query }, signal);
   if (!data) return { projects: [], totalCount: 0, source: "arxiv" };
   const results = data.results || [];
   return {
@@ -410,6 +418,7 @@ export async function searchPapersWithCode(query: string): Promise<SearchResult>
 export async function searchNpm(
   query: string,
   _deepSearch: boolean = true,
+  signal?: AbortSignal,
 ): Promise<SearchResult> {
   const allResults: any[] = [];
   const seenNames = new Set<string>();
@@ -417,7 +426,7 @@ export async function searchNpm(
   try {
     const response = await fetch(
       `https://registry.npmjs.org/-/v1/search?text=${encodeURIComponent(query)}&size=50`,
-      { headers: { Accept: "application/json" } },
+      { headers: { Accept: "application/json" }, signal },
     );
     if (response.ok) {
       const data = await response.json();
@@ -492,6 +501,7 @@ export async function searchNpm(
 export async function searchPyPI(
   query: string,
   deepSearch: boolean = true,
+  signal?: AbortSignal,
 ): Promise<SearchResult> {
   const allResults: any[] = [];
   const seenNames = new Set<string>();
@@ -512,7 +522,10 @@ export async function searchPyPI(
 
   const fetches = terms.map(async (term) => {
     try {
-      const res = await fetch(`https://pypi.org/pypi/${encodeURIComponent(term)}/json`);
+      const res = await fetch(
+        `https://pypi.org/pypi/${encodeURIComponent(term)}/json`,
+        { signal },
+      );
       if (res.ok) return await res.json();
     } catch {}
     return null;
@@ -818,8 +831,8 @@ export async function searchFlathub(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchHomebrew(query: string): Promise<SearchResult> {
-  const data = await callBackend<{ results: any[] }>("/search-homebrew", { query });
+export async function searchHomebrew(query: string, signal?: AbortSignal): Promise<SearchResult> {
+  const data = await callBackend<{ results: any[] }>("/search-homebrew", { query }, signal);
   if (!data) return { projects: [], totalCount: 0, source: "homebrew" };
   const results = data.results || [];
   return {
@@ -855,8 +868,8 @@ export async function searchHomebrew(query: string): Promise<SearchResult> {
   };
 }
 
-export async function searchFDroid(query: string): Promise<SearchResult> {
-  const data = await callBackend<{ results: any[] }>("/search-fdroid", { query });
+export async function searchFDroid(query: string, signal?: AbortSignal): Promise<SearchResult> {
+  const data = await callBackend<{ results: any[] }>("/search-fdroid", { query }, signal);
   if (!data) return { projects: [], totalCount: 0, source: "fdroid" };
   const results = data.results || [];
   return {
@@ -1235,9 +1248,9 @@ export async function searchHackerNews(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchReddit(query: string): Promise<SearchResult> {
+export async function searchReddit(query: string, signal?: AbortSignal): Promise<SearchResult> {
   try {
-    const projects = await searchRedditViaBackend(query);
+    const projects = await searchRedditViaBackend(query, signal);
     return {
       projects,
       totalCount: projects.length,

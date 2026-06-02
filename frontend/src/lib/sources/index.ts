@@ -154,9 +154,9 @@ export async function searchAllSources(
       case "gitlab":
         return searchGitLab(q("gitlab"), 1, deepSearch);
       case "npm":
-        return searchNpm(q("npm"), deepSearch);
+        return searchNpm(q("npm"), deepSearch, signal);
       case "pypi":
-        return searchPyPI(q("pypi"), deepSearch);
+        return searchPyPI(q("pypi"), deepSearch, signal);
       case "crates":
         return searchCrates(q("crates"));
       case "hackernews":
@@ -168,7 +168,7 @@ export async function searchAllSources(
       case "rubygems":
         return searchRubyGems(q("rubygems"));
       case "reddit":
-        return searchReddit(q("reddit"));
+        return searchReddit(q("reddit"), signal);
       case "dockerhub":
         return searchDockerHub(q("dockerhub"));
       case "jsr":
@@ -184,11 +184,11 @@ export async function searchAllSources(
       case "paperswithcode":
         return searchPapersWithCode(q("paperswithcode"));
       case "homebrew":
-        return searchHomebrew(q("homebrew"));
+        return searchHomebrew(q("homebrew"), signal);
       case "fdroid":
-        return searchFDroid(q("fdroid"));
+        return searchFDroid(q("fdroid"), signal);
       case "arxiv":
-        return searchArxiv(q("arxiv"));
+        return searchArxiv(q("arxiv"), signal);
       case "aur":
         return searchAUR(q("aur"));
       case "openvsx":

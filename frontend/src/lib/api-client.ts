@@ -26,12 +26,14 @@ function apiUrl(path: string): string {
 
 export async function searchRedditViaBackend(
   query: string,
+  signal?: AbortSignal,
 ): Promise<UnifiedProject[]> {
   try {
     const response = await fetch(apiUrl("/search-reddit"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),
+      signal,
     });
     if (!response.ok) return [];
     const data = await response.json();
