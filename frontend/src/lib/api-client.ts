@@ -125,3 +125,28 @@ export async function synthesizeResults(
     return null;
   }
 }
+
+/** AI re-rank of the top results — returns the ids most-relevant-first, or null
+ *  when the layer is disabled / slow / unusable. The caller rank-fuses this with
+ *  BM25 (blendRerank), so a null/partial response just keeps the BM25 order. */
+export async function rerankResults(
+  query: string,
+  items: Array<{ id: string; name: string; description: string | null; source: string }>,
+): Promise<string[] | null> {
+  try {
+    const res = await fetch(apiUrl("/rerank"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, items }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data?.disabled || !Array.isArray(data?.order)) return null;
+    const order = (data.order as unknown[]).filter(
+      (x): x is string => typeof x === "string",
+    );
+    return order.length > 0 ? order : null;
+  } catch {
+    return null;
+  }
+}

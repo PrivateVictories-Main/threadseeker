@@ -39,7 +39,7 @@ source works keyless. One **optional** secret is worth setting:
 | Secret | Optional? | Purpose |
 |---|---|---|
 | `GITHUB_TOKEN` | Optional | Passed by `/api/gh` as a Bearer token on GitHub API calls. Lifts the flagship source from the shared unauthenticated limit (10 req/min search / 60 req/hr core) to 30 req/min / 5000 req/hr. Without it, GitHub still works — just unauthenticated. A fine-grained PAT with public-repo read access is plenty. |
-| `GROQ_API_KEY` | Optional | Unlocks the **AI layer**: `/api/optimize-queries` (natural-language → key terms for long queries) and `/api/synthesize` (a cross-source verdict above results). [Groq](https://console.groq.com) has a free tier and is fast (~sub-second), and both calls are edge-cached. Without the key the app falls back to the deterministic engine — no AI, everything else unchanged. |
+| `GROQ_API_KEY` | Optional | Unlocks the **AI layer**: `/api/optimize-queries` (natural-language → key terms + intent for long queries), `/api/rerank` (re-orders the top results by LLM relevance, rank-fused with BM25), and `/api/synthesize` (a cross-source verdict above results). [Groq](https://console.groq.com) has a free tier and is fast (~sub-second), and all three are edge-cached. Without the key the app falls back to the deterministic engine — no AI, everything else unchanged. |
 
 Set these under **Settings → Environment variables → Add (Encrypt)** on the Pages
 project (Production + Preview). For `wrangler pages dev`, put them in a git-ignored
@@ -66,6 +66,7 @@ Cloudflare builds on every push to the connected branch. That's it.
 | F-Droid (no search API) | Pages Function `/api/search-fdroid` | No |
 | arXiv (Atom XML) | Pages Function `/api/search-arxiv` | No |
 | AI query understanding (long queries) | Pages Function `/api/optimize-queries` | `GROQ_API_KEY` (optional) |
+| AI result re-ranking | Pages Function `/api/rerank` | `GROQ_API_KEY` (optional) |
 | AI cross-source verdict | Pages Function `/api/synthesize` | `GROQ_API_KEY` (optional) |
 
 ## Caching

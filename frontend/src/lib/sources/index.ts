@@ -47,7 +47,7 @@ import {
 
 export * from "./types";
 export * from "./registry";
-export { rankCorpus } from "./ranking-bm25";
+export { rankCorpus, blendRerank } from "./ranking-bm25";
 export { expandQuery } from "./synonyms";
 export type { ExpandQueryResult } from "./synonyms";
 export * from "./merge";

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { rankCorpus } from "./ranking-bm25";
+import { rankCorpus, blendRerank } from "./ranking-bm25";
 import { expandQuery } from "./synonyms";
 import type { UnifiedProject } from "./types";
 
@@ -112,6 +112,31 @@ describe("rankCorpus", () => {
     ];
     const ranked = rankCorpus(projects, "foo", expandQuery("foo"));
     expect(ranked[0].name).toBe("foo-util");
+  });
+
+  it("blendRerank fuses AI order with BM25 but can't catastrophically reorder", () => {
+    const ps = ["a", "b", "c", "d"].map((id) => mk({ id, name: id }));
+    // AI strongly prefers d (last) → rank-fusion lifts it but BM25 dampens.
+    const out = blendRerank(ps, ["d", "c", "b", "a"], 4).map((p) => p.id);
+    // d fuses to 0.5*0+0.5*3=1.5; a fuses to 0.5*3+0.5*0=1.5 (tie → stable);
+    // b: 0.5*2+0.5*1=1.5; c: 0.5*1+0.5*2=1.5 — all tie, so order is preserved
+    // (the fusion refuses to fully trust either signal). No item vanishes.
+    expect(out.sort()).toEqual(["a", "b", "c", "d"]);
+    expect(out.length).toBe(4);
+  });
+
+  it("blendRerank lifts an AI-promoted item past peers but not past a strong BM25 #1, and ignores bogus ids", () => {
+    const ps = ["a", "b", "c", "d"].map((id) => mk({ id, name: id }));
+    // AI promotes c to the top + emits a hallucinated id. Fused scores:
+    // a=0.5, c=1.0, b=1.5, d=3 → c rises above b but a (BM25 #1) holds.
+    const out = blendRerank(ps, ["c", "bogus", "a", "b", "d"], 4).map((p) => p.id);
+    expect(out).toEqual(["a", "c", "b", "d"]);
+    expect(out.length).toBe(4); // nothing dropped, bogus id ignored
+  });
+
+  it("blendRerank is a no-op on empty AI order", () => {
+    const ps = ["a", "b"].map((id) => mk({ id, name: id }));
+    expect(blendRerank(ps, []).map((p) => p.id)).toEqual(["a", "b"]);
   });
 
   it("intent weighting lifts the matching source (model query → huggingface over github)", () => {

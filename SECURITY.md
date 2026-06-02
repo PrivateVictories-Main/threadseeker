@@ -55,14 +55,14 @@ a concern:
   middleware request-smuggling, RSC cache poisoning) **do not apply** — they all
   require a running Next runtime. Track `npm audit`, but don't let that noise mask
   a build-time-relevant finding.
-- **Optional AI endpoints (`/api/optimize-queries`, `/api/synthesize`).** Only
-  active when `GROQ_API_KEY` is set. Untrusted upstream result text is stripped of
+- **Optional AI endpoints (`/api/optimize-queries`, `/api/rerank`, `/api/synthesize`).**
+  Only active when `GROQ_API_KEY` is set. Untrusted upstream result text is stripped of
   control chars/newlines and clamped, wrapped in a **per-request random nonce
   delimiter** the data can't forge, and the system prompt instructs the model to
   never follow instructions embedded in that data
   (prompt-injection mitigation). Requests are same-origin guarded and degraded
   results are never edge-cached. **For production, also add a Cloudflare
-  rate-limiting rule** on these two paths (e.g. N requests/min per IP) — a
+  rate-limiting rule** on these three paths (e.g. N requests/min per IP) — a
   stateless Pages Function can't enforce a true per-IP limit, so the dashboard
   rule is the real control against free-tier quota-drain.
 

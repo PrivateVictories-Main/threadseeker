@@ -228,3 +228,29 @@ export function rankCorpus(
   scored.sort((a, b) => b.score - a.score);
   return scored.map((s) => s.project);
 }
+
+// Rank-fuse the deterministic BM25 ordering with an optional AI relevance
+// ordering of the top `topN` ids. Robust by design: each head item's final
+// position is the average of its BM25 rank and its AI rank (lower = better),
+// so a partial/garbage AI response can only nudge — never tank — the order, and
+// ids the AI omits keep their BM25 position. The tail (beyond topN) is
+// untouched. Pure + deterministic so the blend is unit-testable without a key.
+export function blendRerank(
+  projects: UnifiedProject[],
+  aiOrder: string[],
+  topN = 20,
+): UnifiedProject[] {
+  if (!Array.isArray(aiOrder) || aiOrder.length === 0) return projects;
+  const head = projects.slice(0, topN);
+  const tail = projects.slice(topN);
+  const bm25Pos = new Map(head.map((p, i) => [p.id, i]));
+  const aiPos = new Map<string, number>();
+  let rank = 0;
+  for (const id of aiOrder) {
+    if (bm25Pos.has(id) && !aiPos.has(id)) aiPos.set(id, rank++);
+  }
+  const fusedScore = (id: string) =>
+    0.5 * (aiPos.get(id) ?? bm25Pos.get(id)!) + 0.5 * bm25Pos.get(id)!;
+  const fused = [...head].sort((a, b) => fusedScore(a.id) - fusedScore(b.id));
+  return [...fused, ...tail];
+}

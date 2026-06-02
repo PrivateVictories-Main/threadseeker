@@ -18,6 +18,7 @@ import {
   mergeRelatedProjects,
   expandQuery,
   rankCorpus,
+  blendRerank,
   buildSearchQuery,
   coreSearchQuery,
   significantTokens,
@@ -26,7 +27,7 @@ import {
   type RelaxedPlan,
 } from "@/lib/sources";
 import { parseQuery } from "@/lib/query-parser";
-import { optimizeQuery, synthesizeResults } from "@/lib/api-client";
+import { optimizeQuery, synthesizeResults, rerankResults } from "@/lib/api-client";
 import { toast } from "sonner";
 
 const HISTORY_KEY = "threadseeker:history:v1";
@@ -375,6 +376,28 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
             })
             .catch(() => {
               if (searchRunIdRef.current === runId) setSynthLoading(false);
+            });
+
+          // AI re-rank — async, never blocks. The deterministic BM25 order is
+          // already on screen; when the AI ordering returns we rank-FUSE it in
+          // (blendRerank dampens it against BM25, so a bad/partial response
+          // can't tank ordering). Key-gated: keyless deploys keep pure BM25.
+          // Run-id guarded so a stale rerank never applies to a newer search.
+          rerankResults(
+            freeText,
+            finalRanked.slice(0, 20).map((p) => ({
+              id: p.id,
+              name: p.name,
+              description: p.description,
+              source: p.source,
+            })),
+          )
+            .then((order) => {
+              if (searchRunIdRef.current !== runId || !order) return;
+              setProjects((prev) => blendRerank(prev, order));
+            })
+            .catch(() => {
+              /* rerank is best-effort — BM25 order stands */
             });
         }
       } catch (error) {

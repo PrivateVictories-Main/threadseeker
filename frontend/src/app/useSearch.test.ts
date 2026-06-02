@@ -12,6 +12,7 @@ vi.mock("@/lib/sources", async (importOriginal) => {
 vi.mock("@/lib/api-client", () => ({
   optimizeQuery: vi.fn().mockResolvedValue(null),
   synthesizeResults: vi.fn().mockResolvedValue(null),
+  rerankResults: vi.fn().mockResolvedValue(null),
 }));
 
 import { useSearch } from "./useSearch";
