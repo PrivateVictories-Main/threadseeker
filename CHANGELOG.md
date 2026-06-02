@@ -5,6 +5,44 @@ All notable changes to ThreadSeeker will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-06-02
+
+Heavy security/quality audit pass. **29 live sources** (prior entries said 24).
+
+### Security
+- **Redirect-SSRF + token exfiltration closed.** `/api/proxy` and `/api/gh` now
+  fetch with `redirect:"manual"` and refuse any 3xx (the host allowlist only
+  validated the first hop). On `/api/gh` the default redirect-follow had also
+  forwarded `Authorization: Bearer <GITHUB_TOKEN>` to GitHub's cross-host 302s.
+- **Click-XSS closed.** New `safeHref()` scheme allowlist (http/https/mailto)
+  routed through every dynamic href — author-controlled upstream homepage/post
+  URLs can no longer inject `javascript:`/`data:` links.
+- **`/api/proxy` content lockdown.** Forces a non-HTML response Content-Type
+  (text/plain + attachment for non-JSON), so it can't reflect attacker HTML
+  under our origin.
+- **Prompt-injection delimiter smuggle closed.** AI synthesis wraps untrusted
+  query/results in a per-request random nonce delimiter the data can't forge.
+- **Real Content-Security-Policy** (was `frame-ancestors 'none'` only):
+  `script-src 'self' 'unsafe-inline'`, `object-src 'none'`, `base-uri 'self'`,
+  `connect-src/img-src https:`.
+
+### Fixed — search quality
+- GitLab/Codeberg no longer get GitHub `OR` syntax (it collapsed their recall
+  ~100× / to zero on multi-word queries).
+- JSR/WordPress stop reporting a fabricated "★" count (quality/installs now go
+  through `popularityScore`/`downloads`); Reddit stops faking recency; ranking
+  recency is an explicit no-signal for blank timestamps.
+
+### Added — SEO / tests / tooling
+- Crawlable `<a href="/?q=…">` example chips, `rel=canonical`, generated
+  `app/sitemap.ts`.
+- Pages Functions test harness + `useSearch` hook tests + a deterministic
+  ranking-quality gate (P@3 = 1.0) — **162 tests**; `@vitest/coverage-v8` +
+  `test:coverage`.
+- Re-enabled `no-unused-vars` (error) / `no-explicit-any` (warn); deleted dead
+  code (`actions.ts`, `Sparkline`).
+- `wrangler.toml` for prod-parity local dev (`wrangler pages dev out`).
+
 ## [2.2.0] - 2026-04-17
 
 ### Added — 3 more sources + UX polish

@@ -1,0 +1,15 @@
+# Cloudflare Pages project config. Primarily enables prod-parity local dev:
+#
+#   NEXT_OUTPUT=export npm run build && npx wrangler pages dev out
+#
+# which serves the static site AND the /api/* Pages Functions together, exactly
+# like production (a plain static server does NOT run the Functions, so this is
+# the only way to exercise /api/proxy, /api/gh, the AI endpoints, etc. locally).
+#
+# Build settings (command / output dir / Node version) and secrets
+# (GITHUB_TOKEN, GROQ_API_KEY) live in the Pages dashboard, not here. This file
+# is also the seam for future scheduled crons (freshness pre-warm / backtest)
+# and any bindings.
+name = "threadseeker"
+pages_build_output_dir = "out"
+compatibility_date = "2026-06-01"

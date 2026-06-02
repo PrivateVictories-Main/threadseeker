@@ -34,19 +34,32 @@ a concern:
 - **No personal data.** Bookmarks, history, and preferences are stored in the
   visitor's own `localStorage`/`sessionStorage` and never leave their browser.
   Nothing is tracked or sent to us.
-- **CORS proxy (`/api/proxy`).** This is the most security-relevant component. It is
-  an **allowlisted** proxy — it will only fetch from a fixed set of known upstream
-  hosts (Docker Hub, Flathub, Lobsters, Stack Exchange, Papers with Code, WordPress,
-  etc.), which is the primary defense against SSRF / open-proxy abuse. **Any change
-  that broadens the allowlist or relaxes URL validation in `functions/api/proxy.ts`
-  must be reviewed with that in mind.**
+- **CORS proxy (`/api/proxy`, `/api/gh`).** The most security-relevant component.
+  Both are **allowlisted** (proxy: a fixed host set; gh: `api.github.com` only),
+  which is the primary defense against SSRF. They fetch with `redirect:"manual"`
+  and refuse any 3xx — the allowlist only validates the first hop, so following a
+  redirect would let an allowlisted open-redirect pivot to an arbitrary host (and,
+  on `/api/gh`, leak the `GITHUB_TOKEN` to GitHub's cross-host 302s). `/api/proxy`
+  also forces a non-HTML response Content-Type so it can't reflect attacker HTML
+  under our origin. **Any change that broadens the allowlist, relaxes URL
+  validation, or re-enables redirect-following must be reviewed with that in mind.**
 - **Output handling.** Upstream-provided text (descriptions, titles, READMEs) is
   rendered as React text (escaped by default) and any HTML is stripped/sanitized in
-  the adapters. Be careful when introducing `dangerouslySetInnerHTML`.
+  the adapters. Every dynamic `href` (author-controlled package homepages, post
+  URLs) passes through `safeHref()` (http/https/mailto only) so a `javascript:`/
+  `data:` URL can't become a clickable XSS. A site-wide CSP (`script-src 'self'`,
+  `object-src 'none'`, `base-uri 'self'`) is the defense-in-depth backstop. Be
+  careful when introducing `dangerouslySetInnerHTML`.
+- **Static-export advisory scope.** The site ships as a static export with no Next
+  server, so the high-severity Next.js advisories (SSR DoS, image-optimizer,
+  middleware request-smuggling, RSC cache poisoning) **do not apply** — they all
+  require a running Next runtime. Track `npm audit`, but don't let that noise mask
+  a build-time-relevant finding.
 - **Optional AI endpoints (`/api/optimize-queries`, `/api/synthesize`).** Only
   active when `GROQ_API_KEY` is set. Untrusted upstream result text is stripped of
-  control chars/newlines and clamped before entering the prompt, and the system
-  prompt instructs the model to never follow instructions embedded in that data
+  control chars/newlines and clamped, wrapped in a **per-request random nonce
+  delimiter** the data can't forge, and the system prompt instructs the model to
+  never follow instructions embedded in that data
   (prompt-injection mitigation). Requests are same-origin guarded and degraded
   results are never edge-cached. **For production, also add a Cloudflare
   rate-limiting rule** on these two paths (e.g. N requests/min per IP) — a
