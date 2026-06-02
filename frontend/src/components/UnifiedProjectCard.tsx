@@ -5,6 +5,7 @@ import { Highlight } from "./Highlight";
 import { Avatar } from "./card/Avatar";
 import { useCardTilt } from "./card/useCardTilt";
 import { SourceBadge } from "./card/SourceBadge";
+import { CardMedia } from "./card/CardMedia";
 import { CardActions, type CopyItem } from "./card/CardActions";
 import { PopularityBadge } from "./card/PopularityBadge";
 import { CardStatRow } from "./card/CardStatRow";
@@ -160,6 +161,9 @@ export function UnifiedProjectCard({
           initial={{ opacity: 0 }}
           animate={pulseControls}
         />
+
+        {/* MEDIA — repo social-preview banner (GitHub OG), self-collapsing */}
+        <CardMedia fullName={project.fullName} source={project.source} />
 
         {/* TOP ROW — source badge · popularity (text-only) · bookmark */}
         <div className="ts-top">

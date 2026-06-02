@@ -548,6 +548,41 @@ body > * {
               backdrop-filter .25s ease;
 }
 
+/* Repo social-preview banner (GitHub OG card). Bleeds to the card edges and
+   rounds the top to match the panel so it reads as part of the glass card, not
+   a pasted rectangle. Self-collapses (component returns null) for non-repo /
+   missing previews, so the grid stays clean. */
+.ts-card-media {
+  position: relative;
+  /* cancel the 24px card padding on top + both sides */
+  margin: -24px -24px 4px;
+  border-radius: var(--ts-radius-lg) var(--ts-radius-lg) 0 0;
+  overflow: hidden;
+  aspect-ratio: 2 / 1; /* GitHub OG banners are 1280×640 */
+  background: rgba(var(--ts-accent-rgb), 0.07);
+  border-bottom: 1px solid var(--ts-border);
+}
+.ts-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .45s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.ts-card:hover .ts-card-media img {
+  transform: scale(1.035);
+}
+/* Soft bottom vignette for depth + separation from the content below. */
+.ts-card-media-fade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 -26px 26px -26px rgba(8, 11, 22, 0.42);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ts-card:hover .ts-card-media img { transform: none; }
+}
+
 /* Pointer-tracked spotlight — a soft radial highlight that follows the cursor
    on hover (position set by useCardTilt via --mx/--my), paired with the 3D
    tilt. Subtle enough to read as a sheen, not a scrim. Hidden under
