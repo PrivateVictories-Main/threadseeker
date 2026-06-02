@@ -5,8 +5,10 @@ import { SourceBadge } from "./SourceBadge";
 describe("SourceBadge", () => {
   it("renders github label and applies github class", () => {
     const { container } = render(<SourceBadge source="github" />);
-    expect(screen.getByText(/GitHub/i)).toBeDefined();
-    expect(container.querySelector(".ts-source-github")).toBeDefined();
+    expect(screen.getByText(/GitHub/i)).toBeInTheDocument();
+    // toBeInTheDocument actually fails on a missing element — .toBeDefined()
+    // passed even when querySelector returned null (null IS defined).
+    expect(container.querySelector(".ts-source-github")).toBeInTheDocument();
   });
 
   it("renders hugging face label", () => {
