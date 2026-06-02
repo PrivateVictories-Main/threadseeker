@@ -25,6 +25,10 @@
   --ts-glass-ring: 0 0 0 1px rgba(99, 102, 241, 0.14);
 
   /* Accent stays indigo-violet family but tuned away from magenta. */
+  /* RGB triple powering every rgba(var(--ts-accent-rgb), A) accent across
+     globals.css — set once here, shifts the whole accent family (and lightens
+     it in .dark below). Swapping the primary hue is now a one-line change. */
+  --ts-accent-rgb: 99, 102, 241;
   --ts-accent: #6366f1;
   --ts-accent-strong: #4f46e5;
   --ts-accent-soft: rgba(99, 102, 241, 0.15);
@@ -97,7 +101,10 @@
   --ts-glass-rim:   inset 0 -1px 0 rgba(0, 0, 0, 0.35);
   --ts-glass-ring: 0 0 0 1px rgba(129, 140, 248, 0.16);
 
-  /* Accent — lightened so indigo reads on dark surfaces. */
+  /* Accent — lightened so indigo reads on dark surfaces. The rgb triple shifts
+     every swept rgba(var(--ts-accent-rgb)) accent (borders, rings, glows,
+     scrollbar, selection…) to the lighter indigo in dark mode too. */
+  --ts-accent-rgb: 129, 140, 248;
   --ts-accent: #818cf8;
   --ts-accent-strong: #a5b4fc;
   --ts-accent-soft: rgba(129, 140, 248, 0.20);
