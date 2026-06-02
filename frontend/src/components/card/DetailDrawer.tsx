@@ -24,7 +24,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X, ExternalLink } from "lucide-react";
 import type { UnifiedProject } from "@/lib/sources/types";
 import { fetchReadmeExcerpt, supportsReadme } from "@/lib/readme";
+import { ghFetch } from "@/lib/github";
 import { LanguageBar } from "./LanguageBar";
+import { CardMedia } from "./CardMedia";
 import { SourceBadge } from "./SourceBadge";
 import { quickActionsForProject, formatRelativeShort, openLabelForSource } from "./helpers";
 import { drawerSurface, modalBackdrop } from "@/lib/motion";
@@ -39,15 +41,49 @@ interface Props {
 export function DetailDrawer({ project, open, onClose }: Props) {
   const [readmeExcerpt, setReadmeExcerpt] = useState<string | null>(null);
   const [readmeLoading, setReadmeLoading] = useState(false);
+  const [langBreakdown, setLangBreakdown] = useState<
+    Record<string, number> | undefined
+  >(undefined);
 
-  // Reset README state when the drawer's project changes — drawer is a
-  // singleton at the page level, so opening a second card after closing
-  // the first must replay the lazy fetch.
+  // Reset README + language state when the drawer's project changes — drawer is
+  // a singleton at the page level, so opening a second card after closing the
+  // first must replay the lazy fetches.
   useEffect(() => {
     if (!project) return;
     setReadmeExcerpt(project.readmeExcerpt ?? null);
     setReadmeLoading(false);
+    setLangBreakdown(project.languageBreakdown);
   }, [project?.id, project]);
+
+  // Lazy, real GitHub language breakdown — one /languages call when the drawer
+  // opens for a GitHub repo, so "Languages" shows the actual byte-share tech
+  // composition instead of a single fallback "100%" segment.
+  useEffect(() => {
+    if (!open || !project || project.source !== "github") return;
+    if (!project.fullName.includes("/") || langBreakdown) return;
+    let cancelled = false;
+    ghFetch(`https://api.github.com/repos/${project.fullName}/languages`)
+      .then((r) => (r && r.ok ? r.json() : null))
+      .then((data: Record<string, number> | null) => {
+        if (cancelled || !data || typeof data !== "object") return;
+        const total = Object.values(data).reduce(
+          (s, v) => s + (typeof v === "number" ? v : 0),
+          0,
+        );
+        if (total <= 0) return;
+        const pct: Record<string, number> = {};
+        for (const [k, v] of Object.entries(data)) {
+          if (typeof v === "number") pct[k] = (v / total) * 100;
+        }
+        setLangBreakdown(pct);
+      })
+      .catch(() => {
+        /* network/cors/rate-limit — keep the single-language fallback */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, project, langBreakdown]);
 
   // Lazy README fetch — only when drawer actually opens with a github/
   // codeberg project, only once per drawer-open cycle.
@@ -131,6 +167,13 @@ export function DetailDrawer({ project, open, onClose }: Props) {
             aria-modal="true"
             aria-label={`Project details for ${project.name}`}
           >
+            {/* COVER — same rich showcase header as the card */}
+            <CardMedia
+              source={project.source}
+              fullName={project.fullName}
+              language={project.language}
+            />
+
             {/* HEADER */}
             <header className="ts-drawer-header">
               <div className="ts-drawer-header-row">
@@ -185,11 +228,11 @@ export function DetailDrawer({ project, open, onClose }: Props) {
               )}
 
               {/* Language breakdown */}
-              {(project.languageBreakdown || project.language) && (
+              {(langBreakdown || project.languageBreakdown || project.language) && (
                 <section className="ts-drawer-section">
                   <h3 className="ts-drawer-h">Languages</h3>
                   <LanguageBar
-                    breakdown={project.languageBreakdown}
+                    breakdown={langBreakdown ?? project.languageBreakdown}
                     fallbackLanguage={project.language}
                   />
                 </section>

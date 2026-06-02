@@ -632,6 +632,15 @@ body > * {
   .ts-card:hover .ts-card-media-watermark { transform: translateY(-50%) rotate(-8deg); }
 }
 
+/* Cover inside the detail drawer: full-bleed at the drawer's top (no card
+   padding to cancel), rounding only the drawer's top-left corner. */
+.ts-drawer .ts-card-media {
+  margin: 0;
+  border-radius: 22px 0 0 0;
+  aspect-ratio: 16 / 7;
+  flex-shrink: 0;
+}
+
 /* Pointer-tracked spotlight — a soft radial highlight that follows the cursor
    on hover (position set by useCardTilt via --mx/--my), paired with the 3D
    tilt. Subtle enough to read as a sheen, not a scrim. Hidden under
