@@ -4,13 +4,21 @@
 // long queries and races it against a short timeout, falling back to the
 // deterministic coreSearchQuery when the key is unset, the call is slow, or the
 // response is unusable. Edge-cached 24h.
-import { corsPreflight, jsonResponse, sanitizeQuery, cachedJson } from "../_shared/http";
+import {
+  corsPreflight,
+  jsonResponse,
+  sanitizeQuery,
+  cachedJson,
+  crossOriginBlocked,
+} from "../_shared/http";
 import { groqChat, type GroqEnv } from "../_shared/groq";
 
 export const onRequestOptions: PagesFunction = async () => corsPreflight();
 
 export const onRequestPost: PagesFunction<GroqEnv> = async ({ request, env }) => {
   if (!env.GROQ_API_KEY) return jsonResponse({ disabled: true }, 200);
+  const blocked = crossOriginBlocked(request);
+  if (blocked) return blocked;
 
   let body: { query?: unknown };
   try {

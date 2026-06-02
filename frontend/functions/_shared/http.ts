@@ -31,6 +31,31 @@ export function corsPreflight(): Response {
   });
 }
 
+// Light cross-origin guard for the quota-sensitive AI endpoints. A same-origin
+// browser fetch() sends Origin === the deployment origin on POST, so a DIFFERENT
+// Origin is cross-site browser abuse → reject. Origin-less callers (curl,
+// server-side) and localhost dev are allowed. This only blunts the easy browser
+// vector; the real control is a Cloudflare dashboard rate-limit rule on
+// /api/optimize-queries + /api/synthesize (see SECURITY.md).
+export function crossOriginBlocked(request: Request): Response | null {
+  const origin = request.headers.get("Origin");
+  if (!origin) return null;
+  let expected: string;
+  try {
+    expected = new URL(request.url).origin;
+  } catch {
+    return null;
+  }
+  if (origin === expected) return null;
+  try {
+    const host = new URL(origin).hostname;
+    if (host === "localhost" || host === "127.0.0.1") return null;
+  } catch {
+    /* malformed Origin → fall through to block */
+  }
+  return jsonResponse({ detail: "Forbidden — cross-origin requests are not allowed." }, 403);
+}
+
 // Very light query sanitization — strip control chars, clamp length.
 export function sanitizeQuery(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
@@ -49,8 +74,10 @@ export async function cachedJson(
   compute: () => Promise<unknown>,
 ): Promise<Response> {
   const url = new URL(request.url);
-  // Build a deterministic cache key URL — Cache API requires a GET.
-  const keyUrl = `${url.origin}${url.pathname}?k=${encodeURIComponent(cacheKeyParts.join("|"))}`;
+  // Build a deterministic cache key URL — Cache API requires a GET. Encode
+  // EACH part before joining so values containing a literal "|" (project
+  // names, queries) can't collide across different key tuples.
+  const keyUrl = `${url.origin}${url.pathname}?k=${cacheKeyParts.map(encodeURIComponent).join("|")}`;
   const cacheKey = new Request(keyUrl, { method: "GET" });
   const cache: Cache = caches.default;
   const hit = await cache.match(cacheKey);
@@ -60,7 +87,14 @@ export async function cachedJson(
   const resp = jsonResponse(body, 200, {
     "Cache-Control": `public, max-age=${ttlSeconds}, s-maxage=${ttlSeconds}`,
   });
-  // Clone before caching — the original is returned to the caller.
-  await cache.put(cacheKey, resp.clone());
+  // Never cache a degraded/disabled result — otherwise a single transient
+  // upstream failure (e.g. a Groq 5xx/timeout returning { disabled: true })
+  // would pin the failure into the edge cache for the full TTL and silently
+  // kill the feature long after upstream recovers. Only cache real successes.
+  const degraded =
+    body != null &&
+    typeof body === "object" &&
+    (body as Record<string, unknown>).disabled === true;
+  if (!degraded) await cache.put(cacheKey, resp.clone());
   return resp;
 }

@@ -22,9 +22,14 @@ export async function groqChat(
     maxTokens?: number;
     temperature?: number;
     json?: boolean;
+    timeoutMs?: number;
   },
 ): Promise<string | null> {
   if (!env.GROQ_API_KEY) return null;
+  // Hard timeout so a hung/slow Groq call can't keep the client spinner
+  // (or the edge function) waiting indefinitely. Caller degrades on null.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 8000);
   try {
     const res = await fetch(GROQ_URL, {
       method: "POST",
@@ -42,6 +47,7 @@ export async function groqChat(
         temperature: opts.temperature ?? 0.3,
         ...(opts.json ? { response_format: { type: "json_object" } } : {}),
       }),
+      signal: controller.signal,
     });
     if (!res.ok) return null;
     const data = (await res.json()) as {
@@ -50,5 +56,7 @@ export async function groqChat(
     return data?.choices?.[0]?.message?.content ?? null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }

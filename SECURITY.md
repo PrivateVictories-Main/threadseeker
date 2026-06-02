@@ -43,6 +43,15 @@ a concern:
 - **Output handling.** Upstream-provided text (descriptions, titles, READMEs) is
   rendered as React text (escaped by default) and any HTML is stripped/sanitized in
   the adapters. Be careful when introducing `dangerouslySetInnerHTML`.
+- **Optional AI endpoints (`/api/optimize-queries`, `/api/synthesize`).** Only
+  active when `GROQ_API_KEY` is set. Untrusted upstream result text is stripped of
+  control chars/newlines and clamped before entering the prompt, and the system
+  prompt instructs the model to never follow instructions embedded in that data
+  (prompt-injection mitigation). Requests are same-origin guarded and degraded
+  results are never edge-cached. **For production, also add a Cloudflare
+  rate-limiting rule** on these two paths (e.g. N requests/min per IP) — a
+  stateless Pages Function can't enforce a true per-IP limit, so the dashboard
+  rule is the real control against free-tier quota-drain.
 
 ## Good practices for contributors
 
