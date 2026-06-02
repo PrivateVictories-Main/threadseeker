@@ -4,7 +4,7 @@
   X-Frame-Options: DENY
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Permissions-Policy: geolocation=(), microphone=(), camera=()
-  Content-Security-Policy: frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self'; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
 
 # Hashed Next static assets are immutable — cache hard.
 /_next/static/*
@@ -14,8 +14,12 @@
 /opengraph-image
   Cache-Control: public, max-age=86400
 
-# NOTE: a strict connect-src/script-src CSP is intentionally NOT set here.
-# The app fetches directly from ~40 upstream source hosts and ships an inline
-# theme + ld+json script, so a locked-down CSP would need that full host list
-# (and nonces) maintained alongside the adapters — a future hardening, not a
-# drop-in. frame-ancestors 'none' (clickjacking) is the safe subset applied now.
+# CSP notes:
+# - script-src 'self' 'unsafe-inline': the static export can't mint a per-request
+#   nonce, and Next ships per-build inline bootstrap + the ld+json + next-themes
+#   anti-FOUC scripts. 'self' still blocks injected EXTERNAL <script src>, and
+#   with safeHref() neutralizing javascript: hrefs there is no inline-XSS sink.
+# - connect-src / img-src stay broad (https:) on purpose: the app fetches ~40
+#   upstream hosts (directly + via the same-origin proxy) and renders avatars/
+#   icons from arbitrary hosts. Tightening these to a build-generated allowlist
+#   from a shared host constant is the next step; broad-https is the safe start.
