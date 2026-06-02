@@ -21,6 +21,7 @@ import type { UnifiedProject } from "@/lib/sources/types";
 import { Highlight } from "./Highlight";
 import { Avatar } from "./card/Avatar";
 import { SourceMark } from "./card/SourceMark";
+import { IdentityRibbon } from "./card/IdentityRibbon";
 import { motion } from "framer-motion";
 import { Star, ExternalLink, Heart, ChevronRight } from "lucide-react";
 import { useBookmark } from "@/lib/bookmarks";
@@ -96,6 +97,9 @@ export function ProjectListRow({
       custom={index}
       transition={{ delay: ((index ?? 0) % 12) * 0.018 }}
     >
+      {/* Source-tinted left edge — shared DNA with the grid card's cover. */}
+      <IdentityRibbon source={project.source} />
+
       {/* Avatar */}
       <Avatar
         src={avatar}

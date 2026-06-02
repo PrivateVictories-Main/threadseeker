@@ -4661,6 +4661,13 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   /* Add room on the right edge for the chevron to land in. */
   padding-right: 14px;
 }
+/* The shared source-tinted ribbon, fitted to the shorter list row (hugs the
+   row's rounded left edge instead of the card's inset top/bottom:14px). */
+.ts-list-row .ts-identity-ribbon {
+  top: 0;
+  bottom: 0;
+  border-radius: 14px 0 0 14px;
+}
 
 .ts-list-chevron {
   position: absolute;
