@@ -3152,33 +3152,44 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
 .ts-sidebar-nav-item {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 11px;
   width: 100%;
-  padding: 7px 10px;
-  border-radius: 10px;
+  padding: 6px 11px 6px 7px;
+  border-radius: 12px;
   background: transparent;
   border: 1px solid transparent;
   color: var(--ts-text-muted);
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
-  transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+  transition: background-color .16s ease, color .16s ease, border-color .16s ease;
 }
 
-.ts-sidebar-nav-item svg {
+/* Frosted icon tile so each category reads as a premium nav item, not a bare
+   glyph — the glassy "over the top" touch. */
+.ts-sidebar-nav-icon {
   flex-shrink: 0;
-  color: var(--ts-text-subtle);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: rgba(var(--ts-accent-rgb), 0.08);
+  border: 1px solid rgba(var(--ts-accent-rgb), 0.12);
+  color: var(--ts-accent-strong);
+  transition: background-color .16s ease, color .16s ease, border-color .16s ease, transform .16s ease;
 }
 
 @media (hover: hover) {
   .ts-sidebar-nav-item:hover:not(.is-active) {
-    background: rgba(var(--ts-accent-rgb), 0.06);
+    background: rgba(var(--ts-accent-rgb), 0.05);
     color: var(--ts-accent-strong);
-    border-color: rgba(var(--ts-accent-rgb), 0.10);
   }
-  .ts-sidebar-nav-item:hover:not(.is-active) svg {
-    color: var(--ts-accent-strong);
+  .ts-sidebar-nav-item:hover:not(.is-active) .ts-sidebar-nav-icon {
+    background: rgba(var(--ts-accent-rgb), 0.15);
+    border-color: rgba(var(--ts-accent-rgb), 0.22);
+    transform: translateY(-1px);
   }
 }
 
@@ -3191,7 +3202,10 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
     0 4px 12px -4px rgba(var(--ts-accent-rgb), 0.45);
 }
 
-.ts-sidebar-nav-item.is-active svg {
+/* On the active row the tile becomes a translucent white chip on the gradient. */
+.ts-sidebar-nav-item.is-active .ts-sidebar-nav-icon {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.38);
   color: #ffffff;
 }
 
@@ -4862,13 +4876,10 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   z-index: 1;
 }
 
-/* When the layoutId pill is rendering the active background, suppress
-   the previous .is-active static gradient so they don't double up. */
-.ts-sidebar-nav-item.is-active.has-layout-pill {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-}
+/* The active row keeps its static gradient as the BASE (so it's always visible
+   on first paint — the framer layoutId pill only renders after a frame, which
+   left "All sources" invisible at load). The sliding motion pill renders the
+   same gradient on top, so the click-to-switch slide still reads cleanly. */
 
 /* View-toggle layoutId active pill — same pattern. */
 .ts-view-toggle-active-bg {

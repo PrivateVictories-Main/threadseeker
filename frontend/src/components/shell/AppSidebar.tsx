@@ -160,7 +160,9 @@ export function AppSidebar({
                         }}
                       />
                     )}
-                    <Icon className="w-3.5 h-3.5" aria-hidden />
+                    <span className="ts-sidebar-nav-icon" aria-hidden>
+                      <Icon className="w-3.5 h-3.5" />
+                    </span>
                     <span className="ts-sidebar-nav-label">{c.label}</span>
                   </motion.button>
                 </li>
