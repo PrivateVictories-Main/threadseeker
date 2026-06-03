@@ -1,50 +1,41 @@
 "use client";
 
-// The signature hero centerpiece — a constellation of the 28 sources, each a
-// brand-colored node, woven together by a single drifting "thread". It's the
-// literal product metaphor (ThreadSeeker threads the open-source world into one
-// view) and replaces the generic three-blurred-blobs hero backdrop.
-//
-// Deterministic phyllotaxis layout (golden angle) → an organic spread that's
-// identical on server + client (no Math.random, so no hydration mismatch).
-// Gentle CSS drift + a pointer-parallax wrapper give it life; both are disabled
-// under prefers-reduced-motion.
+// The hero backdrop — a calm, premium "constellation" of the REAL platforms
+// ThreadSeeker weaves together, framed around the headline rather than crowding
+// it. A few recognizable brand logos sit as glassy floating chips, linked by a
+// single luminous "thread" (the literal product metaphor) that drifts over a
+// soft aurora. Deliberately low-contrast + slow: a backdrop, not a distraction.
+// All motion is disabled under prefers-reduced-motion.
 
 import { useEffect, useRef } from "react";
 import type { SourceType } from "@/lib/sources/types";
-import { getBrandMark } from "@/lib/sources/brand-icons";
+import { SourceMark } from "./card/SourceMark";
 
-const GOLDEN_ANGLE = 2.399963229728653; // 137.5° in radians
+// Hand-placed around the PERIMETER so the thread frames the centered headline +
+// search instead of running behind the text. Order = the thread's weave path.
+// Placed only in the TOP strip, the RIGHT side, and the bottom-RIGHT — the
+// headline / tagline / search / example chips all live in the left column, so
+// the constellation frames the content instead of colliding with the text.
+// Order = the thread's weave path (across the top, down the right, along the
+// bottom-right).
+const NODES: Array<{ source: SourceType; x: number; y: number; s: number; delay: number }> = [
+  { source: "npm", x: 40, y: 10, s: 0.86, delay: 0.6 },
+  { source: "reddit", x: 60, y: 8, s: 0.76, delay: 1.8 },
+  { source: "crates", x: 76, y: 13, s: 0.82, delay: 0.3 },
+  { source: "github", x: 91, y: 27, s: 1.0, delay: 1.3 },
+  { source: "huggingface", x: 85, y: 49, s: 0.86, delay: 0 },
+  { source: "gitlab", x: 93, y: 64, s: 0.78, delay: 2.1 },
+  { source: "dockerhub", x: 85, y: 79, s: 0.9, delay: 2.4 },
+  { source: "pypi", x: 72, y: 90, s: 0.82, delay: 1.0 },
+  { source: "arxiv", x: 55, y: 90, s: 0.74, delay: 1.5 },
+];
 
-interface NodePos {
-  x: number;
-  y: number;
-  r: number;
-  delay: number;
-  dur: number;
-}
+const THREAD = "M" + NODES.map((n) => `${n.x},${n.y}`).join(" L ");
 
-// Computed once at module load — deterministic.
-function layout(n: number): NodePos[] {
-  return Array.from({ length: n }, (_, i) => {
-    const angle = i * GOLDEN_ANGLE;
-    const radius = Math.sqrt((i + 0.6) / n); // 0..1, denser near center
-    return {
-      x: 50 + Math.cos(angle) * radius * 47,
-      y: 50 + Math.sin(angle) * radius * 43,
-      r: 2.2 + ((i * 7) % 5) * 0.55,
-      delay: -((i % 9) * 0.7),
-      dur: 7 + ((i * 13) % 6),
-    };
-  });
-}
-
-export function SourceConstellation({ sources }: { sources: SourceType[] }) {
-  const nodes = layout(sources.length);
+export function SourceConstellation({ sources: _sources }: { sources: SourceType[] }) {
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  // Pointer parallax — translate the layer a few px toward the cursor. rAF-
-  // throttled, no-op for touch / reduced-motion (the media query short-circuits).
+  // Gentle pointer parallax — rAF-throttled; no-op for touch / reduced-motion.
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -59,10 +50,8 @@ export function SourceConstellation({ sources }: { sources: SourceType[] }) {
       raf = requestAnimationFrame(() => {
         const w = window.innerWidth || 1;
         const h = window.innerHeight || 1;
-        const px = (e.clientX / w - 0.5) * 2; // -1..1
-        const py = (e.clientY / h - 0.5) * 2;
-        el.style.setProperty("--cx", px.toFixed(3));
-        el.style.setProperty("--cy", py.toFixed(3));
+        el.style.setProperty("--cx", ((e.clientX / w - 0.5) * 2).toFixed(3));
+        el.style.setProperty("--cy", ((e.clientY / h - 0.5) * 2).toFixed(3));
       });
     };
     window.addEventListener("mousemove", onMove, { passive: true });
@@ -72,34 +61,53 @@ export function SourceConstellation({ sources }: { sources: SourceType[] }) {
     };
   }, []);
 
-  // Thread path through the nodes, in spiral order.
-  const thread = nodes.map((nd, i) => `${i === 0 ? "M" : "L"}${nd.x.toFixed(2)},${nd.y.toFixed(2)}`).join(" ");
-
   return (
     <div className="ts-constellation" aria-hidden ref={wrapRef}>
-      <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" className="ts-constellation-svg">
-        {/* The woven thread. */}
-        <path d={thread} className="ts-constellation-thread" fill="none" />
-        {/* Brand-colored source nodes. */}
-        {nodes.map((nd, i) => {
-          const brand = getBrandMark(sources[i]);
-          const color = brand?.hex ?? "#6366f1";
-          return (
-            <circle
-              key={sources[i]}
-              cx={nd.x}
-              cy={nd.y}
-              r={nd.r}
-              fill={color}
-              className="ts-constellation-node"
-              style={{
-                animationDelay: `${nd.delay}s`,
-                animationDuration: `${nd.dur}s`,
-              }}
-            />
-          );
-        })}
+      <div className="ts-hero-aurora" />
+      <svg
+        className="ts-hero-thread-svg"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="ts-thread-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="rgb(var(--ts-accent-rgb))" stopOpacity="0.0" />
+            <stop offset="50%" stopColor="rgb(var(--ts-accent-rgb))" stopOpacity="0.55" />
+            <stop offset="100%" stopColor="rgb(var(--ts-accent-rgb))" stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
+        {/* faint full thread */}
+        <path
+          d={THREAD}
+          className="ts-hero-thread"
+          fill="none"
+          vectorEffect="non-scaling-stroke"
+        />
+        {/* luminous pulse that travels along it */}
+        <path
+          d={THREAD}
+          className="ts-hero-thread-pulse"
+          fill="none"
+          vectorEffect="non-scaling-stroke"
+        />
       </svg>
+      {NODES.map((n) => (
+        <span
+          key={n.source}
+          className="ts-hero-node"
+          data-source={n.source}
+          style={
+            {
+              left: `${n.x}%`,
+              top: `${n.y}%`,
+              ["--s"]: n.s,
+              animationDelay: `${n.delay}s`,
+            } as React.CSSProperties
+          }
+        >
+          <SourceMark source={n.source} className="ts-hero-node-mark" />
+        </span>
+      ))}
     </div>
   );
 }
