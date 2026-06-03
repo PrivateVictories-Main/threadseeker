@@ -17,6 +17,7 @@ interface Props {
   sourceCount: number;
   sources: SourceType[];
   onSearch: (query: string) => void;
+  history?: string[];
 }
 
 // Diverse intent shapes so the chips read as "you can search anything".
@@ -28,7 +29,7 @@ const EXAMPLES = [
   "self-hosted photo library",
 ];
 
-export function LandingHero({ sourceCount, sources, onSearch }: Props) {
+export function LandingHero({ sourceCount, sources, onSearch, history = [] }: Props) {
   return (
     <section className="ts-landing-hero" aria-label="ThreadSeeker introduction">
       <SourceConstellation sources={sources} />
@@ -52,6 +53,7 @@ export function LandingHero({ sourceCount, sources, onSearch }: Props) {
             isLoading={false}
             size="hero"
             sourceCount={sourceCount}
+            history={history}
           />
         </div>
 

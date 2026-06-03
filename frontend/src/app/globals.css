@@ -1290,6 +1290,94 @@ button.topic-chip-interactive {
   font-weight: 400;
 }
 
+/* Autocomplete dropdown — glassy, sits just under the bar. */
+.ts-suggest {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(var(--ts-accent-rgb), 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 20px 50px -16px rgba(var(--ts-accent-rgb), 0.3),
+    0 6px 18px -8px rgba(30, 27, 75, 0.12);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+}
+.ts-suggest-compact {
+  top: calc(100% + 6px);
+  border-radius: 14px;
+}
+.dark .ts-suggest {
+  background: rgba(26, 31, 52, 0.92);
+  border-color: rgba(129, 140, 248, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 22px 56px -18px rgba(0, 0, 0, 0.62);
+}
+.ts-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--ts-text);
+  font-size: 14px;
+  transition: background-color 0.12s ease;
+}
+.ts-suggest-item.is-active {
+  background: rgba(var(--ts-accent-rgb), 0.1);
+}
+.ts-suggest-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(var(--ts-accent-rgb), 0.08);
+  border: 1px solid rgba(var(--ts-accent-rgb), 0.1);
+  color: var(--ts-accent-strong);
+}
+.ts-suggest-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ts-suggest-tag {
+  flex-shrink: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ts-text-faint);
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(var(--ts-accent-rgb), 0.07);
+}
+.ts-suggest-go {
+  flex-shrink: 0;
+  color: var(--ts-text-faint);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.ts-suggest-item.is-active .ts-suggest-go {
+  opacity: 0.7;
+}
+
 /* SearchBar — compact variant (pinned sticky header) */
 .search-bar-shell.compact {
   padding: 4px 6px 4px 16px;

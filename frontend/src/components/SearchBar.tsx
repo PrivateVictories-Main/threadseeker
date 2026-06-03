@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, FormEvent, useEffect, useRef } from "react";
-import { Search, Loader2, X } from "lucide-react";
+import {
+  useState,
+  FormEvent,
+  useEffect,
+  useRef,
+  useMemo,
+  useId,
+} from "react";
+import { Search, Loader2, X, Clock, ArrowUpRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { getSuggestions } from "@/lib/suggestions";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -19,13 +27,13 @@ interface SearchBarProps {
    * mono indicator pill showing the live source count. Decorative — no behavior.
    */
   sourceCount?: number;
+  /** Recent searches — surfaced (when they match) in the autocomplete dropdown. */
+  history?: string[];
 }
 
 // Overhaul B — rotating placeholders. The hero bar cycles through curated
 // queries every ~4s while unfocused so the bar reads as a "command surface"
-// inviting input rather than a static text field. The list is intentionally
-// short and ordered to surface different intent shapes (free-text, ecosystem,
-// concept).
+// inviting input rather than a static text field.
 const HERO_PLACEHOLDERS = [
   "Search every open-source platform…",
   "Try `mcp server`",
@@ -45,12 +53,29 @@ export function SearchBar({
   size = "hero",
   initialValue = "",
   sourceCount,
+  history = [],
 }: SearchBarProps) {
   const [query, setQuery] = useState(initialValue);
   const [pulseKey, setPulseKey] = useState(0);
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const [focused, setFocused] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
+  const isCompact = size === "compact";
+
+  // Autocomplete suggestions — only while the user is actually typing.
+  const suggestions = useMemo(
+    () => (query.trim() ? getSuggestions(query.trim(), history, isCompact ? 6 : 7) : []),
+    [query, history, isCompact],
+  );
+  const showDropdown = open && focused && suggestions.length > 0;
+
+  // Keep the active option in range as the list changes.
+  useEffect(() => {
+    setActiveIndex((i) => (i >= suggestions.length ? suggestions.length - 1 : i));
+  }, [suggestions.length]);
 
   // Sync external value changes (mode switch, browser history, clear) back
   // into the local input without forcing controlled re-renders on every key.
@@ -59,23 +84,54 @@ export function SearchBar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValue]);
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) onSearch(query.trim());
+  const runSearch = (value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    setQuery(v);
+    setOpen(false);
+    setActiveIndex(-1);
+    onSearch(v);
+    inputRef.current?.blur();
   };
 
-  // Debounced live-search: emits onDebouncedChange `debounceMs` after the
-  // user stops typing. Skipped when no handler is wired.
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (activeIndex >= 0 && suggestions[activeIndex]) {
+      runSearch(suggestions[activeIndex].text);
+    } else {
+      runSearch(query);
+    }
+  };
+
+  const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      if (suggestions.length === 0) return;
+      e.preventDefault();
+      setOpen(true);
+      setActiveIndex((i) => Math.min(suggestions.length - 1, i + 1));
+    } else if (e.key === "ArrowUp") {
+      if (suggestions.length === 0) return;
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(-1, i - 1));
+    } else if (e.key === "Escape") {
+      if (open) {
+        e.preventDefault();
+        setOpen(false);
+        setActiveIndex(-1);
+      }
+    }
+    // Enter is handled by the form's onSubmit (so it works with/without a
+    // highlighted suggestion).
+  };
+
+  // Debounced live-search.
   useEffect(() => {
     if (!onDebouncedChange) return;
-    const handle = setTimeout(() => {
-      onDebouncedChange(query);
-    }, debounceMs);
+    const handle = setTimeout(() => onDebouncedChange(query), debounceMs);
     return () => clearTimeout(handle);
   }, [query, onDebouncedChange, debounceMs]);
 
-  // "/" focuses the search input (classic Google / GitHub shortcut). Ignored
-  // while the user is already typing in a field.
+  // "/" focuses the search input.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -90,12 +146,7 @@ export function SearchBar({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const isCompact = size === "compact";
-
-  // Rotate the hero placeholder every ~4s while the bar is unfocused and
-  // empty. Pauses on focus / once the user has typed anything so it
-  // doesn't fight live input. Skipped on the compact variant entirely
-  // (sticky header has no room for marketing copy).
+  // Rotate the hero placeholder while unfocused + empty.
   useEffect(() => {
     if (isCompact) return;
     if (focused || query.length > 0) return;
@@ -120,8 +171,6 @@ export function SearchBar({
       <div
         className={`glass-strong search-bar-shell relative flex items-center ${isCompact ? "compact" : ""}`}
       >
-        {/* Focus pulse — framer-motion-driven radial glow; honors
-            reduced-motion via the framer provider. One-shot per focus. */}
         <AnimatePresence>
           {!isCompact && (
             <motion.span
@@ -135,12 +184,6 @@ export function SearchBar({
           )}
         </AnimatePresence>
 
-        {/* Leading command-hint pill — the long-standing `/` keyboard
-            shortcut surfaced visually as a system indicator. Only on the
-            hero variant; the compact bar is too tight. Overhaul D — the
-            chip subtly scales + shifts indigo when the bar is focused so
-            the leading edge of the search reads as "alive" alongside
-            the existing radial focus pulse. */}
         {!isCompact && (
           <motion.span
             className="ts-cmd-hint relative"
@@ -169,17 +212,32 @@ export function SearchBar({
           ref={inputRef}
           type="search"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+            setActiveIndex(-1);
+          }}
+          onKeyDown={onInputKeyDown}
           onFocus={() => {
             setFocused(true);
-            if (isCompact) return;
-            setPulseKey((k) => k + 1);
+            setOpen(true);
+            if (!isCompact) setPulseKey((k) => k + 1);
           }}
-          onBlur={() => setFocused(false)}
+          onBlur={() => {
+            setFocused(false);
+            setOpen(false);
+          }}
           placeholder={placeholder}
           aria-label="Search query"
           autoComplete="off"
           spellCheck={false}
+          role="combobox"
+          aria-expanded={showDropdown}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          aria-activedescendant={
+            showDropdown && activeIndex >= 0 ? `${listboxId}-opt-${activeIndex}` : undefined
+          }
           className="search-bar-input relative flex-1 px-3"
         />
         {query && (
@@ -187,6 +245,7 @@ export function SearchBar({
             type="button"
             onClick={() => {
               setQuery("");
+              setOpen(false);
               inputRef.current?.focus();
             }}
             className={`relative flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors ${isCompact ? "w-11 h-11 sm:w-7 sm:h-7" : "w-11 h-11 sm:w-8 sm:h-8"} rounded-full`}
@@ -196,8 +255,6 @@ export function SearchBar({
           </button>
         )}
 
-        {/* Trailing mono meta — live source count. Hidden on phone widths to
-            keep the bar compact (the `/` hint already anchors the left edge). */}
         {!isCompact && typeof sourceCount === "number" && !query && (
           <span className="ts-cmd-meta relative" aria-hidden>
             <span>{sourceCount} sources</span>
@@ -222,6 +279,49 @@ export function SearchBar({
           )}
         </button>
       </div>
+
+      {/* Autocomplete dropdown — glassy, keyboard-navigable. */}
+      <AnimatePresence>
+        {showDropdown && (
+          <motion.ul
+            id={listboxId}
+            role="listbox"
+            aria-label="Search suggestions"
+            className={`ts-suggest${isCompact ? " ts-suggest-compact" : ""}`}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6, transition: { duration: 0.12 } }}
+            transition={{ duration: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
+          >
+            {suggestions.map((s, i) => (
+              <li
+                key={`${s.kind}-${s.text}`}
+                id={`${listboxId}-opt-${i}`}
+                role="option"
+                aria-selected={i === activeIndex}
+                className={`ts-suggest-item${i === activeIndex ? " is-active" : ""}`}
+                // mousedown (not click) so it fires before the input's blur.
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  runSearch(s.text);
+                }}
+                onMouseEnter={() => setActiveIndex(i)}
+              >
+                <span className="ts-suggest-icon" aria-hidden>
+                  {s.kind === "recent" ? (
+                    <Clock className="w-3.5 h-3.5" />
+                  ) : (
+                    <Search className="w-3.5 h-3.5" />
+                  )}
+                </span>
+                <span className="ts-suggest-text">{s.text}</span>
+                {s.kind === "recent" && <span className="ts-suggest-tag">recent</span>}
+                <ArrowUpRight className="ts-suggest-go w-3.5 h-3.5" aria-hidden />
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
     </form>
   );
 }

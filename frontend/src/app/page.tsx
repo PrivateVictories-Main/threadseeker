@@ -423,6 +423,7 @@ export default function Home() {
                 sourceCount={ALL_SOURCES.length}
                 sources={ALL_SOURCES}
                 onSearch={handleSearch}
+                history={history}
               />
 
               {/* STAT TILES ROW — repurposed below the hero. */}
