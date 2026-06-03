@@ -196,7 +196,7 @@ export function rankCorpus(
       arxiv: 110, paperswithcode: 115, stackoverflow: 95, hackernews: 90,
       reddit: 90, lobsters: 90, devto: 85, aur: 100, openvsx: 110,
       conda: 115, zenodo: 105, nuget: 120, wordpress: 105, maven: 120,
-      hex: 115,
+      hex: 115, pub: 115,
     };
     score += srcBonus[p.source] ?? 0;
 

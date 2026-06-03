@@ -31,7 +31,8 @@ export type SourceType =
   | "nuget"
   | "wordpress"
   | "maven"
-  | "hex";
+  | "hex"
+  | "pub";
 
 export interface RelatedSource {
   source: SourceType;

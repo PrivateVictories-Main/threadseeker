@@ -328,6 +328,59 @@ export async function searchHuggingFace(
   };
 }
 
+// pub.dev (Dart / Flutter). Search returns package NAMES only, so we look up
+// the top few by name for descriptions/versions (bounded fan-out, via proxy).
+export async function searchPub(query: string, signal?: AbortSignal): Promise<SearchResult> {
+  try {
+    const res = await fetchViaProxy(
+      `https://pub.dev/api/search?q=${encodeURIComponent(query)}`,
+      signal,
+    );
+    if (!res.ok) return { projects: [], totalCount: 0, source: "pub" };
+    const data = await res.json();
+    const names: string[] = Array.isArray(data.packages)
+      ? data.packages.slice(0, 8).map((p: any) => p?.package).filter(Boolean)
+      : [];
+    const details = await Promise.all(
+      names.map(async (name) => {
+        try {
+          const r = await fetchViaProxy(
+            `https://pub.dev/api/packages/${encodeURIComponent(name)}`,
+            signal,
+          );
+          return r.ok ? await r.json() : null;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const projects = details
+      .filter((d): d is any => !!d && typeof d.name === "string")
+      .map((d: any) => {
+        const latest = d.latest || {};
+        const ps = latest.pubspec || {};
+        return {
+          id: `pub-${d.name}`,
+          source: "pub" as const,
+          name: d.name,
+          fullName: d.name,
+          description: ps.description || null,
+          url: `https://pub.dev/packages/${d.name}`,
+          stars: 0,
+          language: "Dart",
+          topics: Array.isArray(ps.topics) ? ps.topics.slice(0, 6) : [],
+          author: { name: ps.publisher || "", avatar: "" },
+          updatedAt: latest.published || "",
+          version: latest.version,
+          homepage: ps.homepage || ps.repository || undefined,
+        };
+      });
+    return { projects, totalCount: projects.length, source: "pub" };
+  } catch {
+    return { projects: [], totalCount: 0, source: "pub" };
+  }
+}
+
 export async function searchArxiv(query: string, signal?: AbortSignal): Promise<SearchResult> {
   const data = await callBackend<{ results: any[] }>("/search-arxiv", { query }, signal);
   if (!data) return { projects: [], totalCount: 0, source: "arxiv" };

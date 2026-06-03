@@ -413,6 +413,17 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     category: "packages",
     tagline: "Elixir / Erlang packages",
   },
+  pub: {
+    name: "pub.dev",
+    icon: "🎯",
+    lucideIcon: Package,
+    color: "from-sky-500 to-blue-600",
+    borderColor: "border-sky-500/30",
+    bgColor: "bg-sky-500/10",
+    supportsOr: false,
+    category: "packages",
+    tagline: "Dart / Flutter packages",
+  },
 };
 
 // The canonical, exhaustive list of every source — derived from the config
@@ -540,6 +551,8 @@ export function getSourceSearchUrl(source: SourceType, query: string): string | 
       return `https://central.sonatype.com/search?q=${q}`;
     case "hex":
       return `https://hex.pm/packages?search=${q}`;
+    case "pub":
+      return `https://pub.dev/packages?q=${q}`;
     default:
       return null;
   }

@@ -10,7 +10,7 @@ const LABELS: Record<SourceType, string> = {
   nuget: "NuGet", wordpress: "WordPress", maven: "Maven",
   paperswithcode: "Papers with Code", arxiv: "arXiv", zenodo: "Zenodo",
   hackernews: "Hacker News", reddit: "Reddit", lobsters: "Lobsters",
-  stackoverflow: "Stack Overflow", devto: "DEV", hex: "Hex",
+  stackoverflow: "Stack Overflow", devto: "DEV", hex: "Hex", pub: "pub.dev",
 };
 
 export function SourceBadge({ source }: { source: SourceType }) {

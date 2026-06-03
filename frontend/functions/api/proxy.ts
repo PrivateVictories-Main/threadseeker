@@ -24,6 +24,7 @@ const HOST_ALLOWLIST = new Set<string>([
   "api.anaconda.org",
   "api.wordpress.org",
   "hex.pm",
+  "pub.dev",
 ]);
 
 export const onRequestOptions: PagesFunction = async () => corsPreflight();

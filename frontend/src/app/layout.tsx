@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://threadseeker.pages.dev"),
   title: "ThreadSeeker — Search open source everywhere",
   description:
-    "One query across 29 open-source platforms: GitHub, Hugging Face, npm, PyPI, crates.io, Maven Central, NuGet, Docker Hub, conda-forge, AUR, Open VSX, arXiv, Reddit, HN, and more. Free, no account, no tracking.",
+    "One query across 30 open-source platforms: GitHub, Hugging Face, npm, PyPI, crates.io, Maven Central, NuGet, Docker Hub, conda-forge, AUR, Open VSX, arXiv, Reddit, HN, and more. Free, no account, no tracking.",
   keywords: [
     "open source search",
     "github search",
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "ThreadSeeker — Search open source everywhere",
     description:
-      "One query across 29 open-source platforms. GitHub, npm, PyPI, Maven, NuGet, Hugging Face, Docker Hub, conda-forge, AUR, Open VSX, arXiv, and more.",
+      "One query across 30 open-source platforms. GitHub, npm, PyPI, Maven, NuGet, Hugging Face, Docker Hub, conda-forge, AUR, Open VSX, arXiv, and more.",
     url: "https://threadseeker.pages.dev",
     siteName: "ThreadSeeker",
     type: "website",
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "ThreadSeeker — Search open source everywhere",
     description:
-      "One query across 29 open-source platforms. Find repos, packages, models, and community threads.",
+      "One query across 30 open-source platforms. Find repos, packages, models, and community threads.",
   },
   robots: {
     index: true,
@@ -91,7 +91,7 @@ export default function RootLayout({
               alternateName: "ThreadSeeker — unified open-source search",
               url: "https://threadseeker.pages.dev",
               description:
-                "Unified search across 29 open-source platforms. GitHub, npm, PyPI, Maven, Hugging Face, Docker Hub, and more.",
+                "Unified search across 30 open-source platforms. GitHub, npm, PyPI, Maven, Hugging Face, Docker Hub, and more.",
               potentialAction: {
                 "@type": "SearchAction",
                 target: {

@@ -43,6 +43,7 @@ import {
   searchWordPress,
   searchMaven,
   searchHex,
+  searchPub,
 } from "./adapters";
 
 export * from "./types";
@@ -102,6 +103,7 @@ const DEFAULT_SOURCES: SourceType[] = [
   "wordpress",
   "maven",
   "hex",
+  "pub",
 ];
 
 // If a source hasn't returned in this long we drop it for this run. One
@@ -211,6 +213,8 @@ export async function searchAllSources(
         return searchMaven(q("maven"));
       case "hex":
         return searchHex(q("hex"));
+      case "pub":
+        return searchPub(q("pub"), signal);
       default:
         return { projects: [], totalCount: 0, source };
     }

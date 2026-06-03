@@ -10,7 +10,7 @@ import {
   siCodeberg, siComposer, siRubygems, siReddit, siDocker, siJsr, siFlathub,
   siDevdotto, siLobsters, siStackoverflow, siPaperswithcode, siHomebrew,
   siFdroid, siArxiv, siArchlinux, siCondaforge, siZenodo, siNuget, siWordpress,
-  siApachemaven, siElixir,
+  siApachemaven, siElixir, siDart,
 } from "simple-icons";
 import type { SourceType } from "./types";
 
@@ -59,6 +59,7 @@ export const BRAND_ICONS: Partial<Record<SourceType, BrandMark>> = {
   wordpress: m(siWordpress, "#5aa7cf"),
   maven: m(siApachemaven, "#e0566b"),
   hex: m(siElixir, "#b388d4"),
+  pub: m(siDart, "#4ab5f5"),
 };
 
 export function getBrandMark(source: SourceType): BrandMark | undefined {
