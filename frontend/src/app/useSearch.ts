@@ -19,6 +19,8 @@ import {
   expandQuery,
   rankCorpus,
   blendRerank,
+  blendSemantic,
+  semanticWeight,
   buildSearchQuery,
   coreSearchQuery,
   significantTokens,
@@ -126,6 +128,11 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
   const [synthesis, setSynthesis] = useState<string | null>(null);
   const [synthLoading, setSynthLoading] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
+  // Keyless in-browser semantic rerank lifecycle, surfaced so the UI can show
+  // a tasteful "deep match" indicator: idle → scoring → applied|unavailable.
+  const [semanticState, setSemanticState] = useState<
+    "idle" | "scoring" | "applied" | "unavailable"
+  >("idle");
 
   const searchRunIdRef = useRef(0);
   // Aborts the in-flight search when a newer one supersedes it — cancels the
@@ -185,11 +192,13 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
         return next;
       });
 
-      // Reset relaxation + AI-verdict state at the start of every search.
+      // Reset relaxation + AI-verdict + semantic state at the start of every
+      // search.
       setRelaxationBanner(null);
       setRelaxedQueries([]);
       setSynthesis(null);
       setSynthLoading(false);
+      setSemanticState("idle");
 
       try {
         const expansion = expandQuery(freeText);
@@ -355,6 +364,43 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
           }
         }
 
+        // SEMANTIC rerank — the keyless, free-for-everyone meaning pass. A
+        // small retrieval-trained embedding model runs in a Web Worker (in
+        // the user's browser; downloads once, then cached) and re-orders the
+        // head of the corpus by cosine similarity to the FULL query text.
+        // This is what makes "describe it in two or three sentences" actually
+        // fine-tune results without any AI API or key. Async + run-id guarded
+        // like the AI rerank; rank-FUSED so a bad pass can nudge, not tank.
+        // The dynamic import keeps the worker + transformers.js chunks out of
+        // the main bundle entirely.
+        (async () => {
+          try {
+            const { shouldSemanticRerank, semanticScores } = await import(
+              "@/lib/semantic/client"
+            );
+            if (!shouldSemanticRerank(freeText, finalRanked.length)) return;
+            if (searchRunIdRef.current !== runId) return;
+            setSemanticState("scoring");
+            const docs = finalRanked.slice(0, 150).map((p) => ({
+              key: p.id,
+              // Name + description is what the model can judge meaning from;
+              // topics add intent tags cheaply. Capped to keep WASM fast.
+              text: `${p.name}. ${(p.description ?? "").slice(0, 280)} ${(p.topics || []).slice(0, 6).join(" ")}`.trim(),
+            }));
+            const scores = await semanticScores(freeText, docs);
+            if (searchRunIdRef.current !== runId) return;
+            if (scores && scores.size > 0) {
+              const w = semanticWeight(significantTokens(freeText).length);
+              setProjects((prev) => blendSemantic(prev, scores, w));
+              setSemanticState("applied");
+            } else {
+              setSemanticState("unavailable");
+            }
+          } catch {
+            if (searchRunIdRef.current === runId) setSemanticState("unavailable");
+          }
+        })();
+
         // AI verdict — async, never blocks. Fired on the FINAL displayed set
         // (after any relaxation) so it summarizes what the user actually sees.
         // Renders only when the AI layer is active (a key is set).
@@ -431,6 +477,7 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
     setHasSearched(false);
     setSynthesis(null);
     setSynthLoading(false);
+    setSemanticState("idle");
     lastSubmittedRef.current = "";
   }, []);
 
@@ -468,6 +515,7 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
     relaxedQueries,
     synthesis,
     synthLoading,
+    semanticState,
     history,
     setHistory,
     // refs the page/JSX reference

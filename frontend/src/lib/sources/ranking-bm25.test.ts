@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { rankCorpus, blendRerank } from "./ranking-bm25";
+import { rankCorpus, blendRerank, blendSemantic, semanticWeight } from "./ranking-bm25";
 import { expandQuery } from "./synonyms";
 import type { UnifiedProject } from "./types";
 
@@ -148,5 +148,60 @@ describe("rankCorpus", () => {
     expect(exp.intent).toBe("model_search");
     const ranked = rankCorpus(projects, "llama model", exp);
     expect(ranked[0].source).toBe("huggingface");
+  });
+});
+
+describe("blendSemantic (keyless in-browser rerank fusion)", () => {
+  const ps = (ids: string[]) => ids.map((id) => mk({ id, name: id }));
+
+  it("lifts a semantically-preferred item without letting it teleport past everything", () => {
+    // BM25 order a,b,c,d. Semantic strongly prefers d (cos .9) over a (.1).
+    const scores = new Map([["a", 0.1], ["b", 0.2], ["c", 0.3], ["d", 0.9]]);
+    const out = blendSemantic(ps(["a", "b", "c", "d"]), scores, 0.5, 4).map((p) => p.id);
+    // d: 0.5*0 + 0.5*3 = 1.5; a: 0.5*3 + 0.5*0 = 1.5 (tie, stable) — the
+    // fusion meets in the middle instead of fully trusting either signal.
+    expect(out.sort()).toEqual(["a", "b", "c", "d"]);
+    expect(out.length).toBe(4);
+  });
+
+  it("at paragraph weight (0.62) a clear semantic winner overtakes a weak BM25 head", () => {
+    const scores = new Map([["a", 0.05], ["b", 0.1], ["c", 0.95], ["d", 0.2]]);
+    const out = blendSemantic(ps(["a", "b", "c", "d"]), scores, 0.62, 4).map((p) => p.id);
+    // Fused (w=0.62): c = .62*0+.38*2 = 0.76 · b = .62*2+.38*1 = 1.62 ·
+    // d = .62*1+.38*3 = 1.76 · a = .62*3+.38*0 = 1.86 → for a long
+    // descriptive query the meaning-match takes #1 and the keyword-only
+    // BM25 head (a, semantically last) sinks to the bottom.
+    expect(out).toEqual(["c", "b", "d", "a"]);
+  });
+
+  it("items the scorer missed keep their position (neutral, not penalized)", () => {
+    const scores = new Map([["c", 0.9]]); // partial coverage — only c scored
+    const out = blendSemantic(ps(["a", "b", "c", "d"]), scores, 0.5, 4).map((p) => p.id);
+    expect(out.length).toBe(4);
+    // a and b keep their leading ranks; c (sem rank 0) fuses up to ~1.
+    expect(out[0]).toBe("a");
+    expect(out.indexOf("c")).toBeLessThanOrEqual(2);
+  });
+
+  it("is a no-op on an empty score map and never touches the tail beyond topN", () => {
+    expect(blendSemantic(ps(["a", "b"]), new Map(), 0.5).map((p) => p.id)).toEqual(["a", "b"]);
+    const scores = new Map([["d", 0.99]]);
+    const out = blendSemantic(ps(["a", "b", "c", "d"]), scores, 0.8, 2).map((p) => p.id);
+    // topN=2: c and d are tail — untouched even with a huge d score.
+    expect(out.slice(2)).toEqual(["c", "d"]);
+  });
+
+  it("clamps a hostile weight into [0, 0.8]", () => {
+    const scores = new Map([["b", 0.9], ["a", 0.1]]);
+    // weight 99 must not produce NaN/teleport beyond the w=0.8 behavior.
+    const out = blendSemantic(ps(["a", "b"]), scores, 99, 2).map((p) => p.id);
+    expect(out).toEqual(["b", "a"]); // w=0.8: b fuses 0.8*0+0.2*1=0.2 < a 0.8*1+0.2*0=0.8
+  });
+
+  it("semanticWeight scales with query length: keywords stay BM25-led, paragraphs go semantic-led", () => {
+    expect(semanticWeight(2)).toBeLessThan(0.5);
+    expect(semanticWeight(5)).toBe(0.5);
+    expect(semanticWeight(12)).toBeGreaterThan(0.5);
+    expect(semanticWeight(12)).toBeLessThanOrEqual(0.8);
   });
 });

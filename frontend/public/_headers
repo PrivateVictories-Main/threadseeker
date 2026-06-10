@@ -4,7 +4,7 @@
   X-Frame-Options: DENY
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Permissions-Policy: geolocation=(), microphone=(), camera=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self'; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self'; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
 
 # Hashed Next static assets are immutable — cache hard.
 /_next/static/*
@@ -21,6 +21,11 @@
 #   nonce, and Next ships per-build inline bootstrap + the ld+json + next-themes
 #   anti-FOUC scripts. 'self' still blocks injected EXTERNAL <script src>, and
 #   with safeHref() neutralizing javascript: hrefs there is no inline-XSS sink.
+# - 'wasm-unsafe-eval' + cdn.jsdelivr.net: the keyless semantic reranker
+#   (public/workers/semantic-embed.worker.js) runtime-imports a PINNED
+#   transformers.js build from jsDelivr and compiles the ONNX WASM runtime.
+#   'wasm-unsafe-eval' permits WebAssembly compilation only — NOT JS eval().
+#   Model weights arrive via fetch (connect-src https:), not script-src.
 # - connect-src / img-src stay broad (https:) on purpose: the app fetches ~40
 #   upstream hosts (directly + via the same-origin proxy) and renders avatars/
 #   icons from arbitrary hosts. Tightening these to a build-generated allowlist

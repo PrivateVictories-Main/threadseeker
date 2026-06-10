@@ -235,6 +235,45 @@ export function rankCorpus(
 // so a partial/garbage AI response can only nudge — never tank — the order, and
 // ids the AI omits keep their BM25 position. The tail (beyond topN) is
 // untouched. Pure + deterministic so the blend is unit-testable without a key.
+// How much the semantic (embedding cosine) ordering should count vs BM25,
+// by query length. Short keyword queries are BM25's home turf (exact-name
+// boost, star signals); the longer and more descriptive the query, the more
+// *meaning* should dominate — a 3-sentence description is exactly where
+// keyword overlap fails and embeddings shine.
+export function semanticWeight(significantTokenCount: number): number {
+  if (significantTokenCount <= 3) return 0.35;
+  if (significantTokenCount <= 7) return 0.5;
+  return 0.62;
+}
+
+// Rank-fuse the current ordering with in-browser embedding cosine scores
+// (keyless semantic rerank). Same robustness contract as blendRerank: fusion
+// over RANKS (not raw scores) bounded by `weight`, so a degenerate embedding
+// pass can shuffle — never explode — the order. Docs the scorer missed keep
+// their current rank as their semantic rank (neutral). The tail beyond the
+// scored head is untouched. Pure + deterministic for unit tests.
+export function blendSemantic(
+  projects: UnifiedProject[],
+  scores: Map<string, number>,
+  weight: number,
+  topN = 150,
+): UnifiedProject[] {
+  if (!scores || scores.size === 0 || projects.length === 0) return projects;
+  const w = Math.min(Math.max(weight, 0), 0.8);
+  const head = projects.slice(0, topN);
+  const tail = projects.slice(topN);
+  const basePos = new Map(head.map((p, i) => [p.id, i]));
+  // Semantic ranking of the head: scored items ordered by cosine (desc).
+  const scored = head
+    .filter((p) => scores.has(p.id))
+    .sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
+  const semPos = new Map(scored.map((p, i) => [p.id, i]));
+  const fusedScore = (id: string) =>
+    w * (semPos.get(id) ?? basePos.get(id)!) + (1 - w) * basePos.get(id)!;
+  const fused = [...head].sort((a, b) => fusedScore(a.id) - fusedScore(b.id));
+  return [...fused, ...tail];
+}
+
 export function blendRerank(
   projects: UnifiedProject[],
   aiOrder: string[],
