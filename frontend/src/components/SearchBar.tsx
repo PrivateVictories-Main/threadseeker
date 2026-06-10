@@ -75,6 +75,15 @@ export function SearchBar({
   useEffect(() => {
     const el = inputRef.current;
     if (!el) return;
+    // An empty value is ALWAYS single-line: a long placeholder wraps on
+    // narrow viewports and inflates scrollHeight, which used to flip the
+    // empty bar into its "multi-line draft" state (hint + relaxed radius).
+    if (!query) {
+      el.style.height = `${LINE_PX}px`;
+      el.style.overflowY = "hidden";
+      setMultiline(false);
+      return;
+    }
     el.style.height = "auto";
     const cap = MAX_LINES * LINE_PX;
     const next = Math.min(el.scrollHeight, cap);
