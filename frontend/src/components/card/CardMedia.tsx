@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { SourceType } from "@/lib/sources/types";
 import { getBrandMark } from "@/lib/sources/brand-icons";
-import { getSourceConfig } from "@/lib/sources";
+import { getSourceConfig } from "@/lib/sources/registry";
 
 // The card "cover" — every project gets a rich showcase header, not just a
 // text block:

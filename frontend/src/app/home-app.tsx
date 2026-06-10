@@ -39,14 +39,16 @@ import { RevealOnScroll } from "@/components/motion/RevealOnScroll";
 import { AppShell } from "@/components/shell/AppShell";
 import { modeVariants } from "@/lib/motion";
 import { safeHref } from "@/lib/utils";
+// Registry-only import (display config + types): the heavy engine modules
+// (adapters/synonyms/ranking) are loaded lazily by useSearch on idle, so the
+// first paint ships none of them.
 import {
-  UnifiedProject,
-  SourceType,
   getSourceConfig,
   getSourceSearchUrl,
   ALL_SOURCE_TYPES,
   sparseFraction,
-} from "@/lib/sources";
+} from "@/lib/sources/registry";
+import type { UnifiedProject, SourceType } from "@/lib/sources/types";
 import { parseQuery, applyOperators, describeOperators } from "@/lib/query-parser";
 import { SynthesisCard } from "@/components/SynthesisCard";
 import { useSearch, loadHistory, saveHistory } from "./useSearch";

@@ -25,7 +25,7 @@ import { IdentityRibbon } from "./card/IdentityRibbon";
 import { motion } from "framer-motion";
 import { Star, ExternalLink, Heart, ChevronRight } from "lucide-react";
 import { useBookmark } from "@/lib/bookmarks";
-import { getSourceConfig } from "@/lib/sources";
+import { getSourceConfig } from "@/lib/sources/registry";
 import { safeHref } from "@/lib/utils";
 import {
   formatCount,

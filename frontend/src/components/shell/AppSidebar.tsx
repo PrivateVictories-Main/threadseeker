@@ -48,7 +48,7 @@ import {
   onBookmarksChanged,
   type StoredBookmark,
 } from "@/lib/bookmarks";
-import { getSourceConfig } from "@/lib/sources";
+import { getSourceConfig } from "@/lib/sources/registry";
 import { safeHref } from "@/lib/utils";
 
 export type CategoryKey = "all" | "repos" | "packages" | "ai" | "papers" | "threads";

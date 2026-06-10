@@ -56,7 +56,8 @@ import { modalBackdrop, modalSurface } from "@/lib/motion";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { SHORTCUT_HELP_EVENT } from "@/components/ShortcutHelpModal";
 import { getBookmarks, type StoredBookmark } from "@/lib/bookmarks";
-import { getSourceConfig, type SourceType } from "@/lib/sources";
+import { getSourceConfig } from "@/lib/sources/registry";
+import type { SourceType } from "@/lib/sources/types";
 import type { SortMode } from "@/components/ResultsToolbar";
 
 export const COMMAND_PALETTE_OPEN_EVENT = "threadseeker:open-command-palette";

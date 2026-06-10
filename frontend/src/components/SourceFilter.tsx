@@ -2,11 +2,8 @@
 
 import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  SourceType,
-  getSourceConfig,
-  groupSourcesByCategory,
-} from "@/lib/sources";
+import { getSourceConfig, groupSourcesByCategory } from "@/lib/sources/registry";
+import type { SourceType } from "@/lib/sources/types";
 import { SourceMark } from "./card/SourceMark";
 import { sheetVariants } from "@/lib/motion";
 

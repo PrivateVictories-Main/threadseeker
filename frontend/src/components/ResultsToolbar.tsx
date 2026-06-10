@@ -1,6 +1,7 @@
 "use client";
 
-import { UnifiedProject, SourceType, getSourceConfig } from "@/lib/sources";
+import { getSourceConfig } from "@/lib/sources/registry";
+import type { UnifiedProject, SourceType } from "@/lib/sources/types";
 import {
   ArrowDownWideNarrow,
   Link2,

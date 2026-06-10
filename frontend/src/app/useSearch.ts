@@ -10,27 +10,28 @@
 // and consumes the returned state by destructuring it into the same names the
 // JSX already uses. Behaviour is identical to the previous inline version.
 
-import { useCallback, useRef, useState } from "react";
-import {
-  searchAllSources,
+import { useCallback, useEffect, useRef, useState } from "react";
+import type {
   UnifiedProject,
   SourceType,
-  mergeRelatedProjects,
-  expandQuery,
-  rankCorpus,
-  blendRerank,
-  blendSemantic,
-  semanticWeight,
-  buildSearchQuery,
-  coreSearchQuery,
-  significantTokens,
-  nextRelaxation,
-  type RelaxationTier,
-  type RelaxedPlan,
-} from "@/lib/sources";
+} from "@/lib/sources/types";
+import type { RelaxationTier, RelaxedPlan } from "@/lib/sources/resilience";
 import { parseQuery } from "@/lib/query-parser";
 import { optimizeQuery, synthesizeResults, rerankResults } from "@/lib/api-client";
 import { toast } from "sonner";
+
+// The search ENGINE (30 adapters + the 868-line synonym dictionary + BM25 +
+// the relaxation pipeline) is ~the heaviest code in the app and none of it is
+// needed to paint the landing page — so it loads as its own chunk. The module
+// system caches the import, so every call after the first is synchronous-
+// fast; loadEngine() is also fired on idle right after mount, so in practice
+// the chunk is resident before a human can type a query.
+type Engine = typeof import("@/lib/sources");
+let enginePromise: Promise<Engine> | null = null;
+function loadEngine(): Promise<Engine> {
+  enginePromise ??= import("@/lib/sources");
+  return enginePromise;
+}
 
 const HISTORY_KEY = "threadseeker:history:v1";
 const HISTORY_MAX = 8;
@@ -179,11 +180,43 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
   const searchAbortRef = useRef<AbortController | null>(null);
   const lastSubmittedRef = useRef<string>("");
 
+  // Warm the engine chunk during idle time after mount — the landing paints
+  // without it, but it should be resident before the first keystroke lands.
+  useEffect(() => {
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    const handle = w.requestIdleCallback
+      ? w.requestIdleCallback(() => void loadEngine().catch(() => {}), { timeout: 2000 })
+      : window.setTimeout(() => void loadEngine().catch(() => {}), 350);
+    return () => {
+      if (w.cancelIdleCallback) w.cancelIdleCallback(handle);
+      else clearTimeout(handle);
+    };
+  }, []);
+
   const handleSearch = useCallback(
     async (searchQuery: string, preserveView: boolean = false) => {
       const q = searchQuery.trim();
       if (!q) return;
       lastSubmittedRef.current = q;
+
+      // Engine chunk — usually already resident (idle prefetch above); on a
+      // cold cache this awaits the one-time chunk fetch before the fan-out.
+      const {
+        searchAllSources,
+        mergeRelatedProjects,
+        expandQuery,
+        rankCorpus,
+        blendRerank,
+        blendSemantic,
+        semanticWeight,
+        buildSearchQuery,
+        coreSearchQuery,
+        significantTokens,
+        nextRelaxation,
+      } = await loadEngine();
 
       const parsed = parseQuery(q);
       const freeText = parsed.freeText || q;

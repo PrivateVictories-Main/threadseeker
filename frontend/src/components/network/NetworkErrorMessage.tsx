@@ -20,7 +20,8 @@
 // sourceCount-based default.
 
 import { WifiOff, RefreshCw, AlertTriangle, type LucideIcon } from "lucide-react";
-import { getSourceConfig, SourceType } from "@/lib/sources";
+import { getSourceConfig } from "@/lib/sources/registry";
+import type { SourceType } from "@/lib/sources/types";
 import type { ReactNode } from "react";
 
 interface NetworkErrorMessageProps {
