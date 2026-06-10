@@ -4,7 +4,7 @@
 
 ### A search engine for the entire open-source world.
 
-One query. **38 sources.** Zero paid APIs, zero tracking, zero accounts.
+One query. **40 sources.** Zero paid APIs, zero tracking, zero accounts.
 
 [**▶ Live — threadseeker.pages.dev**](https://threadseeker.pages.dev)
 
@@ -16,7 +16,7 @@ One query. **38 sources.** Zero paid APIs, zero tracking, zero accounts.
 | | |
 |:---:|:---:|
 | ![ThreadSeeker home, light theme](docs/media/hero-light.png) | ![Search results, dark theme](docs/media/results-dark.png) |
-| *Home — 38 sources, 0 paid APIs, 0 accounts* | *"react state management" — zustand wins, streamed live* |
+| *Home — 40 sources, 0 paid APIs, 0 accounts* | *"react state management" — zustand wins, streamed live* |
 
 </div>
 
@@ -45,7 +45,7 @@ that into one search box and one ranked, de-duplicated result set, so you can ju
 
 ## Features
 
-- **38 sources, one unified card grid.** Repos, packages, AI models, papers, and
+- **40 sources, one unified card grid.** Repos, packages, AI models, papers, and
   community threads, all normalized to the same card shape.
 - **Paragraph-first search.** The search bar is an auto-growing command surface:
   a one-word query and a three-sentence description of what you need both work.
@@ -79,13 +79,13 @@ that into one search box and one ranked, de-duplicated result set, so you can ju
 
 ## Sources
 
-All 38, derived from [`src/lib/sources/registry.ts`](frontend/src/lib/sources/registry.ts)
+All 40, derived from [`src/lib/sources/registry.ts`](frontend/src/lib/sources/registry.ts)
 (the registry is the single source of truth — every count in the UI derives from it):
 
 | Category | Platforms |
 |---|---|
 | **Repos** | GitHub · GitLab · Codeberg |
-| **Packages & registries** | npm · PyPI · crates.io · Maven Central · NuGet · Packagist · RubyGems · JSR · Hex · pub.dev · CRAN · conda-forge · Docker Hub · Flathub · Homebrew · F-Droid · AUR · Snapcraft · Chocolatey · Open VSX · Firefox Add-ons · Greasy Fork · GNOME Extensions · WordPress · Terraform Registry · Ansible Galaxy · Modrinth |
+| **Packages & registries** | npm · PyPI · crates.io · Maven Central · NuGet · Packagist · RubyGems · JSR · Hex · pub.dev · CRAN · conda-forge · Docker Hub · Flathub · Homebrew · F-Droid · AUR · Snapcraft · Chocolatey · Open VSX · Firefox Add-ons · Greasy Fork · GNOME Extensions · WordPress · Terraform Registry · Ansible Galaxy · Modrinth · vcpkg · MELPA |
 | **AI & ML** | Hugging Face |
 | **Scholarly** | arXiv · Zenodo |
 | **Community** | Hacker News · Reddit · Lobsters · Stack Overflow · Dev.to |
@@ -126,7 +126,7 @@ sits on top. Each layer degrades gracefully to the one below it.
 ┌────────────────────────────────┐       ┌─────────────────────────────────┐
 │      Browser (Next.js SPA)     │ ────► │  Public APIs (direct, CORS-OK)  │
 │                                │       │  GitLab, Codeberg, HF, npm,     │
-│  • fan-out to 38 sources       │       │  PyPI, crates, RubyGems, JSR,   │
+│  • fan-out to 40 sources       │       │  PyPI, crates, RubyGems, JSR,   │
 │  • BM25F re-rank + dedup       │       │  NuGet, Maven, Modrinth, AMO,   │
 │  • semantic rerank (Worker:    │       │  Zenodo, HN, Stack Overflow…    │
 │    WebGPU/WASM embeddings)     │       └─────────────────────────────────┘
@@ -194,7 +194,7 @@ and PR:
 - **Lint** (`next lint`) and **typecheck** — the app *and* the Pages Functions
   (`tsc -p functions/tsconfig.json`)
 - **475 unit tests with a coverage floor** (`vitest run --coverage` — the
-  threshold ratchets so coverage can't silently slide), including 38×7
+  threshold ratchets so coverage can't silently slide), including 40×7
   parameterized golden-payload adapter tests
 - **Static export build** (`NEXT_OUTPUT=export`)
 - **Playwright e2e smoke**, run in both light and dark themes

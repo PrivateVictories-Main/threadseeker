@@ -1,6 +1,6 @@
 {
   "name": "threadseeker-frontend",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "A search engine for the open-source world — one query across 38 registries, repo hosts, AI hubs, and dev communities, ranked into a unified result grid with a keyless in-browser semantic rerank. Free to run, no paid APIs.",
   "author": "PrivateVictories-Main",
   "license": "MIT",

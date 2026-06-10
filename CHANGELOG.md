@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
+## [4.1.0] - 2026-06-10
+
+### Added
+- **vcpkg (C/C++) and MELPA (Emacs)** — 40 sources total. Neither upstream has
+  a search API, so both use dedicated Pages Functions that edge-cache the full
+  package index (1 day) and filter server-side, with honest metadata only
+  (vcpkg: real SPDX licenses + last-modified dates; MELPA: real download
+  counts joined from `download_counts.json`).
+- **Self-hosted semantic model** — the 23 MiB embedding weights are vendored at
+  build time (`scripts/fetch-semantic-assets.mjs`) and served same-origin from
+  `/models/`, so visitors no longer depend on the Hugging Face CDN for the
+  heavyweight download (with automatic CDN fallback if the local copy is
+  missing). Warm inference measured at 1.5 s, down from ~4 s.
+- A `paragraph` backtest category: eight multi-sentence "context first, ask
+  last" queries — the vision case — scored against the deterministic pipeline.
+
+### Changed
+- Interrogative/relative framing words (`where`, `when`, `why`, `while`,
+  `shows`, `leaving`, `runs`) no longer consume upstream fetch-term slots.
+- Three new synonym-dictionary concepts: disk-usage (ncdu/dust/gdu),
+  network-adblock (Pi-hole/AdGuard Home/blocky), terminal-git-ui
+  (lazygit/gitui/tig).
+- The first four result covers load eagerly with `fetchpriority=high` — a
+  lazy-loaded cover was the page's LCP element, discovered 1.2 s late
+  (production Lighthouse: accessibility/best-practices/SEO all 100).
+
 ## [4.0.0] - 2026-06-10
 
 The "layered AI" release: a keyless in-browser semantic rerank on top of a

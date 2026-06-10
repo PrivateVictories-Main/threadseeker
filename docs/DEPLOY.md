@@ -3,7 +3,7 @@
 **One deployment. One URL. No servers, no secrets.**
 
 ThreadSeeker is a fully static Next.js site plus a handful of Cloudflare Pages
-Functions that ship alongside it. The whole app — frontend, 38 source adapters,
+Functions that ship alongside it. The whole app — frontend, 40 source adapters,
 and the CORS/no-search-API helper functions — runs on Cloudflare's free tier with
 **no environment variables required.**
 
