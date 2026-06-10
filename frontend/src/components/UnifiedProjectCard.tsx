@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type { UnifiedProject } from "@/lib/sources/types";
 import { Highlight } from "./Highlight";
 import { Avatar } from "./card/Avatar";
@@ -58,7 +59,13 @@ interface Props {
 //   - footer activity-dot row (info now in stat row)
 //   - license tone helper as a separate pill (license now a stat-row segment)
 //   - in-place expand toggle (replaced by Details ↗ → drawer)
-export function UnifiedProjectCard({
+// Memoized: during streaming, every source completion re-renders the page —
+// up to 30x per search — and without memo every accumulated card re-rendered
+// each time (tilt springs, framer controls and all). With stable handler
+// identities from the page (useCallback) the shallow compare skips all cards
+// whose props didn't change; only the focused/flashed card (whose
+// outerClassName string actually differs) re-renders.
+export const UnifiedProjectCard = memo(function UnifiedProjectCard({
   project,
   onToast,
   onTopicClick,
@@ -285,4 +292,4 @@ export function UnifiedProjectCard({
       </article>
     </AnimatedCard>
   );
-}
+});

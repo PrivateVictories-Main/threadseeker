@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
 import { ProjectListRow } from "@/components/ProjectListRow";
-import { DetailDrawer } from "@/components/card/DetailDrawer";
 import { SourceFilter } from "@/components/SourceFilter";
 import { ResultsToolbar, SortMode, SORT_MODES, applyResultsView } from "@/components/ResultsToolbar";
 import { TrendingSection } from "@/components/TrendingSection";
@@ -18,7 +18,20 @@ import { LandingHero } from "@/components/LandingHero";
 import { LandingStatTiles } from "@/components/LandingStatTiles";
 import { ShortcutHelpModal, ShortcutHelpButton } from "@/components/ShortcutHelpModal";
 import { DiscoverRail } from "@/components/DiscoverRail";
-import { CommandPalette } from "@/components/CommandPalette";
+
+// On-demand surfaces (opened by keystroke/click, never needed for first
+// paint) load as their own chunks. ssr:false also keeps them out of the
+// statically-exported HTML, where they rendered nothing anyway.
+// (ShortcutHelpModal stays static: its module also exports the always-visible
+// trigger button, so splitting the modal would not shrink the main chunk.)
+const DetailDrawer = dynamic(
+  () => import("@/components/card/DetailDrawer").then((m) => m.DetailDrawer),
+  { ssr: false },
+);
+const CommandPalette = dynamic(
+  () => import("@/components/CommandPalette").then((m) => m.CommandPalette),
+  { ssr: false },
+);
 import { NetworkErrorMessage, NetworkErrorTray } from "@/components/network/NetworkErrorMessage";
 import { AnimatedGrid } from "@/components/motion/AnimatedGrid";
 import { Toast } from "@/components/motion/Toast";
@@ -117,6 +130,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
     relaxedQueries,
     synthesis,
     synthLoading,
+    semanticState,
     history,
     setHistory,
     lastSubmittedRef,
@@ -248,6 +262,18 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 1500);
+  }, []);
+
+  // Stable card handlers — UnifiedProjectCard is memoized, so these must keep
+  // their identity across the up-to-30 streaming re-renders per search or the
+  // shallow compare can never skip a card.
+  const handleTopicClick = useCallback(
+    (topic: string) => handleSearch(topic),
+    [handleSearch],
+  );
+  const handleOpenDetails = useCallback((p: UnifiedProject) => {
+    setDrawerProject(p);
+    setFlashCardId(p.id);
   }, []);
 
   // Iter-24 — clear the card-flash highlight after a short window so
@@ -743,6 +769,20 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                             </span>
                           </>
                         )}
+                        {/* Keyless in-browser semantic rerank status — quiet
+                            confirmation that results are ordered by MEANING,
+                            not just keywords. Hidden when unavailable. */}
+                        {(semanticState === "scoring" || semanticState === "applied") && (
+                          <>
+                            <span className="text-slate-400 mx-1.5">·</span>
+                            <span
+                              className={`ts-semantic-pill${semanticState === "scoring" ? " is-scoring" : ""}`}
+                              title="Results re-ranked by meaning — a small embedding model running in your browser, free, no API"
+                            >
+                              ✦ deep match{semanticState === "scoring" ? "…" : ""}
+                            </span>
+                          </>
+                        )}
                         {activeSourceFilter && (
                           <span>
                             <span className="text-slate-400 mx-1.5">·</span>
@@ -888,11 +928,8 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                                 index={idx}
                                 query={parsedQuery.freeText || query}
                                 onToast={showToast}
-                                onTopicClick={(topic) => handleSearch(topic)}
-                                onOpenDetails={(p) => {
-                                  setDrawerProject(p);
-                                  setFlashCardId(p.id);
-                                }}
+                                onTopicClick={handleTopicClick}
+                                onOpenDetails={handleOpenDetails}
                                 outerClassName={`transition-shadow rounded-[22px] ${
                                   focusedIdx === idx
                                     ? "ring-2 ring-indigo-500/60 ring-offset-2 ring-offset-transparent"
@@ -1209,8 +1246,12 @@ function ViewToggle({
   view: ResultsView;
   onChange: (v: ResultsView) => void;
 }) {
+  // A group of toggle buttons, NOT a tablist: tabs imply tabpanels + roving
+  // tabindex + arrow-key contract none of which apply to a view switcher.
+  // aria-pressed on real buttons is the robust pattern — both stay in the
+  // tab order and screen readers announce "Grid, toggle button, pressed".
   return (
-    <div className="ts-view-toggle" role="tablist" aria-label="Result view">
+    <div className="ts-view-toggle" role="group" aria-label="Result view">
       {(["grid", "list"] as const).map((kind) => {
         const Icon = kind === "grid" ? LayoutGrid : ListIcon;
         const active = view === kind;
@@ -1218,8 +1259,7 @@ function ViewToggle({
           <motion.button
             key={kind}
             type="button"
-            role="tab"
-            aria-selected={active}
+            aria-pressed={active}
             className={`ts-view-toggle-btn has-layout-pill${active ? " is-active" : ""}`}
             onClick={() => onChange(kind)}
             title={`${kind === "grid" ? "Grid" : "List"} view`}
