@@ -4,6 +4,11 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { MotionProvider } from "@/components/motion/MotionProvider";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { ALL_SOURCE_TYPES } from "@/lib/sources/registry";
+
+// Source count derives from the registry so metadata can never drift from
+// the real roster (descriptions previously hardcoded stale counts).
+const SOURCE_COUNT = ALL_SOURCE_TYPES.length;
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -18,8 +23,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://threadseeker.pages.dev"),
   title: "ThreadSeeker — Search open source everywhere",
-  description:
-    "One query across 30 open-source platforms: GitHub, Hugging Face, npm, PyPI, crates.io, Maven Central, NuGet, Docker Hub, conda-forge, AUR, Open VSX, arXiv, Reddit, HN, and more. Free, no account, no tracking.",
+  description: `Search every open-source platform at once — GitHub, npm, PyPI, Hugging Face and ${SOURCE_COUNT} sources total, ranked side by side. Free, no account, no tracking.`,
   keywords: [
     "open source search",
     "github search",
@@ -41,8 +45,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "ThreadSeeker — Search open source everywhere",
-    description:
-      "One query across 30 open-source platforms. GitHub, npm, PyPI, Maven, NuGet, Hugging Face, Docker Hub, conda-forge, AUR, Open VSX, arXiv, and more.",
+    description: `One query across ${SOURCE_COUNT} open-source platforms. GitHub, npm, PyPI, Maven, NuGet, Hugging Face, Docker Hub, conda-forge, AUR, Open VSX, arXiv, and more.`,
     url: "https://threadseeker.pages.dev",
     siteName: "ThreadSeeker",
     type: "website",
@@ -50,13 +53,13 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "ThreadSeeker — Search open source everywhere",
-    description:
-      "One query across 30 open-source platforms. Find repos, packages, models, and community threads.",
+    description: `One query across ${SOURCE_COUNT} open-source platforms. Find repos, packages, models, and community threads.`,
   },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  // No explicit `robots` field on purpose: index,follow is already the
+  // crawler default, and an explicit tag here leaks onto Next's
+  // auto-generated 404 page — which emits its own `noindex` — leaving two
+  // contradictory robots metas on /404. Omitting it keeps normal pages
+  // indexable while the 404 carries only `noindex`.
 };
 
 export const viewport: Viewport = {
@@ -79,27 +82,48 @@ export default function RootLayout({
       <head>
         {/* Warm up DNS + TLS for every host we fetch directly from the browser.
             Saves ~50-150ms per source on the first query. */}
-        {/* Schema.org SiteSearch — lets Google render a sitelinks search box
-            and exposes the homepage as a WebSite entity with a SearchAction. */}
+        {/* Schema.org structured data (@graph):
+            - WebSite with a SearchAction. Google retired the sitelinks
+              search box, so this no longer buys SERP chrome — kept because
+              it still documents the canonical ?q= entry point for any
+              consumer of the markup.
+            - WebApplication so the app itself is an entity: a free
+              ($0 Offer) developer tool that runs on the web. */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "WebSite",
-              name: "ThreadSeeker",
-              alternateName: "ThreadSeeker — unified open-source search",
-              url: "https://threadseeker.pages.dev",
-              description:
-                "Unified search across 30 open-source platforms. GitHub, npm, PyPI, Maven, Hugging Face, Docker Hub, and more.",
-              potentialAction: {
-                "@type": "SearchAction",
-                target: {
-                  "@type": "EntryPoint",
-                  urlTemplate: "https://threadseeker.pages.dev/?q={search_term_string}",
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  name: "ThreadSeeker",
+                  alternateName: "ThreadSeeker — unified open-source search",
+                  url: "https://threadseeker.pages.dev",
+                  description: `Unified search across ${SOURCE_COUNT} open-source platforms. GitHub, npm, PyPI, Maven, Hugging Face, Docker Hub, and more.`,
+                  potentialAction: {
+                    "@type": "SearchAction",
+                    target: {
+                      "@type": "EntryPoint",
+                      urlTemplate: "https://threadseeker.pages.dev/?q={search_term_string}",
+                    },
+                    "query-input": "required name=search_term_string",
+                  },
                 },
-                "query-input": "required name=search_term_string",
-              },
+                {
+                  "@type": "WebApplication",
+                  name: "ThreadSeeker",
+                  url: "https://threadseeker.pages.dev",
+                  applicationCategory: "DeveloperApplication",
+                  operatingSystem: "Web",
+                  offers: {
+                    "@type": "Offer",
+                    price: "0",
+                    priceCurrency: "USD",
+                  },
+                  description: `Free unified search for the open-source world — one query across ${SOURCE_COUNT} platforms, results ranked side by side. No account, no tracking.`,
+                },
+              ],
             }),
           }}
         />

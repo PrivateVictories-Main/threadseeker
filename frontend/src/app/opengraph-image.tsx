@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { ALL_SOURCE_TYPES } from "@/lib/sources/registry";
 
 // Build-time-generated social card (1200×630) so shares aren't blank — the
 // twitter:summary_large_image / og:image meta previously had no image. Motif
@@ -65,7 +66,9 @@ export default function OpengraphImage() {
           <span style={{ color: "#818cf8" }}>one thread.</span>
         </div>
         <div style={{ fontSize: 30, marginTop: 30, color: "#aab6cd", maxWidth: 920 }}>
-          One query across 29 sources — GitHub, npm, PyPI, Hugging Face, Docker & more.
+          {/* Count derives from the registry so the card can never drift
+              from the real source roster again (it shipped saying "29"). */}
+          {`One query across ${ALL_SOURCE_TYPES.length} sources — GitHub, npm, PyPI, Hugging Face, Docker & more.`}
         </div>
         <div style={{ position: "absolute", bottom: 64, left: 84, fontSize: 26, color: "#7e8aa6", fontFamily: "monospace" }}>
           threadseeker.pages.dev
