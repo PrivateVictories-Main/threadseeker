@@ -50,7 +50,9 @@ export const onRequestPost: PagesFunction<GroqEnv> = async ({ request, env }) =>
   if (!query || valid.length === 0) return jsonResponse({ disabled: true }, 200);
 
   const known = new Set(valid.map((i) => String(i.id)));
-  const cacheKey = ["rerank", query, ...valid.map((i) => String(i.id))];
+  // Ids are attacker-supplied — clamp each part so one request can't mint a
+  // multi-kilobyte cache-key URL (real project ids are well under 120 chars).
+  const cacheKey = ["rerank", query, ...valid.map((i) => String(i.id).slice(0, 120))];
   // Per-request random delimiter the untrusted query/items can't forge.
   const tag = crypto.randomUUID().replace(/-/g, "");
 
