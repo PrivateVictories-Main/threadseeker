@@ -1,7 +1,7 @@
 // arXiv search. arXiv's API returns Atom XML, so we parse it server-side
 // and hand back a clean JSON list. 6-hour edge cache — new papers land
 // daily but rarely within a single session.
-import { cachedJson, corsPreflight, jsonResponse, sanitizeQuery } from "../_shared/http";
+import { cachedJson, corsPreflight, jsonResponse, sanitizeQuery, Uncacheable } from "../_shared/http";
 
 interface ArxivPaper {
   id: string;
@@ -33,11 +33,12 @@ export const onRequestPost: PagesFunction = async ({ request }) => {
       const res = await fetch(url, {
         cf: { cacheTtl: 60 * 60 * 6, cacheEverything: true },
       } as RequestInit);
-      if (!res.ok) return { results: [] };
+      // Transient upstream failure — serve empty but do NOT cache it for 6h.
+      if (!res.ok) return new Uncacheable({ results: [] });
       const xml = await res.text();
       return { results: parseAtom(xml) };
     } catch {
-      return { results: [] };
+      return new Uncacheable({ results: [] });
     }
   });
 };

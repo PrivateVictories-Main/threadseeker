@@ -1,7 +1,7 @@
 // F-Droid search. F-Droid doesn't expose a search endpoint either, so we
 // fetch their index-v2 file once (cached 24h at the edge) and filter it.
 // We keep the response slim — only id, name, summary, author, etc.
-import { cachedJson, corsPreflight, jsonResponse, sanitizeQuery } from "../_shared/http";
+import { cachedJson, corsPreflight, jsonResponse, sanitizeQuery, Uncacheable } from "../_shared/http";
 
 interface FDroidApp {
   id: string;
@@ -30,6 +30,8 @@ export const onRequestPost: PagesFunction = async ({ request }) => {
 
   return cachedJson(request, [query.toLowerCase(), "fdroid-v2"], 60 * 30, async () => {
     const apps = await fetchIndex();
+    // Transient failure — serve empty but do NOT pin it into the edge cache.
+    if (apps === null) return new Uncacheable({ results: [] });
     const q = query.toLowerCase();
     const scored: Array<{ score: number; app: FDroidApp }> = [];
     for (const app of apps) {
@@ -55,7 +57,9 @@ export const onRequestPost: PagesFunction = async ({ request }) => {
 // Cache the parsed index across requests on a single Worker isolate.
 let indexCache: { apps: FDroidApp[]; at: number } | null = null;
 
-async function fetchIndex(): Promise<FDroidApp[]> {
+// null = transient upstream failure (vs. a legit empty index) — the caller
+// serves empty WITHOUT edge-caching it.
+async function fetchIndex(): Promise<FDroidApp[] | null> {
   // Reuse if fresh in this isolate (≤ 1 hour).
   if (indexCache && Date.now() - indexCache.at < 60 * 60 * 1000) {
     return indexCache.apps;
@@ -66,7 +70,7 @@ async function fetchIndex(): Promise<FDroidApp[]> {
       cf: { cacheTtl: 86400, cacheEverything: true },
       headers: { Accept: "application/json" },
     } as RequestInit);
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const data = (await res.json()) as { apps?: any[] };
     const apps: FDroidApp[] = (data.apps || []).map((a: any) => ({
       id: a.packageName,
@@ -89,6 +93,6 @@ async function fetchIndex(): Promise<FDroidApp[]> {
     indexCache = { apps, at: Date.now() };
     return apps;
   } catch {
-    return [];
+    return null;
   }
 }

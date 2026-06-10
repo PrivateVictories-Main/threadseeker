@@ -78,11 +78,20 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   const body = await upstream.text();
+  // Never reflect a renderable content-type under our origin: with a caller-
+  // controlled ?accept=, GitHub's .html media types would otherwise let any
+  // public repo's content render as a *.pages.dev page (inline scripts run —
+  // the static-export CSP must allow 'unsafe-inline'). JSON passes through;
+  // everything else (raw README markdown etc.) is text/plain, which is
+  // exactly what the client consumes it as. Pages _headers don't apply to
+  // Function responses, so nosniff is set here explicitly.
+  const upstreamType = upstream.headers.get("content-type") ?? "application/json";
+  const isJson = /^application\/(json|[\w.+-]+\+json)\b/i.test(upstreamType);
   const resp = new Response(body, {
     status: upstream.status,
     headers: {
-      "Content-Type":
-        upstream.headers.get("content-type") ?? "application/json",
+      "Content-Type": isJson ? "application/json" : "text/plain; charset=utf-8",
+      "X-Content-Type-Options": "nosniff",
       "Access-Control-Allow-Origin": "*",
       "Cache-Control": `public, max-age=${CACHE_TTL}, s-maxage=${CACHE_TTL}`,
     },

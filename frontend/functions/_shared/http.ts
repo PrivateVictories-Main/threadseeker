@@ -64,6 +64,15 @@ export function sanitizeQuery(raw: unknown): string | null {
   return cleaned;
 }
 
+// Wrapper a compute() can return to say "serve this body but do NOT edge-cache
+// it". Lets the search functions distinguish a legit empty answer (cacheable —
+// plenty of queries genuinely match nothing) from a TRANSIENT upstream failure,
+// which must not pin an empty result set into the cache for the full TTL
+// (6h for arXiv) long after upstream recovers.
+export class Uncacheable {
+  constructor(public body: unknown) {}
+}
+
 // Cache a POST handler's JSON response in Cloudflare's edge cache, keyed by
 // the request URL + a deterministic body hash. Same (query) => instant reply
 // without a round-trip to the upstream.
@@ -83,9 +92,13 @@ export async function cachedJson(
   const hit = await cache.match(cacheKey);
   if (hit) return hit;
 
-  const body = await compute();
+  const computed = await compute();
+  const skipCache = computed instanceof Uncacheable;
+  const body = skipCache ? (computed as Uncacheable).body : computed;
   const resp = jsonResponse(body, 200, {
-    "Cache-Control": `public, max-age=${ttlSeconds}, s-maxage=${ttlSeconds}`,
+    "Cache-Control": skipCache
+      ? "no-store"
+      : `public, max-age=${ttlSeconds}, s-maxage=${ttlSeconds}`,
   });
   // Never cache a degraded/disabled result — otherwise a single transient
   // upstream failure (e.g. a Groq 5xx/timeout returning { disabled: true })
@@ -95,6 +108,6 @@ export async function cachedJson(
     body != null &&
     typeof body === "object" &&
     (body as Record<string, unknown>).disabled === true;
-  if (!degraded) await cache.put(cacheKey, resp.clone());
+  if (!skipCache && !degraded) await cache.put(cacheKey, resp.clone());
   return resp;
 }

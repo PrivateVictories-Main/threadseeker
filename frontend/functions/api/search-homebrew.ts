@@ -2,7 +2,7 @@
 // formula + cask list (~4-5 MB combined) once and filter server-side. The
 // full lists are cached at the edge for 24h — subsequent queries hit the
 // warm cache and never re-fetch from brew.sh.
-import { cachedJson, corsPreflight, jsonResponse, sanitizeQuery } from "../_shared/http";
+import { cachedJson, corsPreflight, jsonResponse, sanitizeQuery, Uncacheable } from "../_shared/http";
 
 interface BrewPackage {
   kind: "formula" | "cask";
@@ -36,10 +36,16 @@ export const onRequestPost: PagesFunction = async ({ request }) => {
   // Cache key is the lowercased query; the underlying index is also cached
   // per day via cf fetch cacheTtl below.
   return cachedJson(request, [query.toLowerCase(), "homebrew-v1"], 60 * 30, async () => {
-    const [formulas, casks] = await Promise.all([
+    const [formulasRaw, casksRaw] = await Promise.all([
       fetchJsonIndex("https://formulae.brew.sh/api/formula.json"),
       fetchJsonIndex("https://formulae.brew.sh/api/cask.json"),
     ]);
+    // Both halves down = transient failure: serve empty, never cache it.
+    if (formulasRaw === null && casksRaw === null) {
+      return new Uncacheable({ results: [] });
+    }
+    const formulas = formulasRaw ?? [];
+    const casks = casksRaw ?? [];
 
     const q = query.toLowerCase();
     const scored: Array<{ score: number; pkg: BrewPackage }> = [];
@@ -91,17 +97,19 @@ export const onRequestPost: PagesFunction = async ({ request }) => {
   });
 };
 
-async function fetchJsonIndex(url: string): Promise<any[]> {
+// null = transient upstream failure (vs. a legit empty index) — the caller
+// turns that into an UNCACHED empty response instead of pinning it for 30min.
+async function fetchJsonIndex(url: string): Promise<any[] | null> {
   try {
     const res = await fetch(url, {
       cf: { cacheTtl: 86400, cacheEverything: true },
       headers: { Accept: "application/json" },
     } as RequestInit);
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const data = await res.json();
     return Array.isArray(data) ? data : [];
   } catch {
-    return [];
+    return null;
   }
 }
 
