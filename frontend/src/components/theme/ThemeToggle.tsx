@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { springSnappy } from "@/lib/motion";
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
@@ -47,7 +48,12 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       Math.max(x, window.innerWidth - x),
       Math.max(y, window.innerHeight - y),
     );
-    const transition = doc.startViewTransition(() => setTheme(next));
+    // flushSync: the VT API captures the "new" snapshot right after this
+    // callback returns — React's commit is async by default, so without the
+    // flush the reveal can animate between two identical pre-flip frames.
+    const transition = doc.startViewTransition(() => {
+      flushSync(() => setTheme(next));
+    });
     transition.ready
       .then(() => {
         document.documentElement.animate(

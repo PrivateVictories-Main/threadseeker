@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import dynamic from "next/dynamic";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { UnifiedProjectCard } from "@/components/UnifiedProjectCard";
 import { ProjectListRow } from "@/components/ProjectListRow";
 import { SourceFilter } from "@/components/SourceFilter";
@@ -39,7 +39,7 @@ import { CountUp } from "@/components/motion/CountUp";
 import { SearchProgressBar } from "@/components/SearchProgressBar";
 import { RevealOnScroll } from "@/components/motion/RevealOnScroll";
 import { AppShell } from "@/components/shell/AppShell";
-import { modeVariants, springSnappy, springPill } from "@/lib/motion";
+import { modeVariants, modeVariantsReduced, springSnappy, springPill } from "@/lib/motion";
 import { safeHref } from "@/lib/utils";
 // Registry-only import (display config + types): the heavy engine modules
 // (adapters/synonyms/ranking) are loaded lazily by useSearch on idle, so the
@@ -70,6 +70,10 @@ type ResultsView = "grid" | "list";
 // typegen constrains a page's props to PageProps — hence this shared module.
 export function HomeApp({ initialQuery }: { initialQuery?: string }) {
   const heroHeadingLevel: "h1" | "h2" = initialQuery ? "h2" : "h1";
+  // Blur-free mode-transition variants for reduced-motion users — the global
+  // MotionConfig only strips transform/layout animations, not filter.
+  const reducedMotion = useReducedMotion();
+  const activeModeVariants = reducedMotion ? modeVariantsReduced : modeVariants;
   // ── View / UI state. The page owns this; the search engine (result-domain
   // state + orchestration) lives in the useSearch hook below. ────────────────
   const [selectedSources, setSelectedSources] = useState<SourceType[]>(ALL_SOURCES);
@@ -487,7 +491,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
               initial="heroEnter"
               animate="heroShow"
               exit="heroExit"
-              variants={modeVariants}
+              variants={activeModeVariants}
               className="ts-landing"
               aria-label="ThreadSeeker landing"
             >
@@ -607,11 +611,16 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
               initial="resultsEnter"
               animate="resultsShow"
               exit="resultsExit"
-              variants={modeVariants}
+              variants={activeModeVariants}
               className="ts-results"
               aria-label="Search results"
             >
               <div className="ts-results-inner">
+                {/* AnimatePresence so the phase wrappers' exits ACTUALLY run —
+                    keyed motion.divs with exit props are inert unless they're
+                    direct children of one (the first version of this
+                    crossfade was dead code and produced a blank dip). */}
+                <AnimatePresence mode="popLayout" initial={false}>
                 {isLoading && resultCount === 0 ? (
                   <motion.div
                     key="skeleton-phase"
@@ -1283,6 +1292,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                     })()}
                   </div>
                 ) : null}
+                </AnimatePresence>
               </div>
             </motion.section>
           )}

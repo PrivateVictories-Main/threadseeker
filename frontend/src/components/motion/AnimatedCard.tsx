@@ -1,5 +1,6 @@
 "use client";
 
+import { forwardRef, useState } from "react";
 import { motion } from "framer-motion";
 import { cardVariants } from "@/lib/motion";
 
@@ -20,14 +21,10 @@ import { cardVariants } from "@/lib/motion";
 // becomes visual noise.
 const LAYOUT_CAP = 60;
 
-export function AnimatedCard({
-  children,
-  layoutId,
-  index,
-  className,
-  resultId,
-  resultUrl,
-}: {
+// forwardRef: AnimatedGrid's inner AnimatePresence mode="popLayout" clones a
+// measuring ref onto each card — a plain function component made the pop
+// silently degrade to sync (and warn in dev).
+export const AnimatedCard = forwardRef<HTMLDivElement, {
   children: React.ReactNode;
   layoutId?: string;
   /**
@@ -58,7 +55,15 @@ export function AnimatedCard({
    */
   resultId?: string;
   resultUrl?: string;
-}) {
+}>(function AnimatedCard(
+  { children, layoutId, index, className, resultId, resultUrl },
+  ref,
+) {
+  // Entrance-only stagger: the per-card delay lives in cardVariants.visible,
+  // and a gesture release re-enters "visible" USING that transition — deep
+  // cards froze at tap-scale for up to 420ms after click. Once the entrance
+  // completes, custom flips to 0 so re-entries are immediate.
+  const [entered, setEntered] = useState(false);
   // Per-card hidden-state offset. Keeps the rhythm subtle: max ±4px on
   // y and ±2px on x; otherwise the pattern is loud. Even rows stay
   // flat; odd rows lift slightly higher with a small left nudge.
@@ -85,10 +90,14 @@ export function AnimatedCard({
       // smoothly without animating their box dimensions (which would
       // squash content with different heights). layoutId still pairs
       // identical projects across hero→results transitions.
+      ref={ref}
       layout={enableLayout ? "position" : false}
       layoutId={layoutId}
       variants={cardVariants}
-      custom={index ?? 0}
+      custom={entered ? 0 : (index ?? 0)}
+      onAnimationComplete={(def) => {
+        if (def === "visible" && !entered) setEntered(true);
+      }}
       initial={enterFrom}
       animate="visible"
       exit="exit"
@@ -103,4 +112,4 @@ export function AnimatedCard({
       {children}
     </motion.div>
   );
-}
+});

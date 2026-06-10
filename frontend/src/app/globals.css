@@ -1383,18 +1383,20 @@ button.topic-chip-interactive {
 /* Cover banners settle in on load (opacity + 1.5% scale) instead of
    popping. The branded gradient placeholder behind them stays visible
    until the network image is ready, so there's never a blank band. */
-.ts-cover-img {
+/* Specificity (0,1,2) on purpose: the pre-existing hover-zoom rule
+   `.ts-card-media img` (0,1,1) declares a transform-only transition that
+   was overriding this one — opacity snapped instead of fading. Keeping
+   transform in THIS transition list preserves the hover zoom. */
+.ts-card-media img.ts-cover-img {
   opacity: 0;
-  transform: scale(1.015);
   transition: opacity 0.45s cubic-bezier(0.22, 0.61, 0.36, 1),
-              transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+              transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
 }
-.ts-cover-img.is-loaded {
+.ts-card-media img.ts-cover-img.is-loaded {
   opacity: 1;
-  transform: scale(1);
 }
 @media (prefers-reduced-motion: reduce) {
-  .ts-cover-img { transition: opacity 0.2s linear; transform: none; }
+  .ts-card-media img.ts-cover-img { transition: opacity 0.2s linear; }
 }
 
 /* Search progress = the thread. A 2px luminous strand whose leading edge
@@ -1412,7 +1414,8 @@ button.topic-chip-interactive {
     rgba(var(--ts-accent-rgb), 0.25),
     rgba(var(--ts-accent-rgb), 0.9)
   );
-  transition: width 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* width animates via framer (so the exit can sweep to 100%) — no CSS
+     transition or the two systems fight. */
 }
 .ts-search-thread-fill::after {
   content: "";
@@ -1434,7 +1437,6 @@ button.topic-chip-interactive {
   50% { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ts-search-thread-fill { transition: none; }
   .ts-search-thread-fill::after { animation: none; }
 }
 .dark .ts-search-thread {
@@ -2919,8 +2921,6 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
   color: var(--ts-accent-strong) !important;
 }
 
-/* Sticky results-mode progress bar — thin animated gradient under the
-   sticky header, full-width of the header. */
 /* =========================================================================
    Iter-21 / Overhaul G — HF-clean unified stat row.
    Single horizontal row of icon + number segments, faint middot

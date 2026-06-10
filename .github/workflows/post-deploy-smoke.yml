@@ -56,13 +56,13 @@ jobs:
           curl -sS --fail --max-time 20 -o /dev/null "$BASE/search/api-gateway/"
           echo "SEO landing OK"
 
-  # Pre-warm production's edge caches. caches.default is PER-COLO, so after a
-  # deploy (which invalidates Function code paths) the first visitor at each
-  # colo pays a multi-second recompute on the index-scan search Functions.
-  # Hitting the hot endpoints with the top curated queries (see
-  # frontend/src/lib/suggestions.ts CURATED_QUERIES) means real users land on
-  # warm caches instead. Best-effort by design — a cold upstream or a slow
-  # index fetch must never fail the workflow.
+  # DAILY index-freshness warmer. Deploys are MANUAL (wrangler pages deploy —
+  # the Pages project is not git-connected), so no trigger here can fire
+  # post-deploy: the deployer runs frontend/scripts/warm-prod.sh immediately
+  # after deploying instead. This cron's job is narrower — once a day it
+  # re-warms the big upstream indexes' cf-cache (homebrew ~46 MB combined,
+  # fdroid/vcpkg/melpa) and the top curated queries, so the daily index
+  # expiry never lands on a real visitor. Best-effort by design.
   warm-cache:
     name: Warm production edge caches
     needs: smoke
@@ -94,15 +94,3 @@ jobs:
             done
           done
 
-      - name: Pre-warm big-index proxy targets
-        # The two heavyweight indexes relayed through /api/proxy — Homebrew's
-        # formula + cask lists (~4-5 MB combined). One GET each populates the
-        # edge cache so interactive searches skip the cold download.
-        run: |
-          for u in \
-            "https%3A%2F%2Fformulae.brew.sh%2Fapi%2Fformula.json" \
-            "https%3A%2F%2Fformulae.brew.sh%2Fapi%2Fcask.json"; do
-            code=$(curl -sS -o /dev/null -w "%{http_code}" -m 60 \
-              "$BASE/api/proxy?url=$u" || echo ERR)
-            echo "warm proxy $u -> $code"
-          done

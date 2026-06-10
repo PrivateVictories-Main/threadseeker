@@ -1,5 +1,5 @@
 // Homebrew search. There's no public search endpoint, so we fetch the full
-// formula + cask list (~4-5 MB combined) once and filter server-side. The
+// formula + cask list (~46 MB combined) once and filter server-side. The
 // full lists are cached at the edge for 24h — subsequent queries hit the
 // warm cache and never re-fetch from brew.sh.
 import { cachedJson, corsPreflight, jsonResponse, sanitizeQuery, Uncacheable } from "../_shared/http";

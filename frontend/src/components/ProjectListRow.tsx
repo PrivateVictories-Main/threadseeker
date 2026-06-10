@@ -18,6 +18,7 @@
 // chrome density.
 
 import type { UnifiedProject } from "@/lib/sources/types";
+import { forwardRef } from "react";
 import { Highlight } from "./Highlight";
 import { Avatar } from "./card/Avatar";
 import { SourceMark } from "./card/SourceMark";
@@ -49,14 +50,15 @@ interface Props {
   flashId?: string | null;
 }
 
-export function ProjectListRow({
-  project,
-  index,
-  onOpenDetails,
-  focused,
-  flashId,
-  query,
-}: Props) {
+// forwardRef: this row is a direct child of an AnimatePresence
+// mode="popLayout", whose PopChild clones a ref onto it to measure + pin the
+// exiting element. A plain function component can't receive that ref — the
+// pop silently no-ops (and React 18 logs a warning per row).
+export const ProjectListRow = forwardRef<HTMLDivElement, Props>(
+  function ProjectListRow(
+    { project, index, onOpenDetails, focused, flashId, query }: Props,
+    ref,
+  ) {
   const { isBookmarked, toggle } = useBookmark(project);
   const cfg = getSourceConfig(project.source);
   const popClass = popularityClass(project);
@@ -83,6 +85,7 @@ export function ProjectListRow({
 
   return (
     <motion.div
+      ref={ref}
       role="listitem"
       data-result-card=""
       data-result-id={project.id}
@@ -212,4 +215,5 @@ export function ProjectListRow({
       <ChevronRight className="ts-list-chevron w-4 h-4" aria-hidden />
     </motion.div>
   );
-}
+  },
+);

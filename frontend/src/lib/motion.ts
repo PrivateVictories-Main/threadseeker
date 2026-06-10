@@ -97,18 +97,32 @@ export const sheetVariants: Variants = {
 // a confident rise with the skeleton grid already shimmering.
 export const modeVariants: Variants = {
   heroEnter: { opacity: 0, y: 12 },
-  heroShow:  { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", transition: springSoft },
+  // transitionEnd clears the filter so the section doesn't carry a permanent
+  // inline blur(0px) (it forces a compositing layer for nothing).
+  heroShow:  { opacity: 1, y: 0, scale: 1, transition: springSoft, transitionEnd: { filter: "none" } },
   heroExit:  {
     opacity: 0, scale: 0.985, filter: "blur(5px)",
     transition: { duration: 0.2, ease: [0.32, 0.72, 0, 1] },
   },
   resultsEnter: { opacity: 0, y: 14 },
   // Duration-form spring (stiffness-form springs silently IGNORE duration).
-  resultsShow:  { opacity: 1, y: 0, filter: "blur(0px)", transition: { type: "spring", duration: 0.34, bounce: 0.16 } },
+  resultsShow:  { opacity: 1, y: 0, transition: { type: "spring", duration: 0.34, bounce: 0.16 }, transitionEnd: { filter: "none" } },
   resultsExit:  {
     opacity: 0, scale: 0.99, filter: "blur(4px)",
     transition: { duration: 0.18, ease: [0.32, 0.72, 0, 1] },
   },
+};
+
+// MotionConfig reducedMotion="user" strips TRANSFORM and layout animations
+// but filter (like opacity) keeps animating — so reduced-motion users need
+// a variants set with no blur at all, not just smaller motion.
+export const modeVariantsReduced: Variants = {
+  heroEnter: { opacity: 0 },
+  heroShow:  { opacity: 1, transition: { duration: 0.2 } },
+  heroExit:  { opacity: 0, transition: { duration: 0.15 } },
+  resultsEnter: { opacity: 0 },
+  resultsShow:  { opacity: 1, transition: { duration: 0.2 } },
+  resultsExit:  { opacity: 0, transition: { duration: 0.15 } },
 };
 
 // Overhaul D — modal/palette open variants. Used by CommandPalette and

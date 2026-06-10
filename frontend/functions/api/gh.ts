@@ -100,10 +100,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       "Content-Type": isJson ? "application/json" : "text/plain; charset=utf-8",
       "X-Content-Type-Options": "nosniff",
       "Access-Control-Allow-Origin": "*",
-      // Errors must not be browser-cached for 5 min — only successes are fresh.
+      // Successes cache normally. Rate-limit statuses get a SHORT cache —
+      // hammering a throttled upstream with repeats only deepens the
+      // throttle — while real errors (5xx) are never cached.
       "Cache-Control": upstream.ok
         ? `public, max-age=${CACHE_TTL}, s-maxage=${CACHE_TTL}`
-        : "no-store",
+        : upstream.status === 403 || upstream.status === 429
+          ? "public, max-age=30"
+          : "no-store",
     },
   });
   // Only cache successful responses so a transient rate-limit/5xx doesn't stick.

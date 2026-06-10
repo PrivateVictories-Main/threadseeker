@@ -16,7 +16,7 @@ interface Props {
 
 export function SearchProgressBar({ total, remaining, active }: Props) {
   const done = Math.max(0, total - remaining);
-  const pct = active ? Math.min(100, Math.max(2, (done / total) * 100)) : 100;
+  const pct = total > 0 ? Math.min(100, Math.max(2, (done / total) * 100)) : 0;
   return (
     <AnimatePresence>
       {active && total > 0 && (
@@ -30,7 +30,17 @@ export function SearchProgressBar({ total, remaining, active }: Props) {
           hero, now traveling the top of the viewport as sources return. The
           glow head (::after) rides the leading edge. */}
       <div className="ts-search-thread fixed top-0 left-0 right-0 z-50 pointer-events-none" aria-hidden>
-        <div className="ts-search-thread-fill" style={{ width: `${pct}%` }} />
+        {/* The fill is its own motion element so the EXIT can finish the
+            story: AnimatePresence freezes a removed child's props, so the
+            old `pct = 100 when inactive` arm never rendered — instead the
+            exit animates width to 100% while the wrapper fades. */}
+        <motion.div
+          className="ts-search-thread-fill"
+          initial={false}
+          animate={{ width: `${pct}%` }}
+          exit={{ width: "100%", transition: { duration: 0.25, ease: [0.22, 0.61, 0.36, 1] } }}
+          transition={{ duration: 0.35, ease: [0.22, 0.61, 0.36, 1] }}
+        />
       </div>
           <div
             className="fixed top-2 right-3 z-50 text-[10px] font-mono text-slate-500 pointer-events-none tabular-nums"
