@@ -52,6 +52,8 @@ import {
   searchAnsibleGalaxy,
   searchGnomeExtensions,
   searchChocolatey,
+  searchVcpkg,
+  searchMelpa,
 } from "./adapters";
 
 export * from "./types";
@@ -120,6 +122,8 @@ const DEFAULT_SOURCES: SourceType[] = [
   "ansible",
   "gnome",
   "chocolatey",
+  "vcpkg",
+  "melpa",
 ];
 
 // If a source hasn't returned in this long we drop it for this run. One
@@ -248,13 +252,17 @@ export async function searchAllSources(
         return searchGnomeExtensions(q("gnome"), signal);
       case "chocolatey":
         return searchChocolatey(q("chocolatey"), signal);
+      case "vcpkg":
+        return searchVcpkg(q("vcpkg"), signal);
+      case "melpa":
+        return searchMelpa(q("melpa"), signal);
       default:
         return { projects: [], totalCount: 0, source };
     }
   };
 
   // Topics feed straight into UI .map() calls — enforce the array contract at
-  // this single chokepoint so no adapter (38 of them, upstream shapes drift)
+  // this single chokepoint so no adapter (40 of them, upstream shapes drift)
   // can ever crash a card render with a comma-joined string or junk value.
   const normalizeTopics = (t: unknown): string[] => {
     if (Array.isArray(t)) {

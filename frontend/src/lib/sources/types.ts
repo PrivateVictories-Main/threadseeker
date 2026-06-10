@@ -40,7 +40,9 @@ export type SourceType =
   | "snap"
   | "ansible"
   | "gnome"
-  | "chocolatey";
+  | "chocolatey"
+  | "vcpkg"
+  | "melpa";
 
 export interface RelatedSource {
   source: SourceType;

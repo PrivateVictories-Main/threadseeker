@@ -14,6 +14,7 @@ const LABELS: Record<SourceType, string> = {
   modrinth: "Modrinth", cran: "CRAN", amo: "Firefox Add-ons",
   greasyfork: "Greasy Fork", terraform: "Terraform", snap: "Snapcraft",
   ansible: "Ansible Galaxy", gnome: "GNOME", chocolatey: "Chocolatey",
+  vcpkg: "vcpkg", melpa: "MELPA",
 };
 
 export function SourceBadge({ source }: { source: SourceType }) {

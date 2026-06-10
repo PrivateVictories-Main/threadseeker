@@ -33,6 +33,8 @@ import {
   Cog,
   Footprints,
   Candy,
+  Braces,
+  Parentheses,
   type LucideIcon,
 } from "lucide-react";
 import { SourceType } from "./types";
@@ -521,6 +523,30 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     category: "packages",
     tagline: "Windows packages",
   },
+  vcpkg: {
+    name: "vcpkg",
+    icon: "🧱",
+    // Braces read as C/C++ source — the ecosystem vcpkg packages.
+    lucideIcon: Braces,
+    color: "from-blue-600 to-indigo-700",
+    borderColor: "border-blue-500/30",
+    bgColor: "bg-blue-500/10",
+    supportsOr: false,
+    category: "packages",
+    tagline: "C / C++ libraries (Microsoft vcpkg)",
+  },
+  melpa: {
+    name: "MELPA",
+    icon: "🪐",
+    // Emacs packages are Lisp — Parentheses is the honest glyph.
+    lucideIcon: Parentheses,
+    color: "from-violet-500 to-purple-700",
+    borderColor: "border-violet-500/30",
+    bgColor: "bg-violet-500/10",
+    supportsOr: false,
+    category: "packages",
+    tagline: "Emacs Lisp packages",
+  },
 };
 
 // The canonical, exhaustive list of every source — derived from the config
@@ -666,6 +692,10 @@ export function getSourceSearchUrl(source: SourceType, query: string): string | 
       return `https://extensions.gnome.org/#q=${q}`;
     case "chocolatey":
       return `https://community.chocolatey.org/packages?q=${q}`;
+    case "vcpkg":
+      return `https://vcpkg.io/en/packages?query=${q}`;
+    case "melpa":
+      return `https://melpa.org/#/?q=${q}`;
     default:
       return null;
   }

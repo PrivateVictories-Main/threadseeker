@@ -60,6 +60,8 @@ import {
   searchAnsibleGalaxy,
   searchGnomeExtensions,
   searchChocolatey,
+  searchVcpkg,
+  searchMelpa,
 } from "./adapters";
 import * as fx from "./__fixtures__/adapter-payloads";
 
@@ -670,6 +672,54 @@ const CASES: AdapterCase[] = [
       // DownloadCount parses through its m:type attribute.
       expect(res.projects[0].downloads).toBe(14_882_190);
       expect(res.projects[0].version).toBe("2.49.0");
+    },
+  },
+  {
+    name: "searchVcpkg",
+    source: "vcpkg",
+    idPrefix: "vcpkg-",
+    query: "fmt",
+    run: searchVcpkg,
+    routes: { "/api/search-vcpkg": fx.vcpkgBackend },
+    wrap: (items) => ({ results: items }),
+    expectCount: 2,
+    extra: (res) => {
+      // Card links to the vcpkg.io package page; the index's (lowercase)
+      // homepage maps to `homepage`.
+      expect(res.projects[0].url).toBe("https://vcpkg.io/en/package/fmt");
+      expect(res.projects[0].homepage).toBe("https://github.com/fmtlib/fmt");
+      // vcpkg exposes no stars AND no downloads — both stay honestly empty.
+      for (const p of res.projects) {
+        expect(p.stars).toBe(0);
+        expect(p.downloads).toBeUndefined();
+      }
+      expect(res.projects[0].license).toBe("MIT");
+      expect(res.projects[0].version).toBe("12.1.0");
+      // LastModified survives as a real updatedAt (ISO from the backend).
+      expect(res.projects[0].updatedAt).toBe("2025-10-31T00:00:00.000Z");
+    },
+  },
+  {
+    name: "searchMelpa",
+    source: "melpa",
+    idPrefix: "melpa-",
+    query: "magit",
+    run: searchMelpa,
+    routes: { "/api/search-melpa": fx.melpaBackend },
+    wrap: (items) => ({ results: items }),
+    expectCount: 2,
+    extra: (res) => {
+      // Card links to the MELPA package page (SPA hash route); props.url
+      // (the upstream repo) maps to `homepage`, not `url`.
+      expect(res.projects[0].url).toBe("https://melpa.org/#/magit");
+      expect(res.projects[0].homepage).toBe("https://github.com/magit/magit");
+      // download_counts.json joins into the honest downloads channel —
+      // never fake stars.
+      expect(res.projects[0].downloads).toBe(5_176_602);
+      for (const p of res.projects) expect(p.stars).toBe(0);
+      expect(res.projects[0].version).toBe("20260609.956");
+      // Emacs finder keywords become topic chips.
+      expect(res.projects[0].topics).toEqual(["git", "tools", "vc"]);
     },
   },
 ];

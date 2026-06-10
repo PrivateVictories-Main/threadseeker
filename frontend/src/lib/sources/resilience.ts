@@ -83,7 +83,9 @@ export const FILLER_WORDS = new Set([
   "opensource", "project", "projects", "tool", "tools", "thing", "things",
   // interrogatives / quantifiers / comparison framing — non-content in a
   // natural-language query ("which X is best", "how do I", "most popular Y").
-  "which", "what", "how", "most", "more", "all", "vs", "versus", "between",
+  "which", "what", "how", "where", "when", "why", "while", "whose",
+  "most", "more", "all", "vs", "versus", "between",
+  "shows", "show", "showing", "leaving", "leave", "runs",
   "alternative", "alternatives", "compare", "comparison", "difference",
   "does", "do", "is", "are",
 ]);

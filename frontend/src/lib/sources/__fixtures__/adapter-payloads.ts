@@ -288,6 +288,61 @@ export const fdroidBackend = {
   ],
 };
 
+// Backend envelope from functions/api/search-vcpkg.ts — the function has
+// already normalized the raw index (array-of-paragraphs Descriptions joined,
+// lowercase `homepage` read, LastModified → ISO). The raw both-shapes
+// Description handling is pinned in functions/api/search-vcpkg.test.ts;
+// values here mirror the live ports (curl-verified 2026-06-10).
+export const vcpkgBackend = {
+  results: [
+    {
+      name: "fmt",
+      version: "12.1.0",
+      desc: "{fmt} is an open-source formatting library providing a fast and safe alternative to C stdio and C++ iostreams.",
+      homepage: "https://github.com/fmtlib/fmt",
+      license: "MIT",
+      updated: "2025-10-31T00:00:00.000Z",
+    },
+    {
+      // Upstream Description for abseil is an ARRAY of paragraphs — by the
+      // time it reaches the adapter the backend has joined it to one string.
+      name: "abseil",
+      version: "20260107.1",
+      desc: "Abseil is an open-source collection of C++ library code designed to augment the C++ standard library.",
+      homepage: "https://github.com/abseil/abseil-cpp",
+      license: "Apache-2.0",
+      updated: "2026-05-21T00:00:00.000Z",
+    },
+  ],
+};
+
+// Backend envelope from functions/api/search-melpa.ts — archive.json entries
+// already joined with download_counts.json by name (the join itself is
+// pinned in functions/api/search-melpa.test.ts), ver → "date.time" version
+// string, ver[0] → ISO `updated`.
+export const melpaBackend = {
+  results: [
+    {
+      name: "magit",
+      version: "20260609.956",
+      desc: "A Git porcelain inside Emacs",
+      downloads: 5_176_602,
+      repo: "https://github.com/magit/magit",
+      keywords: ["git", "tools", "vc"],
+      updated: "2026-06-09T00:00:00.000Z",
+    },
+    {
+      name: "vertico",
+      version: "20260605.1903",
+      desc: "VERTical Interactive COmpletion",
+      downloads: 394_377,
+      repo: "https://github.com/minad/vertico",
+      keywords: ["convenience", "files", "matching", "completion"],
+      updated: "2026-06-05T00:00:00.000Z",
+    },
+  ],
+};
+
 export const redditBackend = {
   results: [
     {

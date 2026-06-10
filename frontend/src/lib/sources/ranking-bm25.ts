@@ -294,7 +294,7 @@ export function rankCorpus(
       conda: 115, zenodo: 105, nuget: 120, wordpress: 105, maven: 120,
       hex: 115, pub: 115,
       modrinth: 105, cran: 110, amo: 105, greasyfork: 100, terraform: 110,
-      snap: 105, ansible: 105, gnome: 100, chocolatey: 105,
+      snap: 105, ansible: 105, gnome: 100, chocolatey: 105, vcpkg: 105, melpa: 105,
     };
     score += srcBonus[p.source] ?? 0;
 

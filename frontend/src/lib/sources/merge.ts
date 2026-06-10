@@ -35,6 +35,11 @@ const DEDUPABLE_SOURCES: ReadonlySet<SourceType> = new Set<SourceType>([
   // only produce false merges — they stay standalone.
   "cran",
   "chocolatey",
+  // vcpkg + melpa (Iter-26) are real package registries distributing the
+  // same upstream projects (fmt/abseil on GitHub, magit's repo, …) — they
+  // belong in the dedup pool like homebrew/cran.
+  "vcpkg",
+  "melpa",
 ]);
 
 // Normalize a project's name for comparison: strip scopes, cases, separators,
@@ -79,6 +84,7 @@ export function mergeRelatedProjects(projects: UnifiedProject[]): UnifiedProject
     conda: 62, huggingface: 60, jsr: 56, hex: 56, cran: 62, terraform: 58, ansible: 56,
     dockerhub: 52, homebrew: 50, flathub: 50, fdroid: 48, openvsx: 46, aur: 44, wordpress: 40,
     chocolatey: 50, snap: 50, modrinth: 48, amo: 46, greasyfork: 44, gnome: 42,
+    vcpkg: 60, melpa: 50,
     arxiv: 30, zenodo: 26,
     stackoverflow: 12, hackernews: 10, reddit: 10, lobsters: 10, devto: 10,
   };

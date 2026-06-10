@@ -30,7 +30,9 @@ const m = (icon: { path: string; hex: string }, darkHex?: string): BrandMark => 
   darkHex,
 });
 
-// `Partial` — Open VSX has no simple-icon and falls back to its lucide glyph.
+// `Partial` — sources without a simple-icons mark (Open VSX, vcpkg, MELPA —
+// checked against the installed simple-icons 2026-06-10) are simply absent
+// here and fall back to their registry lucide glyph via <SourceMark>.
 export const BRAND_ICONS: Partial<Record<SourceType, BrandMark>> = {
   github: m(siGithub, "#e6edf3"),
   huggingface: m(siHuggingface),

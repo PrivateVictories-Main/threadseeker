@@ -1005,6 +1005,75 @@ export async function searchFDroid(query: string, signal?: AbortSignal): Promise
   };
 }
 
+export async function searchVcpkg(query: string, signal?: AbortSignal): Promise<SearchResult> {
+  // vcpkg.io has no search API — the dedicated Pages Function fetches the
+  // full port index (edge-cached 24h) and filters server-side; see
+  // functions/api/search-vcpkg.ts. callBackend never throws.
+  const data = await callBackend<{ results: any[] }>("/search-vcpkg", { query }, signal);
+  if (!data) return { projects: [], totalCount: 0, source: "vcpkg" };
+  const results = data.results || [];
+  return {
+    projects: results.map((p: any) => ({
+      id: `vcpkg-${p.name}`,
+      source: "vcpkg" as const,
+      name: p.name || "",
+      fullName: p.name || "",
+      description: p.desc || null,
+      url: `https://vcpkg.io/en/package/${p.name}`,
+      // vcpkg's index exposes NO stars and NO download counts — leave both
+      // honestly empty rather than inventing a popularity signal.
+      stars: 0,
+      language: "C/C++",
+      topics: [],
+      author: { name: "vcpkg", avatar: "" },
+      // Backend ships `updated` as ISO derived from the index's LastModified
+      // — a real last-touched signal (unlike Homebrew, which has none).
+      updatedAt: p.updated || "",
+      license: p.license ?? undefined,
+      version: p.version || undefined,
+      // The port's own project site, when the index carries one.
+      homepage: p.homepage || undefined,
+    })),
+    totalCount: results.length,
+    source: "vcpkg",
+  };
+}
+
+export async function searchMelpa(query: string, signal?: AbortSignal): Promise<SearchResult> {
+  // melpa.org has no search API — the dedicated Pages Function fetches the
+  // full archive + download-counts files (edge-cached 24h), joins them by
+  // name, and filters server-side; see functions/api/search-melpa.ts.
+  const data = await callBackend<{ results: any[] }>("/search-melpa", { query }, signal);
+  if (!data) return { projects: [], totalCount: 0, source: "melpa" };
+  const results = data.results || [];
+  return {
+    projects: results.map((p: any) => ({
+      id: `melpa-${p.name}`,
+      source: "melpa" as const,
+      name: p.name || "",
+      fullName: p.name || "",
+      description: p.desc || null,
+      // Card links to the MELPA package page (SPA hash route); the upstream
+      // repo (props.url) is surfaced separately as `homepage` below.
+      url: `https://melpa.org/#/${p.name}`,
+      stars: 0,
+      // Cumulative install count from download_counts.json — MELPA's one
+      // honest popularity signal.
+      downloads: p.downloads || 0,
+      language: "Emacs Lisp",
+      topics: Array.isArray(p.keywords) ? p.keywords.slice(0, 6) : [],
+      author: { name: "MELPA", avatar: "" },
+      // ver[0] (YYYYMMDD snapshot build date) → ISO in the backend; "" when
+      // unparseable, never a fake "just now".
+      updatedAt: p.updated || "",
+      version: p.version || undefined,
+      homepage: p.repo || undefined,
+    })),
+    totalCount: results.length,
+    source: "melpa",
+  };
+}
+
 export async function searchAUR(
   query: string,
   signal?: AbortSignal,

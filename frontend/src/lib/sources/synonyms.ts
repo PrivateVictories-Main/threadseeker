@@ -63,6 +63,24 @@ export const SYNONYMS: SynonymEntry[] = [
     boostProjects: ["prisma/prisma", "drizzle-team/drizzle-orm"],
   },
   {
+    concept: "disk-usage",
+    triggers: ["disk space", "disk usage", "folder size", "storage usage"],
+    expandTo: ["ncdu", "dust", "gdu", "disk usage", "du"],
+    boostProjects: ["dundee/gdu", "bootandy/dust", "muesli/duf"],
+  },
+  {
+    concept: "network-adblock",
+    triggers: ["dns ad blocker", "network ad blocker", "block ads network", "dns level ad"],
+    expandTo: ["pihole", "pi-hole", "adguard home", "blocky", "dns sinkhole"],
+    boostProjects: ["pi-hole/pi-hole", "AdguardTeam/AdGuardHome", "0xERR0R/blocky"],
+  },
+  {
+    concept: "terminal-git-ui",
+    triggers: ["git ui terminal", "terminal git", "git tui", "terminal ui for git"],
+    expandTo: ["lazygit", "gitui", "tig", "git tui"],
+    boostProjects: ["jesseduffield/lazygit", "gitui-org/gitui", "jonas/tig"],
+  },
+  {
     concept: "local-llm",
     triggers: ["local llm", "on device llm", "self hosted llm", "local model"],
     expandTo: ["ollama", "llamacpp", "lm studio", "vllm", "text generation inference"],

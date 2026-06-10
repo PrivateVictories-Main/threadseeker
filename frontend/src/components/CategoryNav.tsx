@@ -71,6 +71,8 @@ export const CATEGORY_DEFS: CategoryDef[] = [
       "ansible",
       "gnome",
       "chocolatey",
+      "vcpkg",
+      "melpa",
     ],
   },
   { key: "ai", label: "AI Models", icon: Cpu, sources: ["huggingface"] },
