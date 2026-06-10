@@ -21,7 +21,8 @@ export type QueryCategory =
   | "language-scoped"
   | "task-shaped"
   | "ambiguous"
-  | "ecosystem";
+  | "ecosystem"
+  | "paragraph";
 
 export interface BacktestQuery {
   query: string;
@@ -156,4 +157,53 @@ export const BACKTEST_QUERIES: BacktestQuery[] = [
   { query: "langgraph", category: "exact-name", expected: ["langgraph"], idealWinner: "langchain-ai/langgraph" },
   { query: "tiptap", category: "exact-name", expected: ["tiptap"], idealWinner: "ueberdosis/tiptap" },
   { query: "shadcn ui", category: "exact-name", expected: ["shadcn", "shadcn-ui/ui"], idealWinner: "shadcn-ui/ui" },
+
+  // --- Paragraph: the vision case — 2-3 sentences, context first, ask last.
+  // These exercise coreSearchQuery's subject-likeness selection + the thread
+  // demotion. NOTE: the harness scores the DETERMINISTIC pipeline only; the
+  // in-browser semantic rerank (which helps exactly these) can't run in node,
+  // so live results are strictly better than these numbers.
+  {
+    query: "I run a home server with a docker compose stack. I need a self-hosted photo library with face recognition.",
+    category: "paragraph",
+    expected: ["immich", "photoprism", "librephotos"],
+    idealWinner: "immich",
+  },
+  {
+    query: "I'm building a chat app with node.js. Looking for a realtime websocket library that scales well.",
+    category: "paragraph",
+    expected: ["socket.io", "ws", "uwebsockets"],
+  },
+  {
+    query: "We use react at work. I want a small state management library that doesn't need a ton of boilerplate.",
+    category: "paragraph",
+    expected: ["zustand", "jotai", "valtio"],
+  },
+  {
+    query: "My laptop is always low on disk space. Looking for a tool that shows me which folders take up the most space.",
+    category: "paragraph",
+    expected: ["ncdu", "dust", "gdu", "windirstat", "diskonaut"],
+  },
+  {
+    query: "I write a lot of markdown notes. I want a self-hosted note taking app with sync and end to end encryption.",
+    category: "paragraph",
+    expected: ["joplin", "standard", "notesnook"],
+  },
+  {
+    query: "I have a huge csv dataset in python. Need a dataframe library that is much faster than pandas.",
+    category: "paragraph",
+    expected: ["polars", "duckdb", "modin"],
+    idealWinner: "polars",
+  },
+  {
+    query: "I live in the terminal. I want a git ui where I can stage hunks and browse history without leaving the shell.",
+    category: "paragraph",
+    expected: ["lazygit", "gitui", "tig"],
+  },
+  {
+    query: "I want to block ads for every device on my network. Looking for a dns level ad blocker that runs on a raspberry pi.",
+    category: "paragraph",
+    expected: ["pi-hole", "adguard", "blocky"],
+    idealWinner: "pi-hole",
+  },
 ];
