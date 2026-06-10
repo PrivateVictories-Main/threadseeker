@@ -847,12 +847,16 @@ export async function searchDockerHub(
   signal?: AbortSignal,
 ): Promise<SearchResult> {
   try {
-    const response = await fetchViaProxy(
-      `https://hub.docker.com/v2/search/repositories/?query=${encodeURIComponent(query)}&page_size=30`,
+    // Dedicated relay (not the generic proxy): hub.docker.com rate-limits
+    // Cloudflare's shared egress, and /api/search-dockerhub can authenticate
+    // with the owner's DOCKERHUB_* secrets when present — same response
+    // shape either way.
+    const data = await callBackend<{ results: any[] }>(
+      "/search-dockerhub",
+      { query },
       signal,
     );
-    if (!response.ok) return { projects: [], totalCount: 0, source: "dockerhub" };
-    const data = await response.json();
+    if (!data) return { projects: [], totalCount: 0, source: "dockerhub" };
     const results = data.results || [];
     return {
       projects: results.map((r: any) => {

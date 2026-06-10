@@ -268,7 +268,9 @@ const CASES: AdapterCase[] = [
     idPrefix: "dockerhub-",
     query: "nginx",
     run: searchDockerHub,
-    routes: { "hub.docker.com/v2/search/repositories": fx.dockerhubSearch },
+    // Routed through the dedicated relay function (auth-capable), not the
+    // generic proxy — hub.docker.com 429s Cloudflare's shared egress.
+    routes: { "/api/search-dockerhub": fx.dockerhubSearch },
     wrap: (items) => ({ results: items }),
     expectCount: 2,
     extra: (res) => {

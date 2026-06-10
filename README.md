@@ -176,15 +176,17 @@ npx wrangler pages dev out   # http://localhost:8788  (site + Functions together
 
 See [`docs/DEPLOY.md`](docs/DEPLOY.md) for the one-click Cloudflare Pages deploy.
 
-### Environment keys — both optional
+### Environment keys — all optional
 
-The app is fully functional with **no keys at all**. Two optional Pages secrets
-unlock extras:
+The app runs with **no keys at all**. Optional Pages secrets unlock extras —
+each path activates automatically when its secret appears, no code changes:
 
 | Key | What it unlocks |
 |---|---|
 | `GITHUB_TOKEN` | `/api/gh` attaches it server-side (never shipped to the client), lifting GitHub from the shared unauthenticated rate limit (10 search req/min) to 30 req/min + 5000 core req/hr. Without it GitHub still works, just unauthenticated. |
 | `GROQ_API_KEY` | The AI layer: query understanding (`/api/optimize-queries`), LLM result re-ranking (`/api/rerank`), and the cross-source verdict (`/api/synthesize`). Groq has a free tier; all three endpoints are edge-cached and degrade to the deterministic engine without the key. |
+| `REDDIT_CLIENT_ID` + `REDDIT_CLIENT_SECRET` | Reddit retired keyless JSON search in 2026 — these (a free [script app](https://www.reddit.com/prefs/apps)) let `/api/search-reddit` mint an app-only OAuth token (edge-cached ~23h) and search via `oauth.reddit.com`. Without them the Reddit source reports as unavailable. |
+| `DOCKERHUB_USERNAME` + `DOCKERHUB_TOKEN` | Docker Hub rate-limits shared cloud egress IPs — a free account + [access token](https://hub.docker.com/settings/security) lets `/api/search-dockerhub` authenticate (JWT edge-cached 24h). Without them Docker Hub search is usually throttled upstream. |
 
 ## Quality gate
 

@@ -33,10 +33,14 @@ export function CardMedia({
 }) {
   const [ogFailed, setOgFailed] = useState(false);
   // Covers fade+settle in on load instead of popping — the single cheapest
-  // "finished product" cue in the grid. Starts true-invisible only until
-  // onLoad; cached images fire onLoad immediately so repeat paints are
-  // instant.
+  // "finished product" cue in the grid. The ref callback closes the classic
+  // race: a CACHED image can finish loading before React attaches onLoad
+  // (the event never fires), which would leave the cover invisible forever —
+  // so we also check .complete the moment the node attaches.
   const [ogLoaded, setOgLoaded] = useState(false);
+  const ogImgRef = (node: HTMLImageElement | null) => {
+    if (node && node.complete && node.naturalWidth > 0) setOgLoaded(true);
+  };
   const brand = getBrandMark(source);
   const withinOgBudget = index === undefined || index < OG_IMAGE_LIMIT;
   // Shape-validate owner/repo (safe path chars, exactly one slash) before
@@ -56,6 +60,7 @@ export function CardMedia({
     return (
       <div className="ts-card-media" aria-hidden>
         <img
+          ref={ogImgRef}
           src={`https://opengraph.githubassets.com/1/${fullName}`}
           alt=""
           loading={aboveFold ? "eager" : "lazy"}
