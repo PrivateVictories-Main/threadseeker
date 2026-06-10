@@ -14,18 +14,31 @@ export type Intent =
 const INTENT_PATTERNS: Record<Exclude<Intent, "general">, RegExp[]> = {
   project_search: [
     /\b(project|repo|repository|code|implementation|example|template|boilerplate)\b/i,
-    /\b(github|clone|fork|open[- ]source)\b/i,
+    /\b(github|clone|fork|open[- ]source|self[- ]hosted)\b/i,
+    // Tool-shopping noun phrases: someone describing "a library to create
+    // PDFs" or "a CLI that converts videos" is hunting for a PROJECT, even
+    // though the description contains how_to/troubleshooting verbs. These
+    // nouns vote project_search so verb hits inside the noun phrase don't
+    // misroute paragraph queries toward Q&A sources.
+    /\b(library|package|framework|plugin|extension|crate|gem|module|sdk|cli|app|tool|generator|runtime|engine|server|daemon|client|wrapper|parser|scraper|dashboard|bot)s?\b/i,
   ],
   how_to: [
-    /\bhow (to|do|can)\b/i,
-    /\b(guide|tutorial|steps|learn|build|create|setup|deploy)\b/i,
+    // Question-framing must LEAD the query ("how do I…"). Anchored to the
+    // first ~30 chars: a paragraph describing a tool that happens to contain
+    // "build"/"deploy" mid-sentence is shopping for a project, not a lesson.
+    /^.{0,30}\bhow (to|do|can)\b/i,
+    /^.{0,30}\b(guide|tutorial|learn|teach me)\b/i,
+    /\b(step[- ]by[- ]step|getting started|walkthrough)\b/i,
   ],
   recommendation: [
-    /\b(best|top|recommend|suggestion|should i|which|better|vs)\b/i,
+    /\b(best|top|recommend|suggestion|should i|which|better)\b/i,
   ],
   comparison: [/\bvs\.?\b|\bversus\b/i, /\b(compare|comparison|difference)\b/i],
   troubleshooting: [
-    /\b(error|issue|problem|bug|fix|broken|not working|help|solve)\b/i,
+    // Anchored like how_to: "fix"/"problem" mid-paragraph usually describes
+    // what a TOOL does ("fixes image metadata problems"), not a support ask.
+    /^.{0,30}\b(error|issue|problem|bug|broken|not working|help|solve|fix)\b/i,
+    /\b(stack ?trace|exception|crash(es|ing)?|fails? with)\b/i,
   ],
   model_search: [
     /\b(model|llm|transformer|neural network|ai model|ml model)\b/i,

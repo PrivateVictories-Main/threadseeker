@@ -6,6 +6,7 @@
 import type { SourceType, UnifiedProject } from "./types";
 import type { ExpandQueryResult } from "./synonyms";
 import { INTENT_WEIGHTS } from "./intent";
+import { FILLER_WORDS, extractKeyTerms } from "./resilience";
 
 // How hard the regex-detected query intent nudges matching sources. A weight
 // of 0.7 (e.g. huggingface for a model_search) → +560, comparable to a
@@ -29,12 +30,43 @@ const FIELD_WEIGHTS = {
   language: 1,
 } as const;
 
+// Language/runtime names whose identity lives in punctuation the tokenizer
+// would otherwise destroy ("c++" → "c"). Normalized to stable word-tokens on
+// BOTH query and document text, so "c++ json library" can actually match a
+// C++ project instead of dissolving into a bare "c".
+function normalizeTechTerms(text: string): string {
+  return text
+    .replace(/c\+\+/g, "cpp")
+    .replace(/(^|[^a-z0-9])c#/g, "$1csharp")
+    .replace(/(^|[^a-z0-9])f#/g, "$1fsharp")
+    .replace(/\.net(\b|$)/g, "dotnet$1")
+    .replace(/node\.js/g, "nodejs")
+    .replace(/next\.js/g, "nextjs")
+    .replace(/vue\.js/g, "vuejs")
+    .replace(/socket\.io/g, "socketio");
+}
+
 function tokenize(text: string): string[] {
-  return (text || "")
-    .toLowerCase()
+  return normalizeTechTerms((text || "").toLowerCase())
     .split(/[^a-z0-9]+/)
     .filter((t) => t.length > 1);
 }
+
+// Sources whose "name" is a discussion/thread TITLE, not a project name. A
+// Reddit/SO title like "What's the best self-hosted photo library?" lexically
+// mirrors a natural-language query far better than the project name "immich"
+// ever can — so thread titles must NOT enjoy the 4x name field weight, and
+// upvotes must not count like GitHub stars. Without this, paragraph queries
+// rank discussions ABOUT the thing above the thing.
+const THREAD_SOURCES = new Set<SourceType>([
+  "reddit", "hackernews", "stackoverflow", "lobsters", "devto",
+]);
+
+const THREAD_FIELD_WEIGHTS = {
+  ...FIELD_WEIGHTS,
+  name: 1,
+  fullName: 1,
+} as const;
 
 interface DocFields {
   name: string[];
@@ -54,31 +86,33 @@ function docFields(p: UnifiedProject): DocFields {
   };
 }
 
+type FieldWeights = Record<keyof typeof FIELD_WEIGHTS, number>;
+
 // Weighted document length: Σ_field weight_field × |tokens_field|.
-function weightedLen(f: DocFields): number {
+function weightedLen(f: DocFields, w: FieldWeights): number {
   return (
-    FIELD_WEIGHTS.name * f.name.length +
-    FIELD_WEIGHTS.fullName * f.fullName.length +
-    FIELD_WEIGHTS.topics * f.topics.length +
-    FIELD_WEIGHTS.description * f.description.length +
-    FIELD_WEIGHTS.language * f.language.length
+    w.name * f.name.length +
+    w.fullName * f.fullName.length +
+    w.topics * f.topics.length +
+    w.description * f.description.length +
+    w.language * f.language.length
   );
 }
 
 // BM25F weighted term frequency: combine per-field counts with field weights
 // BEFORE the saturation function, so a name hit contributes its full weight.
-function weightedTf(f: DocFields, term: string): number {
+function weightedTf(f: DocFields, term: string, w: FieldWeights): number {
   const c = (arr: string[]) => {
     let n = 0;
     for (const t of arr) if (t === term) n++;
     return n;
   };
   return (
-    FIELD_WEIGHTS.name * c(f.name) +
-    FIELD_WEIGHTS.fullName * c(f.fullName) +
-    FIELD_WEIGHTS.topics * c(f.topics) +
-    FIELD_WEIGHTS.description * c(f.description) +
-    FIELD_WEIGHTS.language * c(f.language)
+    w.name * c(f.name) +
+    w.fullName * c(f.fullName) +
+    w.topics * c(f.topics) +
+    w.description * c(f.description) +
+    w.language * c(f.language)
   );
 }
 
@@ -102,8 +136,11 @@ export function rankCorpus(
 ): UnifiedProject[] {
   if (projects.length === 0) return [];
 
+  const docWeights = projects.map((p) =>
+    THREAD_SOURCES.has(p.source) ? THREAD_FIELD_WEIGHTS : FIELD_WEIGHTS,
+  );
   const fields = projects.map(docFields);
-  const wLens = fields.map(weightedLen);
+  const wLens = fields.map((f, i) => weightedLen(f, docWeights[i]));
   const avgWLen = wLens.reduce((a, b) => a + b, 0) / fields.length || 1;
   const N = fields.length;
 
@@ -113,7 +150,24 @@ export function rankCorpus(
     .filter((t) => !userTokens.includes(t));
 
   const allTerms = Array.from(new Set([...userTokens, ...expansionTokens]));
-  const termWeight = (t: string) => (userTokens.includes(t) ? 1.0 : 0.5);
+  // Query-framing filler ("looking", "best", "need") must barely count: repos
+  // rarely contain those words but discussion titles always do, so at full
+  // weight the corpus-local IDF treats filler as the RAREST (most valuable)
+  // terms and hands paragraph queries to whichever thread mirrors the user's
+  // phrasing. Content terms 1.0 · filler 0.2 · synonym expansions 0.5.
+  const termWeight = (t: string) =>
+    userTokens.includes(t) ? (FILLER_WORDS.has(t) ? 0.2 : 1.0) : 0.5;
+
+  // The content terms of the query, for the coverage + adjacency bonuses
+  // below — the two cheapest deterministic precision signals for specific
+  // multi-term queries that a per-term BM25 sum structurally lacks.
+  const keyTerms = extractKeyTerms(rawQuery).map(
+    (t) => tokenize(t)[0] ?? t,
+  ).filter((t) => t.length > 1);
+  const keyBigrams: Array<[string, string]> = [];
+  for (let i = 0; i + 1 < keyTerms.length; i += 1) {
+    keyBigrams.push([keyTerms[i], keyTerms[i + 1]]);
+  }
 
   const df: Record<string, number> = {};
   for (const term of allTerms) {
@@ -130,9 +184,10 @@ export function rankCorpus(
   const scored = projects.map((p, i) => {
     const f = fields[i];
     const wLen = wLens[i];
+    const fw = docWeights[i];
     let bm25 = 0;
     for (const term of allTerms) {
-      const wtf = weightedTf(f, term);
+      const wtf = weightedTf(f, term, fw);
       if (wtf === 0) continue;
       const num = wtf * (K1 + 1);
       const denom = wtf + K1 * (1 - B + (B * wLen) / avgWLen);
@@ -144,27 +199,61 @@ export function rankCorpus(
     // Exact-name boost — the single strongest "this is THE answer" signal.
     // A query that *is* a project's name (zustand → pmndrs/zustand) or whose
     // token equals the name should win outright, regardless of star count.
+    // The points alone can be out-stacked by popularity bonuses (and the
+    // corpus-local IDF zeroes the fetch term itself), so exact matches ALSO
+    // get a post-sort rank floor below — see the promotion after the sort.
     const nameLc = p.name.toLowerCase();
     const fullLc = p.fullName.toLowerCase();
-    if (queryLc && (nameLc === queryLc || fullLc === queryLc || fullLc.endsWith(`/${queryLc}`))) {
+    const exactName = Boolean(
+      queryLc && (nameLc === queryLc || fullLc === queryLc || fullLc.endsWith(`/${queryLc}`)),
+    );
+    if (exactName) {
       score += 3000;
     } else if (userTokens.includes(nameLc)) {
       score += 1500;
     }
 
-    // Popularity
-    if (p.stars > 0) score += Math.min(Math.log10(p.stars + 1) * 400, 3500);
+    // Term COVERAGE — matching ALL the user's content terms moderately must
+    // beat matching one rare term heavily ("as specific as you want" means
+    // conjunctive intent). Superlinear so full coverage stands out.
+    if (keyTerms.length >= 2) {
+      let matched = 0;
+      for (const t of keyTerms) if (inAnyField(f, t)) matched += 1;
+      score += Math.pow(matched / keyTerms.length, 1.5) * 2000;
+    }
+    // Bigram ADJACENCY — "react native" appearing adjacent (in name or
+    // description) is a far stronger signal than both words scattered.
+    if (keyBigrams.length > 0) {
+      let hits = 0;
+      for (const [a, b] of keyBigrams) {
+        const adjacentIn = (arr: string[]) => {
+          for (let k = 0; k + 1 < arr.length; k += 1) {
+            if (arr[k] === a && arr[k + 1] === b) return true;
+          }
+          return false;
+        };
+        if (adjacentIn(f.name) || adjacentIn(f.description) || adjacentIn(f.fullName)) hits += 1;
+      }
+      score += Math.min(hits * 400, 1200);
+    }
+
+    // Popularity. Thread upvotes (mapped into `stars` by the discussion
+    // adapters) are worth half a real star — a 5k-upvote thread should not
+    // collect the same authority bonus as a 5k-star repo.
+    const starScale = THREAD_SOURCES.has(p.source) ? 0.5 : 1;
+    if (p.stars > 0) score += Math.min(Math.log10(p.stars + 1) * 400, 3500) * starScale;
     // Some registries (npm) expose weekly downloads but not `downloads`;
-    // fall back so package popularity still counts.
+    // fall back so package popularity still counts. Downloads and the 0..1
+    // popularityScore describe the SAME thing (registry adoption) — take the
+    // stronger signal, never the sum, so registry results can't stack +4400
+    // of popularity and bury an exact-name match.
     const downloads = p.downloads || p.weeklyDownloads || 0;
-    if (downloads > 0) {
-      score += Math.min(Math.log10(downloads + 1) * 200, 2000);
-    }
-    // Honest 0..1 popularity (npm search score) for sources with no star or
-    // download count. Capped at +2400 — on par with a few-thousand-star repo.
-    if (p.popularityScore && p.popularityScore > 0) {
-      score += Math.min(p.popularityScore, 1) * 2400;
-    }
+    const downloadBonus = downloads > 0 ? Math.min(Math.log10(downloads + 1) * 200, 2000) : 0;
+    const popBonus =
+      p.popularityScore && p.popularityScore > 0
+        ? Math.min(p.popularityScore, 1) * 2400
+        : 0;
+    score += Math.max(downloadBonus, popBonus);
 
     // Archived/read-only repos are dead ends — a heavy penalty so a deprecated
     // 40k-star repo can't out-rank a maintained exact match.
@@ -222,10 +311,21 @@ export function rankCorpus(
     // Boost list
     if (boostSet.has(p.fullName.toLowerCase())) score += 2000;
 
-    return { project: p, score };
+    return { project: p, score, exactName };
   });
 
   scored.sort((a, b) => b.score - a.score);
+
+  // Exact-name rank FLOOR: when the query *is* a project's name, that project
+  // belongs in the top 3 no matter how the additive bonuses stacked for
+  // mega-popular neighbors. Stable: only the best-scoring exact match moves,
+  // everything else keeps its order.
+  const exactIdx = scored.findIndex((s) => s.exactName);
+  if (exactIdx > 2) {
+    const [exact] = scored.splice(exactIdx, 1);
+    scored.splice(2, 0, exact);
+  }
+
   return scored.map((s) => s.project);
 }
 

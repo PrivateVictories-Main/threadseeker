@@ -117,12 +117,9 @@ export function mergeRelatedProjects(projects: UnifiedProject[]): UnifiedProject
   return [...merged, ...standalone];
 }
 
-function splitByAffinity(group: UnifiedProject[]): UnifiedProject[][] {
-  const hasRepo = group.some((p) =>
-    ["github", "gitlab", "codeberg"].includes(p.source),
-  );
-  if (hasRepo) return [group];
+const REPO_SOURCES = ["github", "gitlab", "codeberg"] as const;
 
+function splitByAffinity(group: UnifiedProject[]): UnifiedProject[][] {
   const word = (s: string | null) =>
     new Set(
       (s || "")
@@ -130,6 +127,38 @@ function splitByAffinity(group: UnifiedProject[]): UnifiedProject[][] {
         .split(/[^a-z0-9]+/)
         .filter((w) => w.length >= 4),
     );
+
+  // Repo-anchored bucket: the repo is canonical, but membership still has to
+  // be EARNED. Generic fingerprints ("cron", "json") otherwise fold npm cron,
+  // pypi cron, and an unrelated GitHub repo named cron into one card, and the
+  // losers vanish into wrong "related sources" chips — silently deleting
+  // correct answers. A non-repo member joins the repo's group only when it
+  // shares a ≥4-char description word with the repo OR its owner matches the
+  // repo owner (the scoped-package case). Everything else stays standalone.
+  const anchor = group.find((p) =>
+    (REPO_SOURCES as readonly string[]).includes(p.source),
+  );
+  if (anchor) {
+    const anchorWords = word(anchor.description);
+    const anchorOwner = (anchor.fullName.split("/")[0] || "").toLowerCase();
+    const joined: UnifiedProject[] = [anchor];
+    const rest: UnifiedProject[] = [];
+    for (const p of group) {
+      if (p.id === anchor.id) continue;
+      const owner = (p.fullName.split("/")[0] || p.author?.name || "").toLowerCase();
+      const shares =
+        [...word(p.description)].some((w) => anchorWords.has(w)) ||
+        (owner.length > 1 && owner === anchorOwner) ||
+        (!p.description && !anchor.description);
+      if (shares) joined.push(p);
+      else rest.push(p);
+    }
+    // The leftovers may still be related to EACH OTHER (e.g. the npm and pypi
+    // "cron" that genuinely wrap the same upstream) — recurse without the repo.
+    return rest.length > 0
+      ? [joined, ...splitByAffinity(rest)]
+      : [joined];
+  }
 
   const used = new Set<string>();
   const out: UnifiedProject[][] = [];

@@ -205,3 +205,92 @@ describe("blendSemantic (keyless in-browser rerank fusion)", () => {
     expect(semanticWeight(12)).toBeLessThanOrEqual(0.8);
   });
 });
+
+// Adversarial cases from the v6 audit — the paragraph-query failure modes the
+// original textbook gate never covered. Each of these regressed in production
+// before the corresponding ranker fix; keep them brutal.
+describe("rankCorpus — adversarial paragraph-query cases", () => {
+  it("the actual project beats a discussion thread whose title mirrors the query phrasing", () => {
+    const query = "looking for the best self-hosted photo library with face recognition";
+    const thread = mk({
+      id: "t", source: "reddit",
+      name: "What's the best self-hosted photo library? Looking for face recognition",
+      fullName: "r/selfhosted",
+      description: "discussion thread",
+      stars: 4800, // upvotes mapped into stars by the adapter
+    });
+    const project = mk({
+      id: "p", source: "github",
+      name: "immich", fullName: "immich-app/immich",
+      description: "Self-hosted photo and video library with face recognition and machine learning",
+      topics: ["self-hosted", "photos", "face-recognition"],
+      stars: 30000,
+    });
+    const ranked = rankCorpus([thread, project], query, expandQuery(query));
+    expect(ranked[0].id).toBe("p");
+  });
+
+  it("filler words ('looking', 'best', 'need') cannot carry a thread past a real match", () => {
+    const query = "need the best lightweight markdown editor";
+    const thread = mk({
+      id: "t", source: "stackoverflow",
+      name: "Best lightweight markdown editor? Need recommendations",
+      description: "question",
+      stars: 900,
+    });
+    const project = mk({
+      id: "p", source: "github",
+      name: "marktext", fullName: "marktext/marktext",
+      description: "A simple and elegant markdown editor, lightweight and focused",
+      stars: 2000,
+    });
+    const ranked = rankCorpus([thread, project], query, expandQuery(query));
+    expect(ranked[0].id).toBe("p");
+  });
+
+  it("c++ keeps its identity through tokenization", () => {
+    const query = "c++ json library";
+    const cpp = mk({
+      id: "cpp", source: "github", name: "nlohmann-json", fullName: "nlohmann/json",
+      description: "JSON for Modern C++", language: "C++", stars: 100,
+    });
+    const c = mk({
+      id: "c", source: "github", name: "cjson", fullName: "x/cjson",
+      description: "Ultralightweight JSON parser in ANSI C", language: "C", stars: 100,
+    });
+    const ranked = rankCorpus([cpp, c], query, expandQuery(query));
+    expect(ranked[0].id).toBe("cpp");
+  });
+
+  it("matching ALL content terms moderately beats matching one term heavily", () => {
+    const query = "react native state management";
+    const allTerms = mk({
+      id: "all", source: "github", name: "rn-state-kit", fullName: "x/rn-state-kit",
+      description: "State management for React Native apps", stars: 300,
+    });
+    const oneTerm = mk({
+      id: "one", source: "github", name: "react-react-react", fullName: "y/react-react-react",
+      description: "react react react react react react utilities for react and react", stars: 300,
+    });
+    const ranked = rankCorpus([allTerms, oneTerm], query, expandQuery(query));
+    expect(ranked[0].id).toBe("all");
+  });
+
+  it("exact-name match is rank-floored into the top 3 even against stacked mega-popularity", () => {
+    const query = "hono";
+    const exact = mk({
+      id: "exact", source: "github", name: "hono", fullName: "honojs/hono",
+      description: "Web framework built on Web Standards", stars: 50,
+    });
+    const giants = ["a", "b", "c", "d"].map((id) =>
+      mk({
+        id, source: "npm", name: `${id}-hono-utils`, fullName: `${id}/${id}-hono-utils`,
+        description: "utilities for hono hono hono middleware hono plugins",
+        stars: 0, downloads: 50_000_000, popularityScore: 1,
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+    const ranked = rankCorpus([...giants, exact], query, expandQuery(query));
+    expect(ranked.slice(0, 3).map((p) => p.id)).toContain("exact");
+  });
+});

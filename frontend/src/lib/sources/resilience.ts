@@ -67,7 +67,9 @@ export function significantTokens(raw: string): string[] {
 // (grammatical glue) — these are the verbs/adjectives people wrap a request in.
 // Domain nouns like "framework", "library", "orm", "css" are deliberately NOT
 // here: they're often the most useful term.
-const FILLER_WORDS = new Set([
+// Exported: the ranker down-weights these in BM25 scoring too (a filler term
+// matching a discussion title must not count like a content term).
+export const FILLER_WORDS = new Set([
   "looking", "look", "find", "finding", "search", "searching", "want", "wanted",
   "need", "needed", "needing", "recommend", "recommendation", "recommendations",
   "suggest", "suggestion", "best", "good", "great", "simple", "easy", "fast",
@@ -104,17 +106,107 @@ export function extractKeyTerms(raw: string): string[] {
 // upstream APIs (which AND-match and return nothing on a 30-token query).
 const LONG_QUERY_TOKEN_THRESHOLD = 7;
 
+// Generic words that survive the filler list but discriminate almost nothing
+// in an OSS search ("home server running docker" — 'home' matches everything).
+// Used only to SCORE term selection for long queries, never to drop a term
+// from a short query. Conservative on purpose: a wrongly-listed content word
+// only loses a tie-break, it is never excluded outright.
+const GENERIC_WORDS = new Set([
+  "app", "apps", "application", "applications", "code", "coding", "data",
+  "file", "files", "new", "support", "supports", "supported", "work",
+  "works", "working", "run", "runs", "running", "based", "self", "free",
+  "full", "high", "low", "different", "multiple", "single", "custom",
+  "user", "users", "system", "systems", "software", "program", "programs",
+  "setup", "set", "install", "installed", "installing", "currently",
+  "current", "also", "really", "various", "specific", "certain", "other",
+  "own", "online", "offline", "small", "large", "big", "stack", "home",
+  "personal", "machine", "computer", "laptop", "instance", "everything",
+  "version", "latest", "similar", "across", "around", "inside", "without",
+  "within", "every", "alternativeto", "well", "still", "even", "however",
+]);
+
+// How "subject-like" a content term is, for picking WHICH terms of a long
+// query get sent upstream. People write context first and the actual ask
+// last — so later-sentence terms outrank earlier ones — and rare/tech-shaped
+// terms outrank generic ones.
+function termSelectScore(
+  term: string,
+  sentenceIdx: number,
+  sentenceCount: number,
+): number {
+  let s = 0;
+  if (!GENERIC_WORDS.has(term)) s += 2;
+  // Tech-shaped: digits, +, #, ., or hyphenated compounds ("self-hosted",
+  // "c++", "k3s", "socket.io") are almost always the load-bearing terms.
+  if (/[0-9+#.]/.test(term) || term.includes("-")) s += 2;
+  if (term.length >= 8) s += 1; // long words are specific words
+  // Later sentences carry the ask: scale 0 → 1.5 from first to last sentence.
+  if (sentenceCount > 1) s += (sentenceIdx / (sentenceCount - 1)) * 1.5;
+  return s;
+}
+
 /** The query string to send to upstream source APIs. Short queries pass
  *  through verbatim (so existing behavior is unchanged); long natural-language
- *  queries are reduced to their top content terms so upstream AND-search still
- *  returns results. The FULL original text is still used for BM25 re-ranking,
- *  so precision isn't lost — only the upstream recall is unblocked. */
+ *  queries are reduced to their most SUBJECT-LIKE content terms so upstream
+ *  AND-search still returns results. Selection is by distinctiveness — NOT
+ *  first-N appearance order, which silently dropped the actual ask whenever
+ *  someone wrote context first ("I run a home server with docker. I need a
+ *  photo library with face recognition." must fetch photo/library/face, not
+ *  home/server/docker). Every sentence is guaranteed representation so the
+ *  context still narrows results. The FULL original text still drives BM25 +
+ *  semantic re-ranking, so precision is never lost — only upstream recall is
+ *  unblocked. */
 export function coreSearchQuery(raw: string, maxTerms = 6): string {
   const trimmed = raw.trim();
   const sig = significantTokens(trimmed);
   if (sig.length <= LONG_QUERY_TOKEN_THRESHOLD) return trimmed;
-  const key = extractKeyTerms(trimmed).slice(0, maxTerms);
-  return key.length > 0 ? key.join(" ") : trimmed;
+
+  // Score every unique key term by sentence position + distinctiveness.
+  const sentences = trimmed.split(/[.!?;\n]+/).filter((s) => s.trim().length > 0);
+  const scoreByTerm = new Map<string, number>();
+  const orderByTerm = new Map<string, number>();
+  let order = 0;
+  sentences.forEach((sentence, idx) => {
+    for (const t of extractKeyTerms(sentence)) {
+      const score = termSelectScore(t, idx, sentences.length);
+      // A term in several sentences keeps its best score.
+      if (!scoreByTerm.has(t) || score > scoreByTerm.get(t)!) {
+        scoreByTerm.set(t, score);
+      }
+      if (!orderByTerm.has(t)) orderByTerm.set(t, order++);
+    }
+  });
+  if (scoreByTerm.size === 0) return trimmed;
+
+  const ranked = Array.from(scoreByTerm.keys()).sort(
+    (a, b) =>
+      scoreByTerm.get(b)! - scoreByTerm.get(a)! ||
+      orderByTerm.get(a)! - orderByTerm.get(b)!,
+  );
+
+  // Per-sentence representation guarantee: the top term of EVERY sentence is
+  // in, so a two-sentence "context + ask" query keeps both halves; remaining
+  // slots fill by global score.
+  const picked = new Set<string>();
+  if (sentences.length > 1) {
+    for (let idx = 0; idx < sentences.length && picked.size < maxTerms; idx += 1) {
+      const local = extractKeyTerms(sentences[idx]).sort(
+        (a, b) => scoreByTerm.get(b)! - scoreByTerm.get(a)!,
+      );
+      if (local[0]) picked.add(local[0]);
+    }
+  }
+  for (const t of ranked) {
+    if (picked.size >= maxTerms) break;
+    picked.add(t);
+  }
+
+  // Emit in original appearance order — upstream APIs don't care, but humans
+  // reading the relaxation banner do.
+  const result = Array.from(picked).sort(
+    (a, b) => orderByTerm.get(a)! - orderByTerm.get(b)!,
+  );
+  return result.length > 0 ? result.join(" ") : trimmed;
 }
 
 /** Pick the longest CONTENT token (query-framing filler excluded). Relaxing to
@@ -139,18 +231,30 @@ export function pickFirstToken(raw: string): string | null {
   return key[0] ?? significantTokens(raw)[0] ?? null;
 }
 
-/** Build a multi-token plan: each significant token joined by space.
- *  Most non-OR sources will treat this as a relaxed AND; OR-supporting
- *  sources will see it via buildSearchQuery() which already OR-joins
- *  the expansion terms.
+/** Build a multi-token plan. For short queries: each significant token joined
+ *  by space (a relaxed AND for most sources). For LONG queries this used to
+ *  re-join ALL significant tokens — which is STRICTER than the strict pass
+ *  (the strict pass fetches the reduced coreSearchQuery), guaranteeing an
+ *  empty 30-source fan-out exactly when a paragraph query came back thin.
+ *  Now a long query widens monotonically: drop the two least subject-like
+ *  terms from the core fetch query instead.
  *
- *  Returns null when the original query is already a single token. */
+ *  Returns null when there's nothing genuinely wider to try. */
 export function buildTokenPlan(raw: string): RelaxedPlan | null {
   const toks = significantTokens(raw);
   if (toks.length < 2) return null;
-  // Re-join tokens — caller can pass through OR-expansion later. Order
-  // preserved so longer / more-distinctive tokens stay near the front.
-  const queryString = toks.join(" ");
+  let queryString: string;
+  if (toks.length > LONG_QUERY_TOKEN_THRESHOLD) {
+    const core = significantTokens(coreSearchQuery(raw));
+    // Two or fewer core terms can't be meaningfully narrowed further here —
+    // let the distinctive/first-token tiers handle it.
+    if (core.length <= 2) return null;
+    queryString = core.slice(0, core.length - 2).join(" ");
+  } else {
+    // Re-join tokens — caller can pass through OR-expansion later. Order
+    // preserved so longer / more-distinctive tokens stay near the front.
+    queryString = toks.join(" ");
+  }
   return {
     query: queryString,
     tier: "tokens",

@@ -69,18 +69,56 @@ function loadResultsCache(
   }
 }
 
+// Real eviction (the cap used to be aspirational): keep at most this many
+// cached result sets, dropping the oldest, so instant-repaint keeps working
+// through a long session instead of silently dying at the storage quota.
+const RESULTS_CACHE_MAX_ENTRIES = 20;
+
+function evictOldestResults(keepNewest: number) {
+  try {
+    const ours: Array<{ key: string; at: number }> = [];
+    for (let i = 0; i < sessionStorage.length; i += 1) {
+      const key = sessionStorage.key(i);
+      if (!key || !key.startsWith(RESULTS_CACHE_PREFIX)) continue;
+      let at = 0;
+      try {
+        at = JSON.parse(sessionStorage.getItem(key) || "{}").at ?? 0;
+      } catch {
+        /* unparseable entry → treat as oldest */
+      }
+      ours.push({ key, at });
+    }
+    if (ours.length <= keepNewest) return;
+    ours.sort((a, b) => b.at - a.at);
+    for (const { key } of ours.slice(keepNewest)) sessionStorage.removeItem(key);
+  } catch {
+    /* storage unavailable — nothing to evict */
+  }
+}
+
 function saveResultsCache(
   query: string,
   sources: SourceType[],
   data: UnifiedProject[],
 ) {
   try {
+    evictOldestResults(RESULTS_CACHE_MAX_ENTRIES - 1);
     sessionStorage.setItem(
       resultsCacheKey(query, sources),
       JSON.stringify({ at: Date.now(), data }),
     );
   } catch {
-    /* quota — ignore */
+    // Quota even after the count cap (huge corpora): drop ALL our entries and
+    // retry once — a fresh cache beats a dead one.
+    try {
+      evictOldestResults(0);
+      sessionStorage.setItem(
+        resultsCacheKey(query, sources),
+        JSON.stringify({ at: Date.now(), data }),
+      );
+    } catch {
+      /* storage genuinely unavailable — skip caching */
+    }
   }
 }
 
@@ -204,31 +242,26 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
         const expansion = expandQuery(freeText);
         // Long natural-language queries are reduced to their key content terms
         // for the upstream fetch (upstream APIs AND-match and return nothing on
-        // a 30-token paragraph). The FULL freeText still drives BM25 re-ranking
-        // below, so a specific paragraph both *returns* results and *ranks*
-        // them by the full intent. Short queries are unchanged.
-        let fetchQuery = coreSearchQuery(freeText);
-        // For long queries, let the optional AI layer distill key terms — a
-        // better reduction than the deterministic one. Capped at 1.5s and
-        // falls back to fetchQuery when the layer is disabled / slow / absent,
-        // so search stays fast and never breaks without a key.
-        if (significantTokens(freeText).length > 7) {
-          const ai = await Promise.race([
-            optimizeQuery(freeText),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
-          ]);
-          if (searchRunIdRef.current !== runId) return;
-          if (ai && ai.keyTerms.length > 0) {
-            fetchQuery = ai.keyTerms.join(" ");
-          }
-          // Prefer the AI's intent over the regex classifier when it returned a
-          // valid label — the AI fires on exactly the long/ambiguous queries
-          // where the regex is weakest, and its intent feeds per-source ranking
-          // weights + the accent hue. (Was previously fetched and discarded.)
-          if (ai && AI_INTENTS.has(ai.intent)) {
-            expansion.intent = ai.intent as typeof expansion.intent;
-          }
-        }
+        // a 30-token paragraph). The FULL freeText still drives BM25 + semantic
+        // re-ranking below, so a specific paragraph both *returns* results and
+        // *ranks* them by the full intent. Short queries are unchanged.
+        const fetchQuery = coreSearchQuery(freeText);
+        // The optional AI layer distills key terms + intent for long queries.
+        // Fired CONCURRENTLY with the fan-out (it used to serially block the
+        // flagship paragraph path for up to 1.5s): the deterministic fetch
+        // starts immediately, and by the time the fan-out settles the AI
+        // answer is either ready (consumed below as a supplemental fetch +
+        // intent override) or it's discarded. Keyless deploys resolve null
+        // instantly — zero cost.
+        const longQuery = significantTokens(freeText).length > 7;
+        const aiPromise: Promise<Awaited<ReturnType<typeof optimizeQuery>> | null> =
+          longQuery
+            ? Promise.race([
+                optimizeQuery(freeText).catch(() => null),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+              ])
+            : Promise.resolve(null);
+
         const hueByIntent: Record<string, number> = {
           project_search: 220,
           how_to: 150,
@@ -238,9 +271,15 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
           model_search: 40,
           general: 220,
         };
-        if (typeof document !== "undefined") {
-          document.documentElement.style.setProperty("--ts-intent-hue", String(hueByIntent[expansion.intent] ?? 220));
-        }
+        const applyHue = () => {
+          if (typeof document !== "undefined") {
+            document.documentElement.style.setProperty(
+              "--ts-intent-hue",
+              String(hueByIntent[expansion.intent] ?? 220),
+            );
+          }
+        };
+        applyHue();
         const overrides: Partial<Record<SourceType, string>> = {};
         const orExpanded = buildSearchQuery(fetchQuery, expansion, { supportsOr: true });
         if (orExpanded !== fetchQuery) {
@@ -288,6 +327,48 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
 
         if (searchRunIdRef.current !== runId) return;
         const mergedCorpus: UnifiedProject[] = results;
+
+        // Consume the (concurrent) AI distillation now that the fan-out is
+        // done — it has had the whole fetch window to resolve. A valid intent
+        // re-tints ranking weights + the accent hue; key terms that genuinely
+        // differ from the deterministic reduction earn ONE supplemental fetch
+        // whose new results join the corpus before ranking.
+        const ai = longQuery ? await aiPromise : null;
+        if (searchRunIdRef.current !== runId) return;
+        if (ai && AI_INTENTS.has(ai.intent)) {
+          expansion.intent = ai.intent as typeof expansion.intent;
+          applyHue();
+        }
+        if (ai && ai.keyTerms.length > 0) {
+          const aiQuery = ai.keyTerms.join(" ").trim();
+          if (
+            aiQuery &&
+            aiQuery.toLowerCase() !== fetchQuery.toLowerCase() &&
+            aiQuery.toLowerCase() !== freeText.toLowerCase()
+          ) {
+            try {
+              const aiResults = await searchAllSources(
+                aiQuery,
+                targetSources,
+                true,
+                {},
+                undefined,
+                signal,
+              );
+              if (searchRunIdRef.current !== runId) return;
+              const seen = new Set(mergedCorpus.map((p) => p.id));
+              for (const p of aiResults) {
+                if (!seen.has(p.id)) {
+                  seen.add(p.id);
+                  mergedCorpus.push(p);
+                }
+              }
+            } catch {
+              /* supplemental fetch is best-effort */
+            }
+          }
+        }
+
         const ranked = rankCorpus(mergeRelatedProjects(mergedCorpus), freeText, expansion);
         setProjects(ranked);
         // Cache the fresh ranked set so a quick re-search (or history click)
@@ -311,7 +392,15 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
           for (let step = 0; step < 4; step += 1) {
             const plan: RelaxedPlan | null = nextRelaxation(freeText, cumulative, lastTier);
             if (!plan) break;
-            if (plan.query.trim().toLowerCase() === freeText.trim().toLowerCase()) {
+            // Skip plans that match what was ALREADY fetched — both the raw
+            // query and the reduced core query the strict pass actually sent
+            // (for long queries those differ, and re-running the fetch query
+            // as a "relaxation" burns a full fan-out for zero new results).
+            const planLc = plan.query.trim().toLowerCase();
+            if (
+              planLc === freeText.trim().toLowerCase() ||
+              planLc === fetchQuery.trim().toLowerCase()
+            ) {
               lastTier = plan.tier;
               continue;
             }
