@@ -10,6 +10,12 @@
 /_next/static/*
   Cache-Control: public, max-age=31536000, immutable
 
+# Vendored semantic-rerank model weights (~24 MB, version-pinned content) —
+# cache hard so the browser HTTP cache covers visitors even before
+# transformers.js' own Cache API does.
+/models/*
+  Cache-Control: public, max-age=31536000, immutable
+
 # Generated metadata image. Served extensionless, so set the type explicitly —
 # with the global nosniff, social scrapers can't recover it via MIME-sniffing.
 /opengraph-image

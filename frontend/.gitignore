@@ -38,3 +38,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# semantic-rerank model assets — fetched by scripts/fetch-semantic-assets.mjs
+# (prebuild/predev); ~24 MB of third-party weights that don't belong in git.
+/public/models/

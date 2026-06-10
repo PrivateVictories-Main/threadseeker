@@ -26,7 +26,9 @@
     "typescript"
   ],
   "scripts": {
+    "predev": "node scripts/fetch-semantic-assets.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/fetch-semantic-assets.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

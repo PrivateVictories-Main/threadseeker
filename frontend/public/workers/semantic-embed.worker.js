@@ -19,18 +19,20 @@ const TRANSFORMERS_URL =
 
 // Retrieval-trained MiniLM-class model: same speed/size class as
 // all-MiniLM-L6-v2 but tuned for query→short-docs matching, 384-dim, mean
-// pooling, no query prefix needed. Apache-2.0. Weights come from the HF Hub
-// CDN (free, CORS-enabled) and transformers.js caches them in the browser
-// Cache API — one download per browser, then offline-capable.
-const MODEL_ID = "mixedbread-ai/mxbai-embed-xsmall-v1";
+// pooling, no query prefix needed. Apache-2.0.
+//
+// Weights are served SAME-ORIGIN from /models/ (vendored at build time by
+// scripts/fetch-semantic-assets.mjs) — visitors never depend on a
+// third-party CDN for the heavyweight download. If the local copy is
+// missing (skipped prebuild, partial deploy), we fall back to the HF Hub
+// CDN. Either way transformers.js caches the files in the browser Cache
+// API — one download per browser, then offline-capable.
+const LOCAL_MODEL_ID = "mxbai-embed-xsmall-v1";
+const REMOTE_MODEL_ID = "mixedbread-ai/mxbai-embed-xsmall-v1";
 
 let extractorPromise = null;
 
-async function buildExtractor() {
-  const { pipeline, env } = await import(TRANSFORMERS_URL);
-  // Explicit single-thread WASM: avoids needing COOP/COEP isolation, which
-  // would force CORP on every cross-origin fetch sitewide.
-  if (env?.backends?.onnx?.wasm) env.backends.onnx.wasm.numThreads = 1;
+async function detectDevice() {
   // Despite the docs, device:"webgpu" does NOT fall back on its own — and
   // worse, a FAILED webgpu pipeline attempt poisons ORT's backend registry
   // for the whole worker, so a subsequent device:"wasm" retry fails with the
@@ -38,16 +40,49 @@ async function buildExtractor() {
   // is: probe for a real GPU adapter FIRST (requestAdapter resolves null on
   // denylisted/headless machines where navigator.gpu still exists), and only
   // then commit to a single pipeline attempt on the proven device.
-  let device = "wasm";
   try {
     if (typeof navigator !== "undefined" && navigator.gpu) {
       const adapter = await navigator.gpu.requestAdapter();
-      if (adapter) device = "webgpu";
+      if (adapter) return "webgpu";
     }
   } catch {
     /* probe failure = no GPU — wasm it is */
   }
-  return pipeline("feature-extraction", MODEL_ID, { dtype: "q8", device });
+  return "wasm";
+}
+
+async function buildExtractor() {
+  const { pipeline, env } = await import(TRANSFORMERS_URL);
+  // Explicit single-thread WASM: avoids needing COOP/COEP isolation, which
+  // would force CORP on every cross-origin fetch sitewide.
+  if (env?.backends?.onnx?.wasm) env.backends.onnx.wasm.numThreads = 1;
+  const device = await detectDevice();
+
+  // Local-first: same-origin /models/<id>/… (cheap existence probe keeps the
+  // failure path fast and avoids transformers.js poisoning any internal state
+  // with a half-failed local load).
+  try {
+    const probe = await fetch(`/models/${LOCAL_MODEL_ID}/config.json`, {
+      method: "HEAD",
+    });
+    if (probe.ok) {
+      env.allowRemoteModels = false;
+      env.allowLocalModels = true;
+      env.localModelPath = "/models/";
+      return await pipeline("feature-extraction", LOCAL_MODEL_ID, {
+        dtype: "q8",
+        device,
+      });
+    }
+  } catch {
+    /* fall through to the HF Hub CDN */
+  }
+  env.allowLocalModels = false;
+  env.allowRemoteModels = true;
+  return pipeline("feature-extraction", REMOTE_MODEL_ID, {
+    dtype: "q8",
+    device,
+  });
 }
 
 function getExtractor() {
