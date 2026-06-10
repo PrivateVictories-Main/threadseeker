@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { UnifiedProjectCard } from "./UnifiedProjectCard";
-import { CardSkeleton } from "./CardSkeleton";
 import type { UnifiedProject } from "@/lib/sources/types";
 import { ghFetch } from "@/lib/github";
 
@@ -138,7 +137,14 @@ async function fetchRepo(slug: string): Promise<UnifiedProject | null> {
 }
 
 export function FeaturedProjects({ onTopicClick, onOpenDetails, onToast }: Props) {
-  const [projects, setProjects] = useState<UnifiedProject[] | null>(null);
+  // Initialize with the static fallback instead of skeletons: the fallback IS
+  // the same three pinned repos the live fetch loads, so SSR can render the
+  // full cards — putting the OG cover URLs in the static HTML, where the
+  // browser's preload scanner discovers the LCP image BEFORE hydration
+  // (measured on prod: lazy+post-hydration discovery cost ~1.2s of LCP).
+  // The live fetch then refreshes star counts/dates in place — same cards,
+  // no content swap, no skeleton flash, no layout shift.
+  const [projects, setProjects] = useState<UnifiedProject[]>(FEATURED_FALLBACK);
 
   useEffect(() => {
     const cached = loadCache();
@@ -151,12 +157,9 @@ export function FeaturedProjects({ onTopicClick, onOpenDetails, onToast }: Props
       const results = await Promise.all(FEATURED_SLUGS.map((s) => fetchRepo(s)));
       const filtered = results.filter((p): p is UnifiedProject => !!p);
       if (cancelled) return;
-      // GitHub down / rate-limited → render the static fallback so the hero is
-      // never empty. Don't cache the fallback (so a later load retries live).
-      if (filtered.length === 0) {
-        setProjects(FEATURED_FALLBACK);
-        return;
-      }
+      // GitHub down / rate-limited → the fallback is already on screen; keep
+      // it (and don't cache it, so a later load retries live).
+      if (filtered.length === 0) return;
       setProjects(filtered);
       saveCache(filtered);
     })();
@@ -184,21 +187,16 @@ export function FeaturedProjects({ onTopicClick, onOpenDetails, onToast }: Props
         </a>
       </div>
       <div className="ts-featured-grid">
-        {projects === null
-          ? // Loading skeletons — geometry matches UnifiedProjectCard.
-            Array.from({ length: 3 }).map((_, i) => (
-              <CardSkeleton key={i} />
-            ))
-          : projects.map((p, idx) => (
-              <UnifiedProjectCard
-                key={p.id}
-                project={p}
-                index={idx}
-                onToast={onToast}
-                onTopicClick={onTopicClick}
-                onOpenDetails={onOpenDetails}
-              />
-            ))}
+        {projects.map((p, idx) => (
+          <UnifiedProjectCard
+            key={p.id}
+            project={p}
+            index={idx}
+            onToast={onToast}
+            onTopicClick={onTopicClick}
+            onOpenDetails={onOpenDetails}
+          />
+        ))}
       </div>
     </section>
   );

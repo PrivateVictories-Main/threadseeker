@@ -54,7 +54,7 @@ export const BACKTEST_QUERIES: BacktestQuery[] = [
   { query: "authentication", category: "broad-concept", expected: ["auth", "passport", "nextauth", "authjs", "authlib", "oauth"] },
   { query: "state management", category: "broad-concept", expected: ["redux", "zustand", "jotai", "mobx", "pinia", "recoil"] },
   { query: "testing framework", category: "broad-concept", expected: ["jest", "vitest", "pytest", "mocha", "cypress", "playwright"] },
-  { query: "vector database", category: "broad-concept", expected: ["chroma", "qdrant", "pinecone", "weaviate", "milvus", "pgvector"] },
+  { query: "vector database", category: "broad-concept", expected: ["chroma", "qdrant", "pinecone", "weaviate", "milvus", "lancedb", "pgvector"] },
 
   // --- Language-scoped: explicit ecosystem ---
   { query: "python web framework", category: "language-scoped", expected: ["django", "flask", "fastapi", "starlette", "tornado"] },

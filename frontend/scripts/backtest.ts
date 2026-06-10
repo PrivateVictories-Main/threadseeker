@@ -44,11 +44,12 @@ function parseFlags(argv: string[]): Flags {
 }
 
 function projectMatches(p: UnifiedProject, expected: string): boolean {
-  const needle = expected.toLowerCase();
-  return (
-    p.name.toLowerCase().includes(needle) ||
-    p.fullName.toLowerCase().includes(needle)
-  );
+  // Separator-insensitive: "llamaindex" must match run-llama/llama_index,
+  // "pi-hole" must match pihole. Names differ in -_./ across registries;
+  // a raw substring check produced false MISSES for genuinely correct hits.
+  const fold = (s: string) => s.toLowerCase().replace(/[-_.\s/]/g, "");
+  const needle = fold(expected);
+  return fold(p.name).includes(needle) || fold(p.fullName).includes(needle);
 }
 
 interface QueryResult {

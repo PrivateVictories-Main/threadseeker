@@ -27,6 +27,12 @@ async function fetchViaProxy(
   signal?: AbortSignal,
 ): Promise<Response> {
   const base = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "";
+  // The backtest harness sets NEXT_PUBLIC_BACKEND_URL=disabled to switch the
+  // proxy-routed sources off in node — answer with a clean empty 503 instead
+  // of letting fetch() throw ERR_INVALID_URL noise for every source × query.
+  if (base === "disabled") {
+    return new Response("[]", { status: 503, statusText: "backend disabled" });
+  }
   const proxied = `${base}/api/proxy?url=${encodeURIComponent(targetUrl)}`;
   return fetch(proxied, { signal });
 }
