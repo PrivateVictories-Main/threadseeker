@@ -32,6 +32,11 @@ export function CardMedia({
   index?: number;
 }) {
   const [ogFailed, setOgFailed] = useState(false);
+  // Covers fade+settle in on load instead of popping — the single cheapest
+  // "finished product" cue in the grid. Starts true-invisible only until
+  // onLoad; cached images fire onLoad immediately so repeat paints are
+  // instant.
+  const [ogLoaded, setOgLoaded] = useState(false);
   const brand = getBrandMark(source);
   const withinOgBudget = index === undefined || index < OG_IMAGE_LIMIT;
   // Shape-validate owner/repo (safe path chars, exactly one slash) before
@@ -60,6 +65,8 @@ export function CardMedia({
           decoding="async"
           width={1280}
           height={640}
+          className={`ts-cover-img${ogLoaded ? " is-loaded" : ""}`}
+          onLoad={() => setOgLoaded(true)}
           onError={() => setOgFailed(true)}
         />
         <span className="ts-card-media-fade" />

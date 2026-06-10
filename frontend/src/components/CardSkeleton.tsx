@@ -10,12 +10,17 @@ interface Props {
    *  no description / no metric grid). Use when the active source set is
    *  dominated by sparse community sources. */
   sparse?: boolean;
+  /** Grid position — drives the entrance stagger (38ms per card), so the
+   *  skeleton field "deals in" card by card instead of appearing as one
+   *  block. Purely cosmetic; omit for single skeletons. */
+  index?: number;
 }
 
-export function CardSkeleton({ sparse = false }: Props = {}) {
+export function CardSkeleton({ sparse = false, index = 0 }: Props = {}) {
+  const stagger = { "--skel-i": index } as React.CSSProperties;
   if (sparse) {
     return (
-      <div className="ts-card ts-card-sparse glass skeleton">
+      <div className="ts-card ts-card-sparse glass skeleton ts-skel-in" style={stagger}>
         {/* Cover placeholder — mirrors the new card media zone so the grid
             doesn't reflow when the real cover/banner paints in. */}
         <Shimmer className="shimmer-cover" />
@@ -38,7 +43,7 @@ export function CardSkeleton({ sparse = false }: Props = {}) {
     );
   }
   return (
-    <div className="ts-card glass skeleton">
+    <div className="ts-card glass skeleton ts-skel-in" style={stagger}>
       {/* Skeleton geometry mirrors the card: a cover banner up top, then badge
           row, avatar + title, description, a single stat row, topics, actions —
           so the grid doesn't reflow when real results paint in. */}

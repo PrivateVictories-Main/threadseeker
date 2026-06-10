@@ -1327,6 +1327,101 @@ button.topic-chip-interactive {
   font-weight: 400;
 }
 
+/* =====================================================================
+ * "The thread ignites" — search-handoff orchestration.
+ * The skeleton field deals in card-by-card (38ms stagger) the moment a
+ * search is submitted (the popLayout crossfade means frame-one paint),
+ * and a single luminous thread sweeps the grid once — the same motif as
+ * the hero thread, now carrying the search itself.
+ * ===================================================================== */
+.ts-skel-in {
+  animation: ts-skel-in 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: calc(var(--skel-i, 0) * 38ms);
+}
+@keyframes ts-skel-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ts-skel-in { animation: none; }
+}
+
+/* Theme flip via the View Transitions API: the clip-path circle animation
+   in ThemeToggle.tsx drives ::view-transition-new(root); these rules stop
+   the default cross-fade from fighting the radial reveal. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* Cover banners settle in on load (opacity + 1.5% scale) instead of
+   popping. The branded gradient placeholder behind them stays visible
+   until the network image is ready, so there's never a blank band. */
+.ts-cover-img {
+  opacity: 0;
+  transform: scale(1.015);
+  transition: opacity 0.45s cubic-bezier(0.22, 0.61, 0.36, 1),
+              transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.ts-cover-img.is-loaded {
+  opacity: 1;
+  transform: scale(1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ts-cover-img { transition: opacity 0.2s linear; transform: none; }
+}
+
+/* Search progress = the thread. A 2px luminous strand whose leading edge
+   carries a soft glow head, echoing .ts-hero-thread. Width animates with
+   the source-completion count; the head pulse breathes while in flight. */
+.ts-search-thread {
+  height: 2px;
+  background: rgba(var(--ts-accent-rgb), 0.10);
+}
+.ts-search-thread-fill {
+  position: relative;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--ts-accent-rgb), 0.25),
+    rgba(var(--ts-accent-rgb), 0.9)
+  );
+  transition: width 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.ts-search-thread-fill::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: rgba(var(--ts-accent-rgb), 1);
+  box-shadow:
+    0 0 6px 1px rgba(var(--ts-accent-rgb), 0.85),
+    0 0 18px 4px rgba(var(--ts-accent-rgb), 0.35);
+  animation: ts-thread-head 1.4s ease-in-out infinite;
+}
+@keyframes ts-thread-head {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ts-search-thread-fill { transition: none; }
+  .ts-search-thread-fill::after { animation: none; }
+}
+.dark .ts-search-thread {
+  background: rgba(var(--ts-accent-rgb), 0.14);
+}
+
 /* Semantic-rerank status pill — the quiet "ordered by meaning" confirmation
    in the results status line. Accent-tinted, never louder than the counts. */
 .ts-semantic-pill {

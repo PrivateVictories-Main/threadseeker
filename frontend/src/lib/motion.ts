@@ -62,13 +62,27 @@ export const sheetVariants: Variants = {
 // results enter. Hero exit at 0.32s (was 0.22) feels more deliberate and
 // gives the user time to register what's happening. Results enter
 // continues to use springSoft.
+// The hero↔results handoff is the product's signature moment — the instant
+// the user's search "pushes through" the landing. It must be a CROSSFADE
+// (AnimatePresence mode="popLayout" pops the exiting section out of flow so
+// the incoming one paints immediately): the old mode="wait" serialized a
+// 0.32s hero exit before results could even mount, leaving the primary
+// action staring at a blank backdrop. Exit is fast and recessive (slight
+// scale-down + soft blur = the hero falls away behind the glass); enter is
+// a confident rise with the skeleton grid already shimmering.
 export const modeVariants: Variants = {
   heroEnter: { opacity: 0, y: 12 },
-  heroShow:  { opacity: 1, y: 0, transition: springSoft },
-  heroExit:  { opacity: 0, y: -32, transition: { duration: 0.32, ease: [0.32, 0.72, 0, 1] } },
-  resultsEnter: { opacity: 0, y: 24 },
-  resultsShow:  { opacity: 1, y: 0, transition: { ...springSoft, duration: 0.42 } },
-  resultsExit:  { opacity: 0, y: 12, transition: { duration: 0.2 } },
+  heroShow:  { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", transition: springSoft },
+  heroExit:  {
+    opacity: 0, scale: 0.985, filter: "blur(5px)",
+    transition: { duration: 0.2, ease: [0.32, 0.72, 0, 1] },
+  },
+  resultsEnter: { opacity: 0, y: 14 },
+  resultsShow:  { opacity: 1, y: 0, filter: "blur(0px)", transition: { ...springSoft, duration: 0.34 } },
+  resultsExit:  {
+    opacity: 0, scale: 0.99, filter: "blur(4px)",
+    transition: { duration: 0.18, ease: [0.32, 0.72, 0, 1] },
+  },
 };
 
 // Overhaul D — modal/palette open variants. Used by CommandPalette and

@@ -35,6 +35,7 @@ const CommandPalette = dynamic(
 import { NetworkErrorMessage, NetworkErrorTray } from "@/components/network/NetworkErrorMessage";
 import { AnimatedGrid } from "@/components/motion/AnimatedGrid";
 import { Toast } from "@/components/motion/Toast";
+import { CountUp } from "@/components/motion/CountUp";
 import { RevealOnScroll } from "@/components/motion/RevealOnScroll";
 import { AppShell } from "@/components/shell/AppShell";
 import { modeVariants } from "@/lib/motion";
@@ -466,7 +467,10 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
         drawerPinned={!!drawerProject && viewportIsXl}
         onClear={handleClear}
       >
-        <AnimatePresence mode="wait" initial={false}>
+        {/* popLayout (not "wait"): the exiting section pops out of flow so
+            the incoming one paints in the SAME frame — submit → skeletons
+            visible instantly, crossfading through the receding hero. */}
+        <AnimatePresence mode="popLayout" initial={false}>
           {mode === "hero" ? (
             <motion.section
               key="hero"
@@ -639,7 +643,11 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                     </div>
                     <div className="grid gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[2560px]:grid-cols-6 auto-rows-fr">
                       {Array.from({ length: 9 }).map((_, i) => (
-                        <CardSkeleton key={i} sparse={skeletonsShouldBeSparse} />
+                        <CardSkeleton
+                          key={i}
+                          sparse={skeletonsShouldBeSparse}
+                          index={i}
+                        />
                       ))}
                     </div>
                   </div>
@@ -773,7 +781,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
 
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1">
                       <p className="text-[12.5px] text-slate-500 font-mono tabular-nums tracking-[0.01em]">
-                        <span className="text-slate-800 font-semibold">{view.length}</span>{" "}
+                        <span className="text-slate-800 font-semibold"><CountUp value={view.length} /></span>{" "}
                         <span className="uppercase text-[11px] tracking-[0.06em] text-slate-400">
                           {view.length === 1 ? "result" : "results"}
                         </span>

@@ -17,14 +17,11 @@ export function SearchProgressBar({ total, remaining, active }: Props) {
   const pct = Math.min(100, Math.max(2, (done / total) * 100));
   return (
     <>
-      <div
-        className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-indigo-100 pointer-events-none"
-        aria-hidden
-      >
-        <div
-          className="h-full bg-gradient-to-r from-indigo-500 via-violet-400 to-sky-400 transition-[width] duration-300 ease-out"
-          style={{ width: `${pct}%` }}
-        />
+      {/* The progress bar IS the thread: the same luminous strand from the
+          hero, now traveling the top of the viewport as sources return. The
+          glow head (::after) rides the leading edge. */}
+      <div className="ts-search-thread fixed top-0 left-0 right-0 z-50 pointer-events-none" aria-hidden>
+        <div className="ts-search-thread-fill" style={{ width: `${pct}%` }} />
       </div>
       <div
         className="fixed top-2 right-3 z-50 text-[10px] font-mono text-slate-500 pointer-events-none tabular-nums"
