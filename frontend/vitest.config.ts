@@ -33,8 +33,12 @@ export default defineConfig({
         "src/lib/sources/backtest-queries.ts",
         "src/lib/sources/ranking-fixtures.ts",
       ],
-      // Non-blocking for now — ratchet thresholds up as adapter/hook/function
-      // tests land so coverage can't silently slide.
+      // Modest ratchet: ~2 points below the measured suite (lines 39.4% on
+      // 2026-06-10) so it passes today but `npm run test:coverage` fails in
+      // CI if coverage slides. Bump as adapter/hook/function tests land.
+      thresholds: {
+        lines: 37,
+      },
     },
   },
 });

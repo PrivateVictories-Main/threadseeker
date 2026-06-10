@@ -1,0 +1,57 @@
+name: Post-deploy smoke
+
+# Black-box probes against the LIVE production deployment on Cloudflare Pages.
+# Catches a dead deploy, broken sitemap, a 500-ing proxy Function, or missing
+# SEO landings — failures CI's build-time green can't see. Fails loudly.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "47 11 * * *" # daily, 11:47 UTC
+
+jobs:
+  smoke:
+    name: Probe threadseeker.pages.dev
+    runs-on: ubuntu-latest
+    env:
+      BASE: https://threadseeker.pages.dev
+    steps:
+      - name: Home page — 200 + "ThreadSeeker" in body
+        run: |
+          body=$(curl -sS --fail --max-time 20 "$BASE/")
+          if ! printf '%s' "$body" | grep -q "ThreadSeeker"; then
+            echo "::error::Home page returned 200 but body is missing 'ThreadSeeker'"
+            exit 1
+          fi
+          echo "home OK"
+
+      - name: sitemap.xml — 200
+        run: |
+          curl -sS --fail --max-time 20 -o /dev/null "$BASE/sitemap.xml"
+          echo "sitemap OK"
+
+      - name: /api/proxy (Homebrew formulae) — 200 JSON, never a 500
+        # crossOriginBlocked() in functions/_shared/http.ts only rejects
+        # requests that SEND a foreign Origin header. curl sends no Origin, so
+        # the guard passes (verified against prod 2026-06-10) and the
+        # allowlisted formulae.brew.sh target must come back 200 with a JSON
+        # array — any 4xx/5xx here means the Function regressed.
+        run: |
+          status=$(curl -sS -o /tmp/proxy-body -w "%{http_code}" --max-time 60 \
+            "$BASE/api/proxy?url=https%3A%2F%2Fformulae.brew.sh%2Fapi%2Fformula.json")
+          echo "proxy status: $status"
+          if [ "$status" != "200" ]; then
+            echo "::error::/api/proxy returned $status (expected 200)"
+            head -c 400 /tmp/proxy-body; echo
+            exit 1
+          fi
+          if [ "$(head -c 1 /tmp/proxy-body)" != "[" ]; then
+            echo "::error::/api/proxy body is not the expected JSON array"
+            head -c 400 /tmp/proxy-body; echo
+            exit 1
+          fi
+          echo "proxy OK ($(wc -c < /tmp/proxy-body) bytes)"
+
+      - name: /search/api-gateway/ SEO landing — 200
+        run: |
+          curl -sS --fail --max-time 20 -o /dev/null "$BASE/search/api-gateway/"
+          echo "SEO landing OK"

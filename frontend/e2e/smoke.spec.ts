@@ -9,14 +9,15 @@ test("landing renders the hero + constellation with no unexpected console errors
     if (m.type() !== "error") return;
     const t = m.text();
     // Expected when serving the static export WITHOUT Pages Functions: the
-    // /api/* proxy + AI endpoints 404, which the client degrades from. Those
-    // surface as generic "Failed to load resource … 404" with no URL in the
-    // text, so filter network resource-load failures here. Real JS/React
-    // runtime errors have distinct messages and are still caught.
-    if (t.includes("/api/") || t.includes("favicon") || t.includes("Failed to load resource")) {
-      return;
-    }
-    errors.push(t);
+    // /api/* proxy + AI endpoints 404 (the client degrades) and the favicon
+    // 404s. Those surface as a generic "Failed to load resource … 404" whose
+    // URL lives in location(), not in the text — so match on the source URL
+    // and ignore ONLY those. Any OTHER resource failure (broken chunk, font,
+    // image) is a real regression and must fail the smoke.
+    const src = m.location()?.url ?? "";
+    if (src.includes("/api/") || src.includes("favicon")) return;
+    if (t.includes("/api/") || t.includes("favicon")) return;
+    errors.push(src ? `${t} (${src})` : t);
   });
   await page.goto("/");
   await expect(page.locator(".ts-landing-hero")).toBeVisible();

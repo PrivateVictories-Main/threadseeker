@@ -1,12 +1,21 @@
 name: CI
 
-# Runs the same gates locally and on every push/PR so type, lint, test, or
-# build regressions never ship green. The app lives under frontend/.
+# Runs the same gates locally and in CI so type, lint, test, or build
+# regressions never ship green. The app lives under frontend/.
+#
+# Push is scoped to the main working branch only — PR branches already run via
+# the pull_request trigger, and an unscoped push trigger made every PR commit
+# run the whole matrix TWICE.
 on:
   push:
-    branches: ["**"]
+    branches: [merge/v1-unified]
   pull_request:
   workflow_dispatch:
+  schedule:
+    # Weekly health pass (Mondays 06:23 UTC): re-runs every gate below PLUS
+    # the upstream-drift job, so a silently changed/dead upstream search API
+    # turns CI red even when nobody is committing.
+    - cron: "23 6 * * 1"
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -43,8 +52,10 @@ jobs:
       - name: Audit (non-blocking)
         run: npm audit --audit-level=high || true
 
-      - name: Unit tests
-        run: npm run test
+      - name: Unit tests + coverage gate
+        # vitest.config.ts coverage.thresholds enforces a modest lines floor
+        # (set just below current actual) so coverage can't silently slide.
+        run: npm run test:coverage
 
       - name: Static export build
         run: npm run build
@@ -86,3 +97,29 @@ jobs:
           name: playwright-report
           path: frontend/playwright-report/
           retention-days: 7
+
+  upstream-drift:
+    name: Upstream drift (live keyless APIs)
+    # Scheduled/manual only — live-network checks don't belong on every PR.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Live upstream smoke (12 sources, 8s each)
+        # Hard-fail by design: red here means a real upstream search API died
+        # or changed shape — exactly what this job exists to catch.
+        continue-on-error: false
+        run: npx tsx scripts/upstream-smoke.ts
