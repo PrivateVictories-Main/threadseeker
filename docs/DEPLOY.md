@@ -3,7 +3,7 @@
 **One deployment. One URL. No servers, no secrets.**
 
 ThreadSeeker is a fully static Next.js site plus a handful of Cloudflare Pages
-Functions that ship alongside it. The whole app — frontend, 30 source adapters,
+Functions that ship alongside it. The whole app — frontend, 38 source adapters,
 and the CORS/no-search-API helper functions — runs on Cloudflare's free tier with
 **no environment variables required.**
 
@@ -56,12 +56,13 @@ Cloudflare builds on every push to the connected branch. That's it.
 
 | Feature | Where | Needs a key? |
 |---|---|---|
-| GitHub / GitLab / Codeberg | Browser (direct) | No |
-| npm / PyPI / crates / Packagist / RubyGems / JSR / Open VSX / NuGet / Maven / conda / Zenodo | Browser (direct) | No |
+| GitHub | Pages Function `/api/gh` (token relay + cache; works keyless) | No |
+| GitLab / Codeberg | Browser (direct) | No |
+| npm / PyPI / crates / Packagist / RubyGems / JSR / Open VSX / NuGet / Maven / Zenodo / Modrinth / Firefox Add-ons / Greasy Fork | Browser (direct) | No |
 | Hugging Face | Browser (direct) | No |
 | Hacker News / Dev.to / Stack Overflow | Browser (direct) | No |
 | Reddit (+ sentiment) | Pages Function `/api/search-reddit` | No |
-| Docker Hub / Flathub / Lobsters / Papers with Code / AUR / WordPress / Hex / pub.dev | Pages Function `/api/proxy` (CORS) | No |
+| Docker Hub / Flathub / Lobsters / AUR / conda-forge / WordPress / Hex / pub.dev / CRAN / Terraform Registry / Snapcraft / Ansible Galaxy / GNOME Extensions / Chocolatey | Pages Function `/api/proxy` (CORS) | No |
 | Homebrew (no search API) | Pages Function `/api/search-homebrew` | No |
 | F-Droid (no search API) | Pages Function `/api/search-fdroid` | No |
 | arXiv (Atom XML) | Pages Function `/api/search-arxiv` | No |

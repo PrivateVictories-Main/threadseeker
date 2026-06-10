@@ -19,7 +19,7 @@ interface Props {
 }
 
 // Keep in sync with package.json version (a build-time derive would be ideal).
-const VERSION = "v3.0";
+const VERSION = "v4.0";
 
 export function BrandMark({ variant = "hero", showVersion, className = "" }: Props) {
   const includeVersion = showVersion ?? variant === "hero";

@@ -5,6 +5,110 @@ All notable changes to ThreadSeeker will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Nothing yet.
+
+## [4.0.0] - 2026-06-10
+
+The "layered AI" release: a keyless in-browser semantic rerank on top of a
+substantially smarter deterministic ranker, **38 live sources** (was 29), SEO
+landing pages, PWA installability, and a much heavier test/CI gate. Still zero
+required keys, zero paid APIs.
+
+### Added — keyless semantic rerank
+- A small retrieval-trained embedding model (`mxbai-embed-xsmall-v1`, 24 MB
+  quantized, Apache-2.0) runs **in the user's browser** in a Web Worker via a
+  pinned transformers.js — WebGPU when a real GPU adapter probe succeeds, WASM
+  otherwise. After the BM25 order paints, it cosine-scores the top results
+  against the *full* query text and rank-fuses that ordering in, weighted by
+  query length (keyword queries stay BM25-led; paragraph queries go
+  semantic-led). No API, no key, no per-query cost; any failure (no Worker,
+  Save-Data, model download, GPU init) degrades silently to pure BM25.
+- The worker is a static module file outside the app bundle; CSP extended
+  minimally (`wasm-unsafe-eval` + the pinned CDN host), documented in `_headers`.
+
+### Added — optional AI layer (Groq)
+- **`/api/rerank`** — the LLM now influences *ordering*, not just the verdict:
+  it re-orders the top deterministic results and the client rank-fuses that
+  with BM25, so a bad/partial/empty response can nudge but never tank. As with
+  the rest of the AI layer, no `GROQ_API_KEY` → pure deterministic baseline.
+
+### Changed — search quality (deterministic, keyless)
+- **Paragraph queries rank the THING, not threads about the thing.** Key-term
+  extraction picks upstream search terms by subject-likeness (rarity,
+  tech-shape, sentence position) instead of first-N word order, so a
+  three-sentence description fetches the ask instead of truncating it away.
+- BM25 became **BM25F**: a term in the project *name* (4×) outweighs the same
+  term buried in a description, so a low-star exact-name match can beat a
+  45k-star repo that mentions the term in passing.
+- New term-**coverage** bonus (superlinear — matching ALL content terms beats
+  matching one rare term heavily) and **bigram-adjacency** bonus ("react
+  native" adjacent ≫ scattered).
+- **Exact-name rank floor**: a query that *is* a project's name can no longer
+  be buried by popularity stacking — the best exact match is promoted to the
+  top 3.
+- Thread sources (Reddit/HN/SO/Lobsters/Dev.to) score their title at
+  description weight and upvotes at half a star's value; archived repos take a
+  heavy penalty; query-framing filler ("best", "looking", "need") is
+  down-weighted; relaxation broadens to *content* terms, not filler.
+- Featured rail no longer vanishes on a GitHub rate-limit.
+
+### Changed — sources: 29 → 38
+- **9 new sources, every one live-verified**: Modrinth, CRAN, Firefox Add-ons,
+  Greasy Fork, Terraform Registry, Snapcraft, Ansible Galaxy, GNOME
+  Extensions, Chocolatey.
+- **4 dead sources revived** (each had silently returned nothing): WordPress
+  (upstream date-format change), Flathub (search went POST-only — the proxy
+  gained a tightly-allowlisted POST passthrough), Lobsters (search endpoint
+  400s — degrade to hottest-filtered), Docker Hub (official-image links).
+- **Papers with Code retired** — the service shut down (now redirects to
+  Hugging Face). Removed across all wiring points.
+- Honest-signals rule enforced: no fabricated stars/downloads anywhere — a
+  source with no popularity number ships without one. `AbortSignal` threaded
+  through every adapter, so superseded searches actually cancel.
+- All source counts in the UI/metadata derive from the registry — every
+  surface says 38 because the registry does.
+
+### Added — SEO + PWA
+- **`/search/[slug]` landing pages**: 53 statically-exported, individually
+  indexable pages derived from the curated suggestion corpus (single source of
+  truth shared with `sitemap.ts`), each with unique metadata, JSON-LD, and the
+  live app mounted underneath. One indexable URL became 54.
+- **Installable PWA**: web manifest + icons; richer structured data; honest
+  `robots` rules.
+
+### Changed — UI
+- **Paragraph-first search bar**: an auto-growing textarea command surface —
+  multi-sentence queries are a first-class input, not an afterthought.
+- Google-style autocomplete dropdown, glassy left sidebar, redesigned calm
+  hero backdrop, list-view/grid-view visual parity, ultrawide (4–5 column)
+  grid, dark-mode contrast fixes, deep-match pill.
+
+### Performance
+- The search engine is no longer in the first-paint bundle (lazy-loaded on
+  first search); memoized result cards; lazy modal chunks; a concurrency cap
+  on the source fan-out; bounded OG-image requests.
+
+### Accessibility
+- Command palette is a real combobox (screen-reader drivable); AI verdict is
+  announced; focus traps on all modals; reduced-motion honored; ultrawide
+  breakpoint + touch-target fixes.
+
+### Security
+- Closed an origin-render hole on `/api/gh?accept=`; stopped edge-caching
+  transient upstream failures; escaped control-char regex literals and clamped
+  AI cache-key parts in the Functions.
+
+### Tests / CI
+- Suite grew to **475 tests**, including 38×7 parameterized golden-payload
+  adapter tests (realistic fixtures, never-throw degradation, HTTP failure,
+  signal forwarding).
+- CI now also runs: Pages Functions typecheck, coverage gate, Playwright
+  dual-theme e2e smoke, a **weekly live upstream-drift job** (a silently dead
+  upstream API turns CI red even when nobody commits), and a post-deploy
+  smoke workflow against the live site.
+
 ## [3.0.0] - 2026-06-02
 
 Heavy security/quality audit pass. **29 live sources** (prior entries said 24).
@@ -176,47 +280,6 @@ Heavy security/quality audit pass. **29 live sources** (prior entries said 24).
 - API documentation
 - Contributing guidelines
 - MIT License
-
----
-
-## [Unreleased]
-
-### Planned
-- [ ] Saved searches / bookmarks (local-first, no account required)
-- [ ] More registries: Bitbucket, Launchpad, AUR, conda-forge
-- [ ] Date-range and language filters in the results toolbar
-- [ ] Browser extension (omnibox search)
-- [ ] Shareable permalink that also restores sort + source filter
-
----
-
-## Version History
-
-### Version 1.0.0 - Initial Release (2025-01-29)
-The first stable release of ThreadSeeker with all core features implemented and tested.
-
-**Key Highlights:**
-- Complete multi-platform search engine
-- AI-powered query optimization
-- 100+ intelligent autocomplete suggestions
-- Advanced spell-checking and fuzzy matching
-- Instant loading with smart caching
-- Premium UI with smooth animations
-- Voice search capability
-- Comprehensive documentation
-
-**Statistics:**
-- 5,187 lines of code
-- 22 files committed
-- 10 categories of suggestions
-- 150+ spell corrections
-- <100ms load time (cached)
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to contribute to this changelog.
 
 ---
 

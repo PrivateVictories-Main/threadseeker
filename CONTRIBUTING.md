@@ -82,24 +82,40 @@ frontend/src/
       synonyms.ts         query-expansion dictionary
       intent.ts           regex intent classifier
       merge.ts            cross-platform de-duplication
-      resilience.ts       query-relaxation chain
-frontend/functions/api/   Cloudflare Pages Functions (Reddit, Homebrew, F-Droid,
-                          arXiv, CORS proxy)
+      resilience.ts       query-relaxation chain + key-term extraction
+    semantic/             keyless in-browser semantic rerank (Web Worker client)
+frontend/functions/api/   Cloudflare Pages Functions (CORS proxy, GitHub relay,
+                          Reddit, Homebrew, F-Droid, arXiv, and the optional
+                          Groq endpoints: optimize-queries, rerank, synthesize)
 ```
 
 ---
 
 ## The Quality Gate
 
-CI runs the exact same checks on every push. Run them locally before opening a PR:
+CI (`.github/workflows/ci.yml`) runs these checks on every push and PR. Run them
+locally before opening a PR:
 
 ```bash
 cd frontend
-npm run lint           # ESLint (next lint)
-npx tsc --noEmit       # type-check
-npm run test           # vitest unit suite
-npm run build          # static export build  (set NEXT_OUTPUT=export)
+npm run lint                                # ESLint (next lint)
+npx tsc --noEmit                            # type-check the app
+npx tsc -p functions/tsconfig.json --noEmit # type-check the Pages Functions
+npm run test:coverage                       # vitest unit suite + coverage floor
+NEXT_OUTPUT=export npm run build            # static export build
 ```
+
+CI also runs `npm audit --audit-level=high` (non-blocking) and a separate
+**Playwright e2e job** (dual-theme smoke against the static export):
+
+```bash
+npx playwright install chromium   # one-time
+npm run test:e2e                  # builds expected in out/ — run the export build first
+```
+
+Two more jobs run on a schedule, not per-push: a **weekly upstream-drift job**
+(`scripts/upstream-smoke.ts` hits the live keyless APIs so a silently dead
+upstream turns CI red) and a post-deploy smoke workflow against the live site.
 
 If you touched ranking, expansion, or adapters, also run the live-API search-quality
 harness and make sure you didn't regress it:
