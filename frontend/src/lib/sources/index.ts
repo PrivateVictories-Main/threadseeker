@@ -253,10 +253,26 @@ export async function searchAllSources(
     }
   };
 
+  // Topics feed straight into UI .map() calls — enforce the array contract at
+  // this single chokepoint so no adapter (38 of them, upstream shapes drift)
+  // can ever crash a card render with a comma-joined string or junk value.
+  const normalizeTopics = (t: unknown): string[] => {
+    if (Array.isArray(t)) {
+      return t.filter((x): x is string => typeof x === "string" && x.length > 0).slice(0, 8);
+    }
+    if (typeof t === "string" && t.trim()) return t.split(/,\s*/).slice(0, 8);
+    return [];
+  };
+
   const processSource = async (source: SourceType): Promise<SearchResult> => {
     let result: SearchResult;
     try {
       result = await withTimeout(source, () => runSource(source));
+      result.projects = result.projects.map((p) =>
+        Array.isArray(p.topics) && p.topics.every((x) => typeof x === "string")
+          ? p
+          : { ...p, topics: normalizeTopics(p.topics) },
+      );
     } catch (error) {
       console.error(`Error searching ${source}:`, error);
       const message =

@@ -99,3 +99,36 @@ describe("searchAllSources orchestrator", () => {
     expect(all.length).toBe(2);
   });
 });
+
+describe("searchAllSources — topics contract", () => {
+  it("coerces a string tag_list (the dev.to search-feed shape) into a real array", async () => {
+    // Regression: a comma-joined topics STRING passed `length > 0` in the card
+    // and crashed render with `.map is not a function`. The orchestrator must
+    // enforce topics: string[] no matter what an adapter lets through.
+    const { searchAllSources } = await import("./index");
+    vi.stubGlobal("fetch", vi.fn(async (url: unknown) => {
+      const u = String(url);
+      if (u.includes("dev.to")) {
+        return new Response(
+          JSON.stringify([{
+            id: 1, title: "Intro to JSON", slug: "intro-json",
+            description: "an article", url: "https://dev.to/x/intro-json",
+            public_reactions_count: 5, comments_count: 1,
+            tag_list: "json, javascript, webdev",
+            user: { username: "x", name: "X" },
+          }]),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response("not found", { status: 404 });
+    }));
+    const results = await searchAllSources("json", ["devto"], true);
+    expect(results.length).toBeGreaterThan(0);
+    for (const p of results) {
+      expect(Array.isArray(p.topics)).toBe(true);
+      for (const t of p.topics) expect(typeof t).toBe("string");
+    }
+    expect(results[0].topics).toEqual(["json", "javascript", "webdev"]);
+  });
+});
+

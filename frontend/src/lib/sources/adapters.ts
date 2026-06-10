@@ -2014,7 +2014,13 @@ export async function searchDevTo(
         stars: a.public_reactions_count || a.positive_reactions_count || 0,
         commentsCount: a.comments_count || 0,
         language: null,
-        topics: a.tag_list || [],
+        // dev.to's API is inconsistent across endpoints: tag_list is an array on
+        // /articles but a comma-joined STRING on the search feed. Both shapes.
+        topics: Array.isArray(a.tag_list)
+          ? a.tag_list.slice(0, 6)
+          : typeof a.tag_list === "string" && a.tag_list
+            ? a.tag_list.split(/,\s*/).slice(0, 6)
+            : [],
         author: {
           name: a.user?.name || a.user?.username || "unknown",
           avatar: a.user?.profile_image_90 || a.user?.profile_image || "",
