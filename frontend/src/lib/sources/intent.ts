@@ -70,7 +70,17 @@ export function classifyIntent(query: string): {
   for (const [intent, patterns] of Object.entries(INTENT_PATTERNS) as Array<
     [Exclude<Intent, "general">, RegExp[]]
   >) {
-    const score = patterns.reduce((acc, p) => acc + (p.test(query) ? 1 : 0), 0);
+    const score = patterns.reduce((acc, p, idx) => {
+      if (!p.test(query)) return acc;
+      // The first how_to/troubleshooting pattern is position-ANCHORED (the
+      // query literally leads with "how to…"/"error:…") — that's a much
+      // stronger signal than the broad project-noun match, which fires on
+      // nearly every tool-shopping query. Without the extra weight, 1-1
+      // ties fell to whichever intent iterated first.
+      const anchored =
+        idx === 0 && (intent === "how_to" || intent === "troubleshooting");
+      return acc + (anchored ? 2 : 1);
+    }, 0);
     if (score > bestScore) {
       bestScore = score;
       best = intent;

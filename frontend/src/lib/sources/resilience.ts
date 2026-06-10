@@ -162,7 +162,12 @@ export function coreSearchQuery(raw: string, maxTerms = 6): string {
   if (sig.length <= LONG_QUERY_TOKEN_THRESHOLD) return trimmed;
 
   // Score every unique key term by sentence position + distinctiveness.
-  const sentences = trimmed.split(/[.!?;\n]+/).filter((s) => s.trim().length > 0);
+  // Sentence punctuation only counts when followed by whitespace/end — a bare
+  // /[.]/ split shredded dotted tech terms (node.js, socket.io) into fake
+  // one-word "sentences" whose junk tokens then won per-sentence slots.
+  const sentences = trimmed
+    .split(/[.!?;]+(?=\s|$)|\n+/)
+    .filter((s) => s.trim().length > 0);
   const scoreByTerm = new Map<string, number>();
   const orderByTerm = new Map<string, number>();
   let order = 0;
@@ -249,7 +254,12 @@ export function buildTokenPlan(raw: string): RelaxedPlan | null {
     // Two or fewer core terms can't be meaningfully narrowed further here —
     // let the distinctive/first-token tiers handle it.
     if (core.length <= 2) return null;
-    queryString = core.slice(0, core.length - 2).join(" ");
+    // Re-run the SAME subject-likeness selection with a smaller budget — this
+    // drops the two LEAST subject-like terms. (A positional slice here would
+    // do the opposite: core terms are emitted in appearance order, and the
+    // ask usually sits last, so slicing the tail off deleted the ask and
+    // re-fetched the context.)
+    queryString = coreSearchQuery(raw, Math.max(2, core.length - 2));
   } else {
     // Re-join tokens — caller can pass through OR-expansion later. Order
     // preserved so longer / more-distinctive tokens stay near the front.

@@ -14,6 +14,10 @@ export interface Suggestion {
 export const CURATED_QUERIES: string[] = [
   "react state management",
   "vector database",
+  "self-hosted photo library",
+  "terraform aws modules",
+  "minecraft server plugins",
+  "firefox privacy extensions",
   "local llm runtime",
   "rust http framework",
   "python web framework",

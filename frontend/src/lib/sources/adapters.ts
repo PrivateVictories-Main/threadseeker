@@ -850,14 +850,14 @@ export async function searchDockerHub(
         const [owner, name] = repoName.includes("/")
           ? repoName.split("/", 2)
           : ["library", repoName];
-        // DockerHub's /v2/search/repositories/ surfaces last_updated for
-        // every repo as an ISO timestamp — surface it directly. Mirror
-        // the homebrew approach: when it's missing, fall back to ""
-        // rather than `new Date().toISOString()` so the card caption
-        // suppresses cleanly instead of lying with "just now". Latest
-        // tag / digest is NOT in the search response — would require a
-        // per-result /tags call (latency cost), so version chip stays
-        // off for dockerhub until a feature-flagged opt-in lands.
+        // DockerHub's /v2/search/repositories/ response carries NO
+        // last_updated field at all (live-verified: only is_official,
+        // pull_count, repo_name, star_count, …) — the `|| ""` fallback
+        // below therefore always yields "", which the card caption
+        // suppresses cleanly and the ranker treats as an explicit
+        // no-recency-signal. Real recency would need a per-result
+        // /v2/repositories/{ns}/{name}/ lookup (latency cost), so it
+        // stays off until a feature-flagged opt-in lands.
         return {
           id: `dockerhub-${repoName}`,
           source: "dockerhub" as const,
@@ -1164,7 +1164,10 @@ export async function searchZenodo(
     // Prefer "software" records — the ones most likely to interest an
     // open-source searcher. Fall back to datasets if software returns
     // nothing. Publications (papers) already covered by arXiv.
-    const url = `https://zenodo.org/api/records?q=${encodeURIComponent(query)}&size=25&sort=mostrecent&type=software,dataset`;
+    // type must be REPEATED, not comma-joined — `type=software,dataset`
+    // matches nothing upstream (verified live: 0 hits for every query vs 168
+    // for the repeated form).
+    const url = `https://zenodo.org/api/records?q=${encodeURIComponent(query)}&size=25&sort=mostrecent&type=software&type=dataset`;
     const response = await fetch(url, { headers: { Accept: "application/json" }, signal });
     if (!response.ok) return { projects: [], totalCount: 0, source: "zenodo" };
     const data = await response.json();
@@ -1694,7 +1697,18 @@ export async function searchAnsibleGalaxy(
           url: `https://galaxy.ansible.com/ui/repo/published/${cv.namespace}/${cv.name}/`,
           stars: 0,
           language: null,
-          topics: Array.isArray(cv.tags) ? cv.tags.slice(0, 6).map(String) : [],
+          // tags arrive as [{name: "docker"}, …] objects (live-verified) — a bare
+          // String() coerced them to "[object Object]" chips.
+          topics: Array.isArray(cv.tags)
+            ? cv.tags
+                .slice(0, 6)
+                .map((t: unknown) =>
+                  typeof t === "string"
+                    ? t
+                    : String((t as { name?: unknown })?.name ?? ""),
+                )
+                .filter(Boolean)
+            : [],
           author: { name: cv.namespace || "unknown", avatar: "" },
           updatedAt: safeIso(cv.pulp_created),
           version: cv.version || undefined,
@@ -1768,7 +1782,7 @@ export async function searchChocolatey(
     // functions/api/search-arxiv.ts — no DOMParser dependency.
     const target =
       "https://community.chocolatey.org/api/v2/Search()?$filter=IsLatestVersion&$top=20" +
-      `&searchTerm=${encodeURIComponent(`'${query}'`)}` +
+      `&searchTerm=${encodeURIComponent(`'${query.replace(/'/g, "''")}'`)}` +
       "&targetFramework=''&includePrerelease=false";
     const response = await fetchViaProxy(target, signal);
     if (!response.ok) return { projects: [], totalCount: 0, source: "chocolatey" };

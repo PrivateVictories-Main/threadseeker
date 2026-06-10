@@ -14,6 +14,8 @@ import { SearchBar } from "./SearchBar";
 import type { SourceType } from "@/lib/sources/types";
 
 interface Props {
+  /** h1 on "/", h2 on /search/[slug] landings (which own their h1). */
+  headingLevel?: "h1" | "h2";
   sourceCount: number;
   sources: SourceType[];
   onSearch: (query: string) => void;
@@ -29,7 +31,11 @@ const EXAMPLES = [
   "self-hosted photo library",
 ];
 
-export function LandingHero({ sourceCount, sources, onSearch, history = [] }: Props) {
+export function LandingHero({ sourceCount, sources, onSearch, history = [], headingLevel = "h1" }: Props) {
+  // /search/[slug] landings render their own unique <h1> in the static SEO
+  // band; the hero headline demotes to <h2> there so each landing has exactly
+  // one h1 (the query) instead of two.
+  const Headline = headingLevel;
   return (
     <section className="ts-landing-hero" aria-label="ThreadSeeker introduction">
       <SourceConstellation sources={sources} />
@@ -38,10 +44,10 @@ export function LandingHero({ sourceCount, sources, onSearch, history = [] }: Pr
         <span className="ts-hero-caption" aria-hidden>
           Open-Source Index
         </span>
-        <h1 className="ts-hero-headline text-balance">
+        <Headline className="ts-hero-headline text-balance">
           The whole open-source world,{" "}
           <span className="ts-hero-accent">one thread.</span>
-        </h1>
+        </Headline>
         <p className="ts-landing-hero-tagline">
           One query across {sourceCount} platforms — repositories, packages, AI
           models, and community threads. No accounts, no tracking.

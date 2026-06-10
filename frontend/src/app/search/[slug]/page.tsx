@@ -74,11 +74,17 @@ export function generateMetadata({ params }: Props): Metadata {
       url: path,
       siteName: "ThreadSeeker",
       type: "website",
+      // Next's metadata merge is SHALLOW: defining openGraph/twitter here
+      // replaces the root-resolved objects entirely, so the file-convention
+      // opengraph-image never reaches these pages unless re-declared.
+      // metadataBase (layout.tsx) makes the relative path absolute.
+      images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
+      images: ["/opengraph-image"],
     },
   };
 }

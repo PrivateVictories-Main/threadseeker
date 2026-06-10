@@ -18,9 +18,7 @@ import { Menu, X as XIcon } from "lucide-react";
 import { CountUp } from "@/components/motion/CountUp";
 import { SearchBar } from "@/components/SearchBar";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import {
-  COMMAND_PALETTE_OPEN_EVENT,
-} from "@/components/CommandPalette";
+import { COMMAND_PALETTE_OPEN_EVENT } from "@/components/command-palette-event";
 
 interface Props {
   query: string;

@@ -40,9 +40,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
-import {
-  COMMAND_PALETTE_OPEN_EVENT,
-} from "@/components/CommandPalette";
+import { COMMAND_PALETTE_OPEN_EVENT } from "@/components/command-palette-event";
 import {
   getBookmarks,
   onBookmarksChanged,

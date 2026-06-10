@@ -67,6 +67,7 @@ type ResultsView = "grid" | "list";
 // Route page files must not import each other's default exports — Next's
 // typegen constrains a page's props to PageProps — hence this shared module.
 export function HomeApp({ initialQuery }: { initialQuery?: string }) {
+  const heroHeadingLevel: "h1" | "h2" = initialQuery ? "h2" : "h1";
   // ── View / UI state. The page owns this; the search engine (result-domain
   // state + orchestration) lives in the useSearch hook below. ────────────────
   const [selectedSources, setSelectedSources] = useState<SourceType[]>(ALL_SOURCES);
@@ -257,9 +258,20 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
     if (activeSourceFilter) params.set("filter", activeSourceFilter);
     if (resultsView !== "grid") params.set("view", resultsView);
     const qs = params.toString();
+    // On a /search/[slug] landing whose auto-run query is still untouched,
+    // keep the clean canonical URL — rewriting it to /search/foo/?q=foo
+    // immediately after hydration would make every visit a non-canonical
+    // variant. The rewrite kicks in only once the user changes anything.
+    if (
+      initialQuery &&
+      query === initialQuery.trim() &&
+      qs === new URLSearchParams({ q: query }).toString()
+    ) {
+      return;
+    }
     const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
     window.history.replaceState(null, "", newUrl);
-  }, [query, selectedSources, hasSearched, sortMode, activeSourceFilter, resultsView]);
+  }, [query, selectedSources, hasSearched, sortMode, activeSourceFilter, resultsView, initialQuery]);
 
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
@@ -317,6 +329,14 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
   };
 
   const handleClear = useCallback(() => {
+    // On a /search/[slug] landing, "clear" means LEAVE the landing: staying
+    // on the slug path would show the hero under the stale server-rendered
+    // SEO band for the just-cleared query, and a reload would re-run it.
+    // A real navigation to "/" unmounts the slug page (band included).
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/search/")) {
+      window.location.href = "/";
+      return;
+    }
     // Reset the search domain (state + run-id + abort + history pointer) via
     // the hook, then the page's own view state + the URL.
     clearSearch();
@@ -457,6 +477,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
               {/* HERO CARD — glass panel ~50vh, headline + tagline, no
                   search bar (search is in the top bar). */}
               <LandingHero
+                headingLevel={heroHeadingLevel}
                 sourceCount={ALL_SOURCES.length}
                 sources={ALL_SOURCES}
                 onSearch={handleSearch}

@@ -161,9 +161,11 @@ export function rankCorpus(
   // The content terms of the query, for the coverage + adjacency bonuses
   // below — the two cheapest deterministic precision signals for specific
   // multi-term queries that a per-term BM25 sum structurally lacks.
-  const keyTerms = extractKeyTerms(rawQuery).map(
-    (t) => tokenize(t)[0] ?? t,
-  ).filter((t) => t.length > 1);
+  // flatMap (not [0]): hyphenated terms like "self-hosted" tokenize into two
+  // words; taking only the first silently degraded both signals.
+  const keyTerms = extractKeyTerms(rawQuery)
+    .flatMap((t) => tokenize(t))
+    .filter((t) => t.length > 1);
   const keyBigrams: Array<[string, string]> = [];
   for (let i = 0; i + 1 < keyTerms.length; i += 1) {
     keyBigrams.push([keyTerms[i], keyTerms[i + 1]]);
@@ -216,10 +218,15 @@ export function rankCorpus(
     // Term COVERAGE — matching ALL the user's content terms moderately must
     // beat matching one rare term heavily ("as specific as you want" means
     // conjunctive intent). Superlinear so full coverage stands out.
+    // THREAD damping on both bonuses: a discussion title that mirrors the
+    // query covers every term and every bigram by construction — without the
+    // scale these two bonuses (+3200 max) would hand threads right back the
+    // lead the field-weight demotion took away.
+    const threadScale = THREAD_SOURCES.has(p.source) ? 0.4 : 1;
     if (keyTerms.length >= 2) {
       let matched = 0;
       for (const t of keyTerms) if (inAnyField(f, t)) matched += 1;
-      score += Math.pow(matched / keyTerms.length, 1.5) * 2000;
+      score += Math.pow(matched / keyTerms.length, 1.5) * 2000 * threadScale;
     }
     // Bigram ADJACENCY — "react native" appearing adjacent (in name or
     // description) is a far stronger signal than both words scattered.
@@ -234,7 +241,7 @@ export function rankCorpus(
         };
         if (adjacentIn(f.name) || adjacentIn(f.description) || adjacentIn(f.fullName)) hits += 1;
       }
-      score += Math.min(hits * 400, 1200);
+      score += Math.min(hits * 400, 1200) * threadScale;
     }
 
     // Popularity. Thread upvotes (mapped into `stars` by the discussion

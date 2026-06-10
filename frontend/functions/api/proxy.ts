@@ -46,7 +46,12 @@ const HOST_EXTRA_HEADERS: Record<string, Record<string, string>> = {
 // body, and the GET relay can't express that. Only hosts that *require* POST
 // search earn an entry here — everything else stays on the read-only GET path
 // so the relay never becomes a general-purpose POST trampoline.
-const POST_HOST_ALLOWLIST = new Set<string>(["flathub.org"]);
+// POST is pinned to host + PATH PREFIX (not just hostname): hostname-only
+// gating would let same-origin pages relay attacker-shaped JSON to ANY
+// flathub.org path (auth/report endpoints) under our UA + egress IP.
+const POST_ALLOWLIST: Record<string, string> = {
+  "flathub.org": "/api/v2/search",
+};
 
 // Cap relayed POST bodies. A search query is tiny; anything bigger is abuse.
 const MAX_POST_BODY_BYTES = 4_096;
@@ -147,9 +152,18 @@ export const onRequestPost: PagesFunction = async ({ request }) => {
   if (parsed.protocol !== "https:") {
     return jsonResponse({ detail: "Only https allowed" }, 400);
   }
-  if (!POST_HOST_ALLOWLIST.has(parsed.hostname)) {
+  // Explicit ports are refused (parsed.hostname ignores :8443 etc.), and the
+  // path must sit under the allowlisted prefix for this host.
+  const allowedPrefix = POST_ALLOWLIST[parsed.hostname];
+  if (!allowedPrefix || parsed.port !== "") {
     return jsonResponse(
       { detail: `Host not allowlisted for POST: ${parsed.hostname}` },
+      400,
+    );
+  }
+  if (!parsed.pathname.startsWith(allowedPrefix)) {
+    return jsonResponse(
+      { detail: `Path not allowlisted for POST: ${parsed.pathname}` },
       400,
     );
   }

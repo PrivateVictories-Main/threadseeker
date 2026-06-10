@@ -147,9 +147,10 @@ export function SearchBar({
       return;
     }
     // Arrow keys drive the suggestion list only while the value is a single
-    // line; once the user has a real multi-line draft, arrows must move the
-    // caret like any editor.
-    const valueIsMultiline = query.includes("\n");
+    // line; once the draft is multi-line — by literal newline OR by soft
+    // wrap (the measured `multiline` state) — arrows must move the caret
+    // like any editor.
+    const valueIsMultiline = multiline || query.includes("\n");
     if (e.key === "ArrowDown" && !valueIsMultiline) {
       if (suggestions.length === 0) return;
       e.preventDefault();

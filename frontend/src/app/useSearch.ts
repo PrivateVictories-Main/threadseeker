@@ -81,13 +81,12 @@ function evictOldestResults(keepNewest: number) {
     for (let i = 0; i < sessionStorage.length; i += 1) {
       const key = sessionStorage.key(i);
       if (!key || !key.startsWith(RESULTS_CACHE_PREFIX)) continue;
-      let at = 0;
-      try {
-        at = JSON.parse(sessionStorage.getItem(key) || "{}").at ?? 0;
-      } catch {
-        /* unparseable entry → treat as oldest */
-      }
-      ours.push({ key, at });
+      // The stored shape is {"at":<ms>,"data":[…]} with `at` first — regex
+      // the prefix instead of JSON.parsing hundreds of KB of projects per
+      // entry just to read one timestamp (this runs on every save).
+      const head = (sessionStorage.getItem(key) || "").slice(0, 40);
+      const m = head.match(/"at":(\d+)/);
+      ours.push({ key, at: m ? Number(m[1]) : 0 });
     }
     if (ours.length <= keepNewest) return;
     ours.sort((a, b) => b.at - a.at);
@@ -280,18 +279,17 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
         // *ranks* them by the full intent. Short queries are unchanged.
         const fetchQuery = coreSearchQuery(freeText);
         // The optional AI layer distills key terms + intent for long queries.
-        // Fired CONCURRENTLY with the fan-out (it used to serially block the
-        // flagship paragraph path for up to 1.5s): the deterministic fetch
-        // starts immediately, and by the time the fan-out settles the AI
-        // answer is either ready (consumed below as a supplemental fetch +
-        // intent override) or it's discarded. Keyless deploys resolve null
-        // instantly — zero cost.
+        // Fired CONCURRENTLY with the fan-out and consumed only AFTER the
+        // first ranked paint — it can enrich, never delay. The 2.5s cap is
+        // measured from search start, so by the time the fan-out settles the
+        // answer is typically already resolved (or forfeited). Keyless
+        // deploys resolve null instantly — zero cost.
         const longQuery = significantTokens(freeText).length > 7;
         const aiPromise: Promise<Awaited<ReturnType<typeof optimizeQuery>> | null> =
           longQuery
             ? Promise.race([
                 optimizeQuery(freeText).catch(() => null),
-                new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
               ])
             : Promise.resolve(null);
 
@@ -361,11 +359,22 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
         if (searchRunIdRef.current !== runId) return;
         const mergedCorpus: UnifiedProject[] = results;
 
-        // Consume the (concurrent) AI distillation now that the fan-out is
-        // done — it has had the whole fetch window to resolve. A valid intent
-        // re-tints ranking weights + the accent hue; key terms that genuinely
-        // differ from the deterministic reduction earn ONE supplemental fetch
-        // whose new results join the corpus before ranking.
+        // Rank + PAINT the deterministic corpus immediately — nothing below
+        // (AI distillation, supplemental fetch, relaxation, verdicts) may
+        // delay the first ranked render. This is the moment the user "has
+        // results"; the duration readout freezes here too.
+        const ranked = rankCorpus(mergeRelatedProjects(mergedCorpus), freeText, expansion);
+        setProjects(ranked);
+        setSearchDurationMs(Math.round(performance.now() - startedAt));
+        // Cache the fresh ranked set so a quick re-search (or history click)
+        // repaints instantly via the stale-while-revalidate seed above.
+        saveResultsCache(freeText, targetSources, ranked);
+
+        // Consume the (concurrent) AI distillation AFTER the paint. A valid
+        // intent re-tints ranking weights + the accent hue; key terms that
+        // genuinely differ from the deterministic reduction earn ONE
+        // supplemental fetch whose new results are ranked into the corpus as
+        // a run-id-guarded patch — exactly like a relaxation pass.
         const ai = longQuery ? await aiPromise : null;
         if (searchRunIdRef.current !== runId) return;
         if (ai && AI_INTENTS.has(ai.intent)) {
@@ -402,26 +411,23 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
           }
         }
 
-        const ranked = rankCorpus(mergeRelatedProjects(mergedCorpus), freeText, expansion);
-        setProjects(ranked);
-        // Cache the fresh ranked set so a quick re-search (or history click)
-        // repaints instantly via the stale-while-revalidate seed above.
-        saveResultsCache(freeText, targetSources, ranked);
+        const aiRanked = rankCorpus(mergeRelatedProjects(mergedCorpus), freeText, expansion);
+        setProjects(aiRanked);
         // Track the final displayed set so the AI verdict (fired after the
         // relaxation loop below) summarizes what the user actually ends up
         // seeing — not a stale strict-pass top-10.
-        let finalRanked = ranked;
+        let finalRanked = aiRanked;
 
         // Resilience loop. If the strict pass came back thin, walk the
         // relaxation chain (tokens → fuzzy-synonyms → distinctive →
         // first-token) until we have enough results or the chain is exhausted.
         const SATISFIED_AT = 9;
-        if (ranked.length < SATISFIED_AT) {
+        if (aiRanked.length < SATISFIED_AT) {
           const seenIds = new Set(mergedCorpus.map((p) => p.id));
           const relaxedQueriesRun: string[] = [];
           let firstBanner: string | null = null;
           let lastTier: RelaxationTier = "strict";
-          let cumulative = ranked.length;
+          let cumulative = aiRanked.length;
           for (let step = 0; step < 4; step += 1) {
             const plan: RelaxedPlan | null = nextRelaxation(freeText, cumulative, lastTier);
             if (!plan) break;
@@ -577,7 +583,12 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
           setIsLoading(false);
           setPendingSources(0);
           setPendingSourceList([]);
-          setSearchDurationMs(Math.round(performance.now() - startedAt));
+          // searchDurationMs froze at the first ranked paint; the enrichment
+          // phases (AI patch, relaxation) must not inflate it. Error paths
+          // that never painted still get a final reading here.
+          setSearchDurationMs((prev) =>
+            prev === null ? Math.round(performance.now() - startedAt) : prev,
+          );
         }
       }
     },

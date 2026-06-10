@@ -60,7 +60,9 @@ import { getSourceConfig } from "@/lib/sources/registry";
 import type { SourceType } from "@/lib/sources/types";
 import type { SortMode } from "@/components/ResultsToolbar";
 
-export const COMMAND_PALETTE_OPEN_EVENT = "threadseeker:open-command-palette";
+// Re-exported from its own module (see command-palette-event.ts for why).
+export { COMMAND_PALETTE_OPEN_EVENT } from "./command-palette-event";
+import { COMMAND_PALETTE_OPEN_EVENT } from "./command-palette-event";
 
 const QUICK_QUERIES = [
   "mcp server",
