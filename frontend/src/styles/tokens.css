@@ -1,11 +1,13 @@
 /* frontend/src/styles/tokens.css */
 :root {
-  /* Gradient — real lavender -> indigo -> sky. NO pink/magenta. */
+  /* v5 identity — "the lit thread in the library": warm paper neutrals
+     over a quiet emerald-ink cast; the per-query intent tint survives but
+     desaturated, so the backdrop reads as material, not as a gradient. */
   --ts-bg-gradient: linear-gradient(
     135deg,
-    hsl(var(--ts-intent-hue), 80%, 92%) 0%,
-    hsl(calc(var(--ts-intent-hue) + 15), 75%, 88%) 45%,
-    hsl(calc(var(--ts-intent-hue) + 35), 80%, 90%) 100%
+    hsl(var(--ts-intent-hue), 26%, 94%) 0%,
+    hsl(calc(var(--ts-intent-hue) + 12), 22%, 91%) 45%,
+    hsl(calc(var(--ts-intent-hue) + 28), 24%, 93%) 100%
   );
 
   /* Glass surfaces — Iter-21 / Overhaul G: HF-leaning. Cards mostly
@@ -17,32 +19,37 @@
   --ts-surface-sticky: rgba(255, 255, 255, 0.78);
   /* Iter-21 — softer card border at rest (was 0.22). The indigo halo
      still kicks in on hover so the active state remains crisp. */
-  --ts-border: rgba(99, 102, 241, 0.16);
-  --ts-border-soft: rgba(99, 102, 241, 0.10);
+  --ts-border: rgba(16, 94, 74, 0.16);
+  --ts-border-soft: rgba(16, 94, 74, 0.10);
   /* Inner highlight + grounding rim. */
   --ts-glass-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  --ts-glass-rim:   inset 0 -1px 0 rgba(99, 102, 241, 0.10);
-  --ts-glass-ring: 0 0 0 1px rgba(99, 102, 241, 0.14);
+  --ts-glass-rim:   inset 0 -1px 0 rgba(16, 94, 74, 0.10);
+  --ts-glass-ring: 0 0 0 1px rgba(16, 94, 74, 0.14);
 
-  /* Accent stays indigo-violet family but tuned away from magenta. */
-  /* RGB triple powering every rgba(var(--ts-accent-rgb), A) accent across
-     globals.css — set once here, shifts the whole accent family (and lightens
-     it in .dark below). Swapping the primary hue is now a one-line change. */
-  --ts-accent-rgb: 99, 102, 241;
-  --ts-accent: #6366f1;
-  --ts-accent-strong: #4f46e5;
-  --ts-accent-soft: rgba(99, 102, 241, 0.15);
-  /* Indigo → blue (no violet). The indigo→violet gradient was the textbook
-     "AI startup" tell; a single-family indigo-to-azure reads more ownable. */
-  --ts-accent-gradient: linear-gradient(135deg, #4f46e5, #3b82f6);
+  /* v5 accent — deep emerald ink. The indigo family was the textbook
+     AI-generated tell; this is the library's own color. The RGB triple
+     powers every rgba(var(--ts-accent-rgb), A) across globals.css. */
+  --ts-accent-rgb: 16, 110, 86;
+  --ts-accent: #106e56;
+  --ts-accent-strong: #0b5743;
+  --ts-accent-soft: rgba(16, 110, 86, 0.14);
+  --ts-accent-gradient: linear-gradient(135deg, #0b5743, #15947c);
 
-  /* Text — explicit dark inks, high contrast on light surfaces. */
-  --ts-text: #0f172a;
-  --ts-text-muted: #334155;
-  --ts-text-subtle: #475569;
+  /* v5 signature — the THREAD is an amber filament: warm light against the
+     emerald ink. Reserved for the brand moments (search progress thread,
+     deep-match pill, hero thread, active "live" states) so it stays special. */
+  --ts-thread-rgb: 224, 138, 16;
+  --ts-thread: #e08a10;
+  --ts-thread-strong: #b56c05;
+  --ts-thread-glow: rgba(244, 178, 64, 0.55);
+
+  /* Text — warm green-cast inks (cohesive with the emerald chrome). */
+  --ts-text: #16201c;
+  --ts-text-muted: #33423c;
+  --ts-text-subtle: #475850;
   /* faint is used on real informational text (labels, captions, timestamps),
-     so it must clear WCAG AA (4.5:1) on white — #94a3b8 was 2.5:1. */
-  --ts-text-faint: #64748b;
+     so it must clear WCAG AA (4.5:1) on white. */
+  --ts-text-faint: #5d6e66;
 
   /* Iter-21 / Overhaul G — Spotify bubbly radii. Cards/sheets/drawer
      bump 18 → 22; mid panels stay 12; small chrome bumps 8 → 10 so
@@ -56,25 +63,25 @@
      are very low-contrast with very large blur, so each stop on the
      stack carries lower alpha but wider spread than before. */
   --ts-shadow-sm:
-    0 1px 2px rgba(30, 27, 75, 0.04),
-    0 1px 3px rgba(30, 27, 75, 0.05);
+    0 1px 2px rgba(18, 42, 33, 0.05),
+    0 1px 3px rgba(18, 42, 33, 0.06);
   --ts-shadow-rest:
-    0 1px 2px rgba(30, 27, 75, 0.04),
-    0 8px 24px rgba(30, 27, 75, 0.06),
-    0 32px 64px rgba(30, 27, 75, 0.10);
+    0 1px 2px rgba(18, 42, 33, 0.05),
+    0 8px 24px rgba(18, 42, 33, 0.07),
+    0 32px 64px rgba(18, 42, 33, 0.10);
   --ts-shadow-hover:
-    0 4px 12px rgba(30, 27, 75, 0.08),
-    0 16px 48px rgba(30, 27, 75, 0.12),
-    0 48px 96px rgba(30, 27, 75, 0.16);
+    0 4px 12px rgba(18, 42, 33, 0.09),
+    0 16px 48px rgba(18, 42, 33, 0.12),
+    0 48px 96px rgba(18, 42, 33, 0.16);
   --ts-shadow-sticky:
-    0 1px 0 rgba(99, 102, 241, 0.06),
-    0 8px 20px rgba(30, 27, 75, 0.05);
+    0 1px 0 rgba(16, 110, 86, 0.06),
+    0 8px 20px rgba(18, 42, 33, 0.06);
 
   --ts-blur: 24px;
   --ts-blur-strong: 32px;
 
   /* Intent-tint defaults to 220 = INDIGO. Not 280 (pink territory). */
-  --ts-intent-hue: 220;
+  --ts-intent-hue: 160;
 }
 
 /* ── Dark theme ──────────────────────────────────────────────────────────
@@ -86,36 +93,42 @@
 .dark {
   --ts-bg-gradient: linear-gradient(
     140deg,
-    hsl(var(--ts-intent-hue), 30%, 7%) 0%,
-    hsl(calc(var(--ts-intent-hue) + 14), 32%, 10%) 48%,
-    hsl(calc(var(--ts-intent-hue) + 30), 28%, 8%) 100%
+    hsl(var(--ts-intent-hue), 24%, 6%) 0%,
+    hsl(calc(var(--ts-intent-hue) + 12), 26%, 9%) 48%,
+    hsl(calc(var(--ts-intent-hue) + 26), 22%, 7%) 100%
   );
 
-  /* Glass surfaces — translucent deep slate, lit subtly from above. */
-  --ts-surface: rgba(30, 36, 58, 0.66);
-  --ts-surface-strong: rgba(33, 40, 64, 0.90);
-  --ts-surface-sticky: rgba(24, 29, 48, 0.78);
-  --ts-border: rgba(129, 140, 248, 0.20);
-  --ts-border-soft: rgba(129, 140, 248, 0.12);
+  /* Glass surfaces — deep green-slate ink, lit subtly from above. */
+  --ts-surface: rgba(22, 36, 32, 0.66);
+  --ts-surface-strong: rgba(25, 41, 36, 0.90);
+  --ts-surface-sticky: rgba(17, 29, 25, 0.78);
+  --ts-border: rgba(94, 196, 160, 0.20);
+  --ts-border-soft: rgba(94, 196, 160, 0.12);
   --ts-glass-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --ts-glass-rim:   inset 0 -1px 0 rgba(0, 0, 0, 0.35);
-  --ts-glass-ring: 0 0 0 1px rgba(129, 140, 248, 0.16);
+  --ts-glass-ring: 0 0 0 1px rgba(94, 196, 160, 0.16);
 
-  /* Accent — lightened so indigo reads on dark surfaces. The rgb triple shifts
+  /* Accent — lifted emerald so it reads on dark ink. The rgb triple shifts
      every swept rgba(var(--ts-accent-rgb)) accent (borders, rings, glows,
-     scrollbar, selection…) to the lighter indigo in dark mode too. */
-  --ts-accent-rgb: 129, 140, 248;
-  --ts-accent: #818cf8;
-  --ts-accent-strong: #a5b4fc;
-  --ts-accent-soft: rgba(129, 140, 248, 0.20);
-  --ts-accent-gradient: linear-gradient(135deg, #818cf8, #60a5fa);
+     scrollbar, selection…) in dark mode too. */
+  --ts-accent-rgb: 71, 186, 145;
+  --ts-accent: #47ba91;
+  --ts-accent-strong: #7fd6b4;
+  --ts-accent-soft: rgba(71, 186, 145, 0.20);
+  --ts-accent-gradient: linear-gradient(135deg, #2e9d77, #47b3a4);
 
-  /* Text — light inks on dark glass. */
-  --ts-text: #e7ecf5;
-  --ts-text-muted: #c2ccde;
-  --ts-text-subtle: #aab6cd;
-  /* AA on dark glass — #6b7894 was ~3.8:1. */
-  --ts-text-faint: #97a3ba;
+  /* The filament burns brighter on dark. */
+  --ts-thread-rgb: 244, 178, 64;
+  --ts-thread: #f4b240;
+  --ts-thread-strong: #ffcf7d;
+  --ts-thread-glow: rgba(244, 178, 64, 0.45);
+
+  /* Text — warm light inks on dark green glass. */
+  --ts-text: #e9f0ec;
+  --ts-text-muted: #c5d2cb;
+  --ts-text-subtle: #adbcb4;
+  /* AA on dark glass. */
+  --ts-text-faint: #9aaaa1;
 
   /* Shadows — deeper/blacker with wider spread for floating-on-dark depth. */
   --ts-shadow-sm:
@@ -130,12 +143,12 @@
     0 16px 48px rgba(0, 0, 0, 0.50),
     0 48px 96px rgba(0, 0, 0, 0.58);
   --ts-shadow-sticky:
-    0 1px 0 rgba(129, 102, 241, 0.10),
+    0 1px 0 rgba(94, 196, 160, 0.10),
     0 8px 20px rgba(0, 0, 0, 0.40);
 }
 
 @property --ts-intent-hue {
   syntax: "<number>";
   inherits: true;
-  initial-value: 220;
+  initial-value: 160;
 }

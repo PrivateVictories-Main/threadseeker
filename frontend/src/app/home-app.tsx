@@ -420,7 +420,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
     <>
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-md focus:bg-white focus:px-3 focus:py-1.5 focus:text-xs focus:text-slate-900 focus:shadow-lg focus:border focus:border-indigo-300"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-md focus:bg-white focus:px-3 focus:py-1.5 focus:text-xs focus:text-slate-900 focus:shadow-lg focus:border focus:border-[color:rgba(var(--ts-accent-rgb),0.35)]"
       >
         Skip to main content
       </a>
@@ -547,7 +547,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
               <div className="ts-landing-row">
                 <button
                   onClick={() => setSourceFilterOpen((v) => !v)}
-                  className="ts-section-header hover:!text-indigo-600 transition-colors"
+                  className="ts-section-header hover:!text-[color:var(--ts-accent)] transition-colors"
                   aria-expanded={sourceFilterOpen}
                 >
                   {sourceFilterOpen ? (
@@ -597,7 +597,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                     href="https://github.com/PrivateVictories-Main/threadseeker"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 hover:text-indigo-700 transition-colors text-slate-500"
+                    className="inline-flex items-center gap-1.5 hover:text-[color:var(--ts-accent-strong)] transition-colors text-slate-500"
                   >
                     <Github className="w-3.5 h-3.5" aria-hidden />
                     GitHub
@@ -630,9 +630,9 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                   >
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11.5px] uppercase tracking-[0.08em] text-slate-500 tabular-nums">
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" aria-hidden />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--ts-accent)] animate-pulse" aria-hidden />
                         Searching{" "}
-                        <span className="text-indigo-700 font-semibold">
+                        <span className="text-[color:var(--ts-accent-strong)] font-semibold">
                           {activeSources - pendingSources}
                         </span>{" "}
                         of{" "}
@@ -856,7 +856,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                             <span className="uppercase text-[11px] tracking-[0.06em] text-slate-400">
                               from
                             </span>{" "}
-                            <span className="text-indigo-700 font-semibold">
+                            <span className="text-[color:var(--ts-accent-strong)] font-semibold">
                               {getSourceConfig(activeSourceFilter).name}
                             </span>
                           </span>
@@ -1001,7 +1001,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                                 onOpenDetails={handleOpenDetails}
                                 outerClassName={`transition-shadow rounded-[22px] ${
                                   focusedIdx === idx
-                                    ? "ring-2 ring-indigo-500/60 ring-offset-2 ring-offset-transparent"
+                                    ? "ring-2 ring-[color:rgba(var(--ts-accent-rgb),0.6)] ring-offset-2 ring-offset-transparent"
                                     : ""
                                 } ${flashCardId === project.id ? "is-flash" : ""}`}
                               />
@@ -1020,7 +1020,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                             href={getSourceSearchUrl(activeSourceFilter, query) || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
+                            className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700 hover:text-[color:var(--ts-accent-strong)] bg-white/80 hover:bg-white border border-[color:rgba(var(--ts-accent-rgb),0.22)] hover:border-[color:rgba(var(--ts-accent-rgb),0.45)] rounded-full px-3.5 py-1.5 transition-colors"
                           >
                             <Icon className="w-3.5 h-3.5" aria-hidden />
                             <span>See all on {cfg.name}</span>
@@ -1056,7 +1056,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                                   href={getSourceSearchUrl(src, parsedQuery.freeText) || "#"}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors"
+                                  className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700 hover:text-[color:var(--ts-accent-strong)] bg-white/80 hover:bg-white border border-[color:rgba(var(--ts-accent-rgb),0.22)] hover:border-[color:rgba(var(--ts-accent-rgb),0.45)] rounded-full px-3.5 py-1.5 transition-colors"
                                 >
                                   <Icon className="w-3.5 h-3.5" aria-hidden />
                                   <span>{cfg.name}</span>
@@ -1155,7 +1155,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                                   handleCategoryChange(k);
                                   if (query) handleSearch(query);
                                 }}
-                                className="text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3.5 py-1.5 transition-colors inline-flex items-center gap-1.5"
+                                className="text-[12.5px] font-medium text-slate-700 hover:text-[color:var(--ts-accent-strong)] bg-white/80 hover:bg-white border border-[color:rgba(var(--ts-accent-rgb),0.22)] hover:border-[color:rgba(var(--ts-accent-rgb),0.45)] rounded-full px-3.5 py-1.5 transition-colors inline-flex items-center gap-1.5"
                               >
                                 <span>{def?.label ?? k}</span>
                                 <ArrowRight className="w-3 h-3" aria-hidden />
@@ -1232,7 +1232,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                       });
                       const [primary, ...secondary] = actions;
                       const pillClass =
-                        "text-[12.5px] font-medium text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3 sm:px-3.5 py-1.5 transition-colors inline-flex items-center justify-center gap-1";
+                        "text-[12.5px] font-medium text-slate-700 hover:text-[color:var(--ts-accent-strong)] bg-white/80 hover:bg-white border border-[color:rgba(var(--ts-accent-rgb),0.22)] hover:border-[color:rgba(var(--ts-accent-rgb),0.45)] rounded-full px-3 sm:px-3.5 py-1.5 transition-colors inline-flex items-center justify-center gap-1";
                       const SECONDARY_MOBILE_VISIBLE = 2;
                       const primaryMobileClass =
                         "sm:hidden btn btn-primary w-full rounded-full h-11 text-[13px]";
@@ -1283,7 +1283,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                           )}
                           <button
                             onClick={handleClear}
-                            className="text-[12.5px] font-medium text-slate-500 hover:text-indigo-700 transition-colors px-3.5 py-1.5"
+                            className="text-[12.5px] font-medium text-slate-500 hover:text-[color:var(--ts-accent-strong)] transition-colors px-3.5 py-1.5"
                           >
                             Back to home
                           </button>

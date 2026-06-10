@@ -55,7 +55,7 @@ export default function OpengraphImage() {
             fontSize: 28,
             letterSpacing: 8,
             textTransform: "uppercase",
-            color: "#818cf8",
+            color: "#47ba91",
             fontWeight: 700,
           }}
         >
@@ -63,7 +63,7 @@ export default function OpengraphImage() {
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", fontSize: 82, fontWeight: 600, marginTop: 18, maxWidth: 920, lineHeight: 1.05 }}>
           <span>The whole open-source world,&nbsp;</span>
-          <span style={{ color: "#818cf8" }}>one thread.</span>
+          <span style={{ color: "#f4b240" }}>one thread.</span>
         </div>
         <div style={{ fontSize: 30, marginTop: 30, color: "#aab6cd", maxWidth: 920 }}>
           {/* Count derives from the registry so the card can never drift

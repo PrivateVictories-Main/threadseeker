@@ -100,7 +100,7 @@ export function DirectJumps({ query }: Props) {
               href={r.url(q)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-mono text-[10.5px] uppercase tracking-[0.06em] font-semibold text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-2 py-1 transition-colors"
+              className="inline-flex items-center gap-1 font-mono text-[10.5px] uppercase tracking-[0.06em] font-semibold text-slate-700 hover:text-[color:var(--ts-accent-strong)] bg-white/80 hover:bg-white border border-[color:rgba(var(--ts-accent-rgb),0.22)] hover:border-[color:rgba(var(--ts-accent-rgb),0.45)] rounded-full px-2 py-1 transition-colors"
             >
               <Icon className="w-3 h-3" aria-hidden />
               <span>{r.name}</span>
@@ -124,7 +124,7 @@ export function DirectJumps({ query }: Props) {
                 href={r.url(q)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.06em] font-semibold text-slate-700 hover:text-indigo-700 bg-white/80 hover:bg-white border border-indigo-200 hover:border-indigo-400 rounded-full px-3 py-1.5 transition-colors"
+                className="inline-flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.06em] font-semibold text-slate-700 hover:text-[color:var(--ts-accent-strong)] bg-white/80 hover:bg-white border border-[color:rgba(var(--ts-accent-rgb),0.22)] hover:border-[color:rgba(var(--ts-accent-rgb),0.45)] rounded-full px-3 py-1.5 transition-colors"
               >
                 <Icon className="w-3.5 h-3.5" aria-hidden />
                 <span>{r.name}</span>

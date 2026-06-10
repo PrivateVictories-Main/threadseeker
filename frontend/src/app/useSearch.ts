@@ -293,20 +293,24 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
               ])
             : Promise.resolve(null);
 
+        // v5 identity: the default canvas is emerald (160); intents tint the
+        // backdrop within the library's own families — teal for how-to,
+        // sage for recommendations, ink-blue for comparisons, clay for
+        // troubleshooting, the filament's amber for model hunts.
         const hueByIntent: Record<string, number> = {
-          project_search: 220,
-          how_to: 150,
-          recommendation: 200,
-          comparison: 240,
-          troubleshooting: 350,
-          model_search: 40,
-          general: 220,
+          project_search: 160,
+          how_to: 190,
+          recommendation: 140,
+          comparison: 205,
+          troubleshooting: 18,
+          model_search: 42,
+          general: 160,
         };
         const applyHue = () => {
           if (typeof document !== "undefined") {
             document.documentElement.style.setProperty(
               "--ts-intent-hue",
-              String(hueByIntent[expansion.intent] ?? 220),
+              String(hueByIntent[expansion.intent] ?? 160),
             );
           }
         };

@@ -75,10 +75,11 @@ export function SourceConstellation() {
         preserveAspectRatio="none"
       >
         <defs>
+          {/* The traveling pulse is the FILAMENT — warm light on the wire. */}
           <linearGradient id="ts-thread-grad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="rgb(var(--ts-accent-rgb))" stopOpacity="0.0" />
-            <stop offset="50%" stopColor="rgb(var(--ts-accent-rgb))" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="rgb(var(--ts-accent-rgb))" stopOpacity="0.0" />
+            <stop offset="0%" stopColor="rgb(var(--ts-thread-rgb))" stopOpacity="0.0" />
+            <stop offset="50%" stopColor="rgb(var(--ts-thread-rgb))" stopOpacity="0.75" />
+            <stop offset="100%" stopColor="rgb(var(--ts-thread-rgb))" stopOpacity="0.0" />
           </linearGradient>
         </defs>
         {/* faint full thread */}

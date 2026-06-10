@@ -59,7 +59,7 @@ export function ShortcutHelpModal() {
         // momentary "naked" modal as it scaled out. Backdrop fade is short
         // (0.18s ease-out) so it leads the modal out by a beat.
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-950/40 backdrop-blur-md p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[color:rgba(10,28,22,0.40)] backdrop-blur-md p-4"
           onClick={() => setOpen(false)}
           role="dialog"
           aria-modal="true"
@@ -95,7 +95,7 @@ export function ShortcutHelpModal() {
                 <X className="w-4 h-4" aria-hidden />
               </button>
             </div>
-            <div className="h-px w-full bg-indigo-100/80 mb-4" aria-hidden />
+            <div className="h-px w-full bg-[color:rgba(var(--ts-accent-rgb),0.14)] mb-4" aria-hidden />
             <dl className="flex flex-col gap-2.5">
               {SHORTCUTS.map((s) => (
                 <div
@@ -114,7 +114,7 @@ export function ShortcutHelpModal() {
                             or
                           </span>
                         )}
-                        <kbd className="min-w-[26px] h-[24px] px-2 inline-flex items-center justify-center rounded-md border border-indigo-200 bg-white text-slate-700 text-[11px] font-mono shadow-sm tracking-wide">
+                        <kbd className="min-w-[26px] h-[24px] px-2 inline-flex items-center justify-center rounded-md border border-[color:rgba(var(--ts-accent-rgb),0.22)] bg-white text-slate-700 text-[11px] font-mono shadow-sm tracking-wide">
                           {k}
                         </kbd>
                       </span>
@@ -152,7 +152,7 @@ export function ShortcutHelpButton({ visible = true }: { visible?: boolean } = {
           onClick={openHelp}
           aria-label="Show keyboard shortcuts"
           title="Keyboard shortcuts (?)"
-          className="fixed bottom-4 right-4 z-30 w-11 h-11 sm:w-9 sm:h-9 rounded-full glass-strong flex items-center justify-center text-slate-500 hover:text-indigo-700 hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-indigo-400"
+          className="fixed bottom-4 right-4 z-30 w-11 h-11 sm:w-9 sm:h-9 rounded-full glass-strong flex items-center justify-center text-slate-500 hover:text-[color:var(--ts-accent-strong)] hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-[color:rgba(var(--ts-accent-rgb),0.55)]"
           initial={{ opacity: 0, y: 8, scale: 0.92 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 8, scale: 0.92 }}

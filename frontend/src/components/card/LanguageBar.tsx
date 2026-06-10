@@ -18,7 +18,7 @@ interface Props {
 // "github linguist" colors — the indigo/violet/sky palette keeps the
 // brand cohesion. Rotate through the palette by index.
 const PALETTE = [
-  "#6366f1", // indigo-500
+  "#106e56", // indigo-500
   "#8b5cf6", // violet-500
   "#0ea5e9", // sky-500
   "#14b8a6", // teal-500

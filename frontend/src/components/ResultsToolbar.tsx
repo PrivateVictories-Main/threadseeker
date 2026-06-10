@@ -260,7 +260,7 @@ export function ResultsToolbar({
                           }}
                           className={`w-full text-left rounded-md px-3 py-1.5 flex items-center justify-between gap-4 transition-colors ${
                             active
-                              ? "bg-indigo-50 text-indigo-700 font-semibold"
+                              ? "bg-[color:rgba(var(--ts-accent-rgb),0.07)] text-[color:var(--ts-accent-strong)] font-semibold"
                               : "text-slate-700 hover:bg-slate-50"
                           }`}
                         >
@@ -286,7 +286,7 @@ export function ResultsToolbar({
               backgroundColor:
                 exportedAs === "md" ? "rgba(236, 253, 245, 1)" : "rgba(255, 255, 255, 0)",
               borderColor:
-                exportedAs === "md" ? "rgba(16, 185, 129, 0.35)" : "rgba(99, 102, 241, 0.14)",
+                exportedAs === "md" ? "rgba(16, 185, 129, 0.35)" : "rgba(16, 110, 86, 0.14)",
             }}
             transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
           >
@@ -306,7 +306,7 @@ export function ResultsToolbar({
               backgroundColor:
                 exportedAs === "json" ? "rgba(236, 253, 245, 1)" : "rgba(255, 255, 255, 0)",
               borderColor:
-                exportedAs === "json" ? "rgba(16, 185, 129, 0.35)" : "rgba(99, 102, 241, 0.14)",
+                exportedAs === "json" ? "rgba(16, 185, 129, 0.35)" : "rgba(16, 110, 86, 0.14)",
             }}
             transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
           >
@@ -326,7 +326,7 @@ export function ResultsToolbar({
               backgroundColor:
                 copied ? "rgba(236, 253, 245, 1)" : "rgba(255, 255, 255, 0)",
               borderColor:
-                copied ? "rgba(16, 185, 129, 0.35)" : "rgba(99, 102, 241, 0.14)",
+                copied ? "rgba(16, 185, 129, 0.35)" : "rgba(16, 110, 86, 0.14)",
             }}
             transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
           >
@@ -360,7 +360,7 @@ export function ResultsToolbar({
                 className="filter-pill pill text-[12px]"
                 animate={{
                   backgroundColor:
-                    activeSource === null ? "#6366f1" : "rgba(255,255,255,0.92)",
+                    activeSource === null ? "#106e56" : "rgba(255,255,255,0.92)",
                   color: activeSource === null ? "#ffffff" : undefined,
                 }}
                 transition={springSnappy}
@@ -378,7 +378,7 @@ export function ResultsToolbar({
                     data-active={String(active)}
                     className="filter-pill pill text-[12px] flex items-center gap-1.5"
                     animate={{
-                      backgroundColor: active ? "#6366f1" : "rgba(255,255,255,0.92)",
+                      backgroundColor: active ? "#106e56" : "rgba(255,255,255,0.92)",
                       color: active ? "#ffffff" : undefined,
                     }}
                     transition={springSnappy}

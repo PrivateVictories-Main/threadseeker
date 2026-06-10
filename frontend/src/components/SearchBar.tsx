@@ -238,12 +238,12 @@ export function SearchBar({
             animate={{
               scale: focused ? 1.06 : 1,
               backgroundColor: focused
-                ? "rgba(99, 102, 241, 0.18)"
-                : "rgba(99, 102, 241, 0.10)",
+                ? "rgba(16, 110, 86, 0.18)"
+                : "rgba(16, 110, 86, 0.10)",
               borderColor: focused
-                ? "rgba(99, 102, 241, 0.32)"
-                : "rgba(99, 102, 241, 0.14)",
-              color: focused ? "#4f46e5" : "var(--ts-text-subtle)",
+                ? "rgba(16, 110, 86, 0.32)"
+                : "rgba(16, 110, 86, 0.14)",
+              color: focused ? "#0b5743" : "var(--ts-text-subtle)",
             }}
             transition={springSnappy}
           >
@@ -252,7 +252,7 @@ export function SearchBar({
         )}
 
         <div className="relative pl-0.5 flex items-center">
-          <Search className={`${iconSize} text-indigo-500/75`} aria-hidden />
+          <Search className={`${iconSize} text-[color:rgba(var(--ts-accent-rgb),0.75)]`} aria-hidden />
         </div>
         <textarea
           ref={inputRef}

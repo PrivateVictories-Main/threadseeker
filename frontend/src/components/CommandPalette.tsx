@@ -419,7 +419,7 @@ export function CommandPalette({
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[60] flex items-start justify-center bg-indigo-950/45 backdrop-blur-md p-4 pt-[12vh]"
+          className="fixed inset-0 z-[60] flex items-start justify-center bg-[color:rgba(10,28,22,0.45)] backdrop-blur-md p-4 pt-[12vh]"
           onClick={() => setOpen(false)}
           role="dialog"
           aria-modal="true"
@@ -442,8 +442,8 @@ export function CommandPalette({
             <h2 id="command-palette-title" className="sr-only">
               Command palette
             </h2>
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-indigo-100/80">
-              <Search className="w-4 h-4 text-indigo-400 flex-shrink-0" aria-hidden />
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-[color:rgba(var(--ts-accent-rgb),0.12)]">
+              <Search className="w-4 h-4 text-[color:rgba(var(--ts-accent-rgb),0.75)] flex-shrink-0" aria-hidden />
               <input
                 ref={inputRef}
                 type="text"
@@ -473,7 +473,7 @@ export function CommandPalette({
                    is 2.9:1 on white — fails AA; see tokens.css). */
                 className="flex-1 bg-transparent border-0 outline-none text-[14px] text-slate-800 placeholder:text-[color:var(--ts-text-faint)]"
               />
-              <kbd className="hidden sm:inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded border border-indigo-200 bg-white/80 font-mono text-[10.5px] text-slate-500">
+              <kbd className="hidden sm:inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded border border-[color:rgba(var(--ts-accent-rgb),0.22)] bg-white/80 font-mono text-[10.5px] text-slate-500">
                 ESC
               </kbd>
             </div>
@@ -491,12 +491,12 @@ export function CommandPalette({
             >
               {grouped.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <Sparkles className="w-5 h-5 text-indigo-300 mb-2" aria-hidden />
+                  <Sparkles className="w-5 h-5 text-[color:var(--ts-accent-strong)] mb-2" aria-hidden />
                   <p className="text-[13px] text-slate-500">No matching commands.</p>
                   {/* faint-text token, not slate-400 — AA contrast in light mode. */}
                   <p className="text-[11.5px] text-[color:var(--ts-text-faint)] mt-0.5">
                     Press{" "}
-                    <kbd className="px-1 py-0.5 rounded border border-indigo-200 bg-white font-mono text-[10px]">
+                    <kbd className="px-1 py-0.5 rounded border border-[color:rgba(var(--ts-accent-rgb),0.22)] bg-white font-mono text-[10px]">
                       ↵
                     </kbd>{" "}
                     to search anyway.
@@ -545,15 +545,15 @@ export function CommandPalette({
                             onClick={() => cmd.onRun()}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-left ${
                               isActive
-                                ? "bg-indigo-50/90 text-slate-900"
+                                ? "bg-[color:rgba(var(--ts-accent-rgb),0.07)] text-slate-900"
                                 : "hover:bg-white/60 text-slate-700"
                             }`}
                           >
                             <span
                               className={`flex items-center justify-center w-7 h-7 rounded-md flex-shrink-0 transition-colors ${
                                 isActive
-                                  ? "bg-indigo-100 text-indigo-700"
-                                  : "bg-white/70 text-slate-500 border border-indigo-100"
+                                  ? "bg-[color:rgba(var(--ts-accent-rgb),0.12)] text-[color:var(--ts-accent-strong)]"
+                                  : "bg-white/70 text-slate-500 border border-[color:rgba(var(--ts-accent-rgb),0.12)]"
                               }`}
                               aria-hidden
                             >
@@ -570,13 +570,13 @@ export function CommandPalette({
                               )}
                             </span>
                             {cmd.kbd && (
-                              <kbd className="hidden sm:inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded border border-indigo-200 bg-white/90 font-mono text-[10.5px] text-slate-500 flex-shrink-0">
+                              <kbd className="hidden sm:inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded border border-[color:rgba(var(--ts-accent-rgb),0.22)] bg-white/90 font-mono text-[10.5px] text-slate-500 flex-shrink-0">
                                 {cmd.kbd}
                               </kbd>
                             )}
                             {isActive && !cmd.kbd && (
                               <ArrowRight
-                                className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0"
+                                className="w-3.5 h-3.5 text-[color:rgba(var(--ts-accent-rgb),0.75)] flex-shrink-0"
                                 aria-hidden
                               />
                             )}
@@ -591,17 +591,17 @@ export function CommandPalette({
 
             {/* Footer hints use the faint-text token — slate-400 fails AA
                 contrast (2.9:1) on the light glass surface. */}
-            <div className="flex items-center justify-between px-4 py-2.5 border-t border-indigo-100/80 font-mono text-[10.5px] uppercase tracking-[0.08em] text-[color:var(--ts-text-faint)]">
+            <div className="flex items-center justify-between px-4 py-2.5 border-t border-[color:rgba(var(--ts-accent-rgb),0.12)] font-mono text-[10.5px] uppercase tracking-[0.08em] text-[color:var(--ts-text-faint)]">
               <span className="inline-flex items-center gap-2">
                 <span className="inline-flex items-center gap-1">
-                  <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-indigo-200 bg-white/80 text-[10px] text-slate-600 normal-case tracking-normal">
+                  <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-[color:rgba(var(--ts-accent-rgb),0.22)] bg-white/80 text-[10px] text-slate-600 normal-case tracking-normal">
                     ↑↓
                   </kbd>
                   navigate
                 </span>
                 <span className="text-slate-300">·</span>
                 <span className="inline-flex items-center gap-1">
-                  <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-indigo-200 bg-white/80 text-[10px] text-slate-600 normal-case tracking-normal">
+                  <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-[color:rgba(var(--ts-accent-rgb),0.22)] bg-white/80 text-[10px] text-slate-600 normal-case tracking-normal">
                     ↵
                   </kbd>
                   run

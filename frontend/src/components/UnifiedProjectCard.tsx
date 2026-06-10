@@ -192,7 +192,7 @@ export const UnifiedProjectCard = memo(function UnifiedProjectCard({
                 .start("tapped")
                 .then(() => bookmarkControls.start("rest"));
               const color = willBeBookmarked
-                ? "rgba(99, 102, 241, 0.7)"
+                ? "rgba(16, 110, 86, 0.7)"
                 : "rgba(148, 163, 184, 0.55)";
               if (reducedMotion) {
                 pulseControls.set({ opacity: 1, borderColor: color });

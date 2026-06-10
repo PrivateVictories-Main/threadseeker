@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
+## [5.0.0] - 2026-06-10
+
+The identity release. ThreadSeeker stops wearing the default AI-generated
+uniform (Tailwind indigo, violet glass, neutral type) and gets a face of its
+own — same Liquid-Glass physics, entirely new material.
+
+### Changed
+- **Palette** — deep emerald ink replaces the indigo family everywhere (one
+  token swap plus a ~60-site literal sweep); warm sage-paper light mode,
+  deep green-ink dark mode. The dead `.dark .{*}indigo{*}` utility-remap
+  layer is gone.
+- **The thread is now an amber filament** — a second reserved accent for the
+  brand moments only: the hero phrase "one thread.", the search-progress
+  thread and its glow head, the deep-match pill, the constellation's
+  traveling pulse, and the aurora's warm breath.
+- **Typography** — Bricolage Grotesque carries the display voice (hero
+  headline); Outfit stays the body, JetBrains Mono stays the meta-label
+  voice.
+- **Texture** — a whisper-opacity film grain over the whole canvas, so the
+  gradients read as material instead of generated.
+- Per-query intent tints re-homed in the new families (emerald default,
+  amber for model hunts, clay for troubleshooting); brand surfaces (app
+  icon, OG card, stat tiles, modal scrims) re-skinned to match.
+
 ## [4.1.0] - 2026-06-10
 
 ### Added

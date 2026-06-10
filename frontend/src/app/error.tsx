@@ -20,7 +20,7 @@ export default function AppError({
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6 py-10 text-slate-800">
-      <div className="max-w-md w-full space-y-4 rounded-xl border border-indigo-200 bg-white/85 backdrop-blur-md p-6 shadow-lg">
+      <div className="max-w-md w-full space-y-4 rounded-xl border border-[color:rgba(var(--ts-accent-rgb),0.22)] bg-white/85 backdrop-blur-md p-6 shadow-lg">
         <div className="flex items-center gap-2 text-amber-700">
           <AlertTriangle className="w-5 h-5" />
           <h1 className="text-base font-semibold">Something broke on our side.</h1>
@@ -37,14 +37,14 @@ export default function AppError({
         <div className="flex items-center gap-2">
           <button
             onClick={reset}
-            className="flex items-center gap-2 text-sm font-medium text-white bg-gradient-to-br from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 border border-transparent rounded-lg px-3.5 py-2 transition-colors shadow-sm"
+            className="flex items-center gap-2 text-sm font-medium text-white bg-gradient-to-br from-[color:var(--ts-accent)] to-violet-500 hover:from-[color:var(--ts-accent-strong)] hover:to-violet-600 border border-transparent rounded-lg px-3.5 py-2 transition-colors shadow-sm"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Try again
           </button>
           <a
             href="/"
-            className="text-sm text-slate-600 hover:text-indigo-700 px-3 py-2 font-medium"
+            className="text-sm text-slate-600 hover:text-[color:var(--ts-accent-strong)] px-3 py-2 font-medium"
           >
             Go home
           </a>

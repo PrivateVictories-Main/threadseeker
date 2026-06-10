@@ -211,7 +211,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
               onClick={() => setLang(l.value)}
               className={`relative font-mono text-[10.5px] uppercase tracking-[0.10em] font-semibold px-3 py-1.5 transition-colors ${
                 active
-                  ? "text-indigo-700"
+                  ? "text-[color:var(--ts-accent-strong)]"
                   : "text-slate-500 hover:text-slate-800"
               }`}
             >
@@ -220,8 +220,8 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
                 aria-hidden
                 className={`pointer-events-none absolute left-2 right-2 -bottom-0.5 h-[2px] rounded-full transition-all ${
                   active
-                    ? "bg-indigo-500 opacity-100 scale-x-100"
-                    : "bg-indigo-400 opacity-0 scale-x-50"
+                    ? "bg-[color:var(--ts-accent)] opacity-100 scale-x-100"
+                    : "bg-[color:var(--ts-accent)] opacity-0 scale-x-50"
                 }`}
               />
             </button>
@@ -247,7 +247,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
               clearCache(lang);
               setRetryNonce((n) => n + 1);
             }}
-            className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-indigo-700 hover:text-indigo-800 transition-colors"
+            className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-[color:var(--ts-accent-strong)] hover:text-[color:var(--ts-accent-strong)] transition-colors"
             aria-label="Retry fetching trending repos"
           >
             <RefreshCw className="w-3 h-3" aria-hidden />
@@ -261,7 +261,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
               before; just bare skeleton frames). Mono register matches
               the rest of the page's system-state vocabulary. */}
           <p
-            className="text-center font-mono text-[10.5px] uppercase tracking-[0.14em] text-indigo-500/80 mb-2"
+            className="text-center font-mono text-[10.5px] uppercase tracking-[0.14em] text-[color:rgba(var(--ts-accent-rgb),0.8)] mb-2"
             aria-live="polite"
           >
             {"// Fetching trending"}<span className="ts-loading-dots" aria-hidden />
@@ -275,7 +275,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="ts-trending-skeleton-row flex items-center gap-2.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/60 px-3 py-2 h-[44px] skeleton"
+                className="ts-trending-skeleton-row flex items-center gap-2.5 rounded-2xl bg-[color:rgba(var(--ts-accent-rgb),0.06)] border border-[color:rgba(var(--ts-accent-rgb),0.18)] px-3 py-2 h-[44px] skeleton"
                 aria-hidden
               >
                 <span
@@ -325,7 +325,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
                     onQueryClick(r.name);
                   }
                 }}
-                className="group flex items-center gap-2.5 rounded-2xl bg-white/70 hover:bg-white border border-indigo-100/70 hover:border-indigo-300 px-3 py-2 transition-colors hover:shadow-sm"
+                className="group flex items-center gap-2.5 rounded-2xl bg-white/70 hover:bg-white border border-[color:rgba(var(--ts-accent-rgb),0.10)] hover:border-[color:rgba(var(--ts-accent-rgb),0.35)] px-3 py-2 transition-colors hover:shadow-sm"
                 title={r.description ?? r.fullName}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -341,17 +341,17 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
                     const next = img.nextElementSibling as HTMLElement | null;
                     if (next) next.style.display = "inline-flex";
                   }}
-                  className="w-5 h-5 rounded-full flex-shrink-0 border border-indigo-100 bg-white"
+                  className="w-5 h-5 rounded-full flex-shrink-0 border border-[color:rgba(var(--ts-accent-rgb),0.12)] bg-white"
                 />
                 <span
                   aria-hidden
                   style={{ display: "none" }}
-                  className="w-5 h-5 rounded-full flex-shrink-0 bg-indigo-100 text-indigo-700 text-[10px] font-semibold inline-flex items-center justify-center"
+                  className="w-5 h-5 rounded-full flex-shrink-0 bg-[color:rgba(var(--ts-accent-rgb),0.12)] text-[color:var(--ts-accent-strong)] text-[10px] font-semibold inline-flex items-center justify-center"
                 >
                   {initial}
                 </span>
                 <div className="min-w-0 flex-1 flex items-baseline gap-1.5">
-                  <span className="text-[13px] font-medium text-slate-800 group-hover:text-indigo-700 truncate flex-shrink-0 max-w-[55%]">
+                  <span className="text-[13px] font-medium text-slate-800 group-hover:text-[color:var(--ts-accent-strong)] truncate flex-shrink-0 max-w-[55%]">
                     {r.name}
                   </span>
                   {r.description && (
@@ -365,7 +365,7 @@ export function TrendingSection({ onQueryClick }: { onQueryClick?: (q: string) =
                   {r.stars.toLocaleString()}
                 </div>
                 <ArrowUpRight
-                  className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-600 transition-colors flex-shrink-0"
+                  className="w-3.5 h-3.5 text-slate-300 group-hover:text-[color:var(--ts-accent)] transition-colors flex-shrink-0"
                   aria-hidden
                 />
               </a>

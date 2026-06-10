@@ -44,7 +44,7 @@ export function BrandTile({ size, maskable = false }: TileProps) {
         gap: stackGap,
         // Light-mode --ts-accent-gradient (indigo → azure). Icons render on
         // arbitrary OS chrome, so the saturated light-theme ramp reads best.
-        background: "linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)",
+        background: "linear-gradient(135deg, #0b5743 0%, #15947c 100%)",
         // ~22.5% corner radius ≈ the squircle ratio of platform app tiles.
         borderRadius: maskable ? 0 : Math.round(size * 0.225),
       }}

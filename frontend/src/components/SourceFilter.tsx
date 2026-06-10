@@ -58,7 +58,7 @@ export function SourceFilter({
               <button
                 onClick={onClear}
                 disabled={!canClear}
-                className="font-mono text-[10.5px] uppercase tracking-[0.10em] font-semibold text-slate-400 hover:text-indigo-600 disabled:opacity-0 disabled:pointer-events-none transition-colors"
+                className="font-mono text-[10.5px] uppercase tracking-[0.10em] font-semibold text-slate-400 hover:text-[color:var(--ts-accent)] disabled:opacity-0 disabled:pointer-events-none transition-colors"
                 aria-label="Reset to all sources"
               >
                 Reset
@@ -134,7 +134,7 @@ export function SourceFilter({
                               : `Select all ${group.title} sources`
                           }
                         >
-                          <span className="text-[10px] font-medium text-slate-400 group-hover:text-indigo-600 transition-colors uppercase tracking-[0.08em]">
+                          <span className="text-[10px] font-medium text-slate-400 group-hover:text-[color:var(--ts-accent)] transition-colors uppercase tracking-[0.08em]">
                             {allActive ? "None" : "All"}
                           </span>
                         </button>
@@ -143,7 +143,7 @@ export function SourceFilter({
                         <span
                           className={
                             allActive
-                              ? "text-indigo-600"
+                              ? "text-[color:var(--ts-accent)]"
                               : active === 0
                                 ? "text-slate-300"
                                 : ""

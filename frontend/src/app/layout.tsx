@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, JetBrains_Mono } from "next/font/google";
+import { Outfit, JetBrains_Mono, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { MotionProvider } from "@/components/motion/MotionProvider";
@@ -18,6 +18,15 @@ const outfit = Outfit({
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+});
+
+// v5 identity — the display voice. Bricolage carries the headline/section
+// personality; Outfit stays the body workhorse, the mono stays the
+// meta-label voice.
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -157,7 +166,7 @@ export default function RootLayout({
         ))}
       </head>
       <body
-        className={`${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen`}
+        className={`${outfit.variable} ${jetbrainsMono.variable} ${bricolage.variable} font-sans antialiased min-h-screen`}
       >
         <ThemeProvider
           attribute="class"
