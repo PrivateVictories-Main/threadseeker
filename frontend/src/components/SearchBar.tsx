@@ -61,9 +61,27 @@ export function SearchBar({
   const [focused, setFocused] = useState(false);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [multiline, setMultiline] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const listboxId = useId();
   const isCompact = size === "compact";
+
+  // The bar is a textarea so a 2-3 sentence description is a first-class
+  // query, not an overflow accident. It starts as a one-line pill and grows
+  // with the content (Enter searches, Shift+Enter adds a line) up to a cap,
+  // after which it scrolls. Measured via scrollHeight on every value change.
+  const MAX_LINES = isCompact ? 2 : 5;
+  const LINE_PX = isCompact ? 20 : 26;
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const cap = MAX_LINES * LINE_PX;
+    const next = Math.min(el.scrollHeight, cap);
+    el.style.height = `${next}px`;
+    el.style.overflowY = el.scrollHeight > cap ? "auto" : "hidden";
+    setMultiline(next > LINE_PX + 2);
+  }, [query, focused, MAX_LINES, LINE_PX]);
 
   // Autocomplete suggestions — only while the user is actually typing.
   const suggestions = useMemo(
@@ -103,13 +121,32 @@ export function SearchBar({
     }
   };
 
-  const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowDown") {
+  const onInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // In a textarea, Enter inserts a newline by default — here plain Enter
+    // searches (matching every search product) and Shift+Enter keeps the
+    // newline for people writing a multi-sentence description. The
+    // isComposing guard keeps IME confirmation (Japanese/Chinese/Korean)
+    // from firing a premature search.
+    if (e.key === "Enter" && !e.shiftKey) {
+      if (e.nativeEvent.isComposing) return;
+      e.preventDefault();
+      if (activeIndex >= 0 && suggestions[activeIndex]) {
+        runSearch(suggestions[activeIndex].text);
+      } else {
+        runSearch(query);
+      }
+      return;
+    }
+    // Arrow keys drive the suggestion list only while the value is a single
+    // line; once the user has a real multi-line draft, arrows must move the
+    // caret like any editor.
+    const valueIsMultiline = query.includes("\n");
+    if (e.key === "ArrowDown" && !valueIsMultiline) {
       if (suggestions.length === 0) return;
       e.preventDefault();
       setOpen(true);
       setActiveIndex((i) => Math.min(suggestions.length - 1, i + 1));
-    } else if (e.key === "ArrowUp") {
+    } else if (e.key === "ArrowUp" && !valueIsMultiline) {
       if (suggestions.length === 0) return;
       e.preventDefault();
       setActiveIndex((i) => Math.max(-1, i - 1));
@@ -120,8 +157,6 @@ export function SearchBar({
         setActiveIndex(-1);
       }
     }
-    // Enter is handled by the form's onSubmit (so it works with/without a
-    // highlighted suggestion).
   };
 
   // Debounced live-search.
@@ -169,7 +204,7 @@ export function SearchBar({
       className={isCompact ? "relative w-full" : "relative max-w-2xl mx-auto w-full"}
     >
       <div
-        className={`glass-strong search-bar-shell relative flex items-center ${isCompact ? "compact" : ""}`}
+        className={`glass-strong search-bar-shell relative flex items-center ${isCompact ? "compact" : ""}${multiline ? " is-multiline" : ""}`}
       >
         <AnimatePresence>
           {!isCompact && (
@@ -208,9 +243,9 @@ export function SearchBar({
         <div className="relative pl-0.5 flex items-center">
           <Search className={`${iconSize} text-indigo-500/75`} aria-hidden />
         </div>
-        <input
+        <textarea
           ref={inputRef}
-          type="search"
+          rows={1}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -231,6 +266,7 @@ export function SearchBar({
           aria-label="Search query"
           autoComplete="off"
           spellCheck={false}
+          enterKeyHint="search"
           role="combobox"
           aria-expanded={showDropdown}
           aria-controls={listboxId}
@@ -240,6 +276,13 @@ export function SearchBar({
           }
           className="search-bar-input relative flex-1 px-3"
         />
+        {/* Discoverability hint for the non-obvious affordance: once the
+            draft is multi-line, spell out the Enter/Shift+Enter contract. */}
+        {multiline && !isCompact && (
+          <span className="sb-mlhint" aria-hidden>
+            <kbd>↵</kbd> search · <kbd>⇧↵</kbd> new line
+          </span>
+        )}
         {query && (
           <button
             type="button"

@@ -21,13 +21,13 @@ test("landing renders the hero + constellation with no unexpected console errors
   await page.goto("/");
   await expect(page.locator(".ts-landing-hero")).toBeVisible();
   await expect(page.locator(".ts-constellation")).toBeVisible();
-  await expect(page.locator('input[type="search"]').first()).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Search query" }).first()).toBeVisible();
   expect(errors, `unexpected console errors: ${errors.join(" | ")}`).toEqual([]);
 });
 
 test("submitting a search transitions out of the hero into results mode", async ({ page }) => {
   await page.goto("/");
-  const input = page.locator('input[type="search"]').first();
+  const input = page.getByRole("combobox", { name: "Search query" }).first();
   await input.click();
   await input.fill("react");
   await input.press("Enter");

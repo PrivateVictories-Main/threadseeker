@@ -1250,15 +1250,44 @@ button.topic-chip-interactive {
   100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
-/* SearchBar — hero variant (big and rounded) */
+/* SearchBar — hero variant (big and rounded). min-height (not height): the
+   input is an auto-growing textarea, so a pasted or hand-written paragraph
+   expands the pill into a rounded panel instead of scrolling out of view. */
 .search-bar-shell {
   padding: 8px 10px 8px 22px;
   border-radius: var(--ts-radius-full);
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 64px;
-  transition: box-shadow .2s ease, transform .2s ease;
+  min-height: 64px;
+  transition: box-shadow .2s ease, transform .2s ease, border-radius .2s ease;
+}
+/* Expanded (multi-line) state: the full pill radius on a tall box reads as a
+   capsule blob — relax it to a panel while the draft is multi-line. */
+.search-bar-shell.is-multiline {
+  border-radius: 30px;
+}
+.search-bar-shell.compact.is-multiline {
+  border-radius: 20px;
+}
+/* Enter/Shift+Enter contract hint — appears only while multi-line. */
+.sb-mlhint {
+  position: absolute;
+  right: 16px;
+  bottom: -22px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: var(--ts-text-faint);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.sb-mlhint kbd {
+  font-family: inherit;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(var(--ts-accent-rgb), 0.08);
+  border: 1px solid rgba(var(--ts-accent-rgb), 0.12);
 }
 /* Focus halo: the inner 4px ring is the existing crisp accessibility-
    floor focus indicator (preserves WCAG 2.4.7). The new outer 24px
@@ -1284,6 +1313,14 @@ button.topic-chip-interactive {
   flex: 1; background: transparent; border: none; outline: none;
   font-size: 17px; color: var(--ts-text);
   letter-spacing: -0.01em;
+  /* Textarea reset — height is driven by the auto-grow measurement in
+     SearchBar.tsx; the fixed line-height is the unit that measurement
+     counts in, so keep them in lockstep (26px hero / 20px compact). */
+  resize: none;
+  line-height: 26px;
+  height: 26px;
+  overflow-y: hidden;
+  scrollbar-width: thin;
 }
 .search-bar-input::placeholder {
   color: var(--ts-text-faint);
@@ -1381,7 +1418,7 @@ button.topic-chip-interactive {
 /* SearchBar — compact variant (pinned sticky header) */
 .search-bar-shell.compact {
   padding: 4px 6px 4px 16px;
-  height: 44px;
+  min-height: 44px;
   gap: 8px;
   /* Iter-24 — subtle scale lift on focus so the topbar search reads as
      "active" alongside the existing indigo glow. transform-origin
@@ -1394,6 +1431,8 @@ button.topic-chip-interactive {
 }
 .search-bar-shell.compact .search-bar-input {
   font-size: 14px;
+  line-height: 20px;
+  height: 20px;
 }
 .search-bar-shell.compact .sb-submit {
   height: 34px;
