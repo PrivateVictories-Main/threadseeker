@@ -40,13 +40,21 @@ export function CardMedia({
   const isRepoPath = /^[\w.-]+\/[\w.-]+$/.test(fullName);
   const showOg = source === "github" && isRepoPath && !ogFailed && withinOgBudget;
 
+  // The first few covers are typically in the initial viewport (Featured on
+  // the landing, the top of the results grid) — and a lazy-loaded one of
+  // those becomes the page's LCP element discovered 1s+ late (measured on
+  // prod: +1.2s load delay). Eager + high priority for the head of the list,
+  // lazy for everything below the fold.
+  const aboveFold = index !== undefined && index < 4;
+
   if (showOg) {
     return (
       <div className="ts-card-media" aria-hidden>
         <img
           src={`https://opengraph.githubassets.com/1/${fullName}`}
           alt=""
-          loading="lazy"
+          loading={aboveFold ? "eager" : "lazy"}
+          fetchPriority={aboveFold ? "high" : "auto"}
           decoding="async"
           width={1280}
           height={640}
