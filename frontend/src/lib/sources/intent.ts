@@ -57,7 +57,7 @@ export const INTENT_WEIGHTS: Record<Intent, Record<string, number>> = {
   recommendation: { reddit: 0.5, lobsters: 0.3, github: 0.25, devto: 0.2, huggingface: 0.15 },
   comparison: { reddit: 0.45, devto: 0.3, stackoverflow: 0.3, github: 0.3, huggingface: 0.2 },
   troubleshooting: { stackoverflow: 0.6, reddit: 0.4, github: 0.2, lobsters: 0.15 },
-  model_search: { huggingface: 0.7, paperswithcode: 0.3, arxiv: 0.25, github: 0.2 },
+  model_search: { huggingface: 0.7, arxiv: 0.25, github: 0.2 },
   general: { github: 0.4, reddit: 0.3, huggingface: 0.2, stackoverflow: 0.15 },
 };
 

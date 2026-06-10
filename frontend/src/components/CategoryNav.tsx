@@ -63,8 +63,8 @@ export const CATEGORY_DEFS: CategoryDef[] = [
       "hex",
     ],
   },
-  { key: "ai", label: "AI Models", icon: Cpu, sources: ["huggingface", "paperswithcode"] },
-  { key: "papers", label: "Papers", icon: FileText, sources: ["arxiv", "zenodo", "paperswithcode"] },
+  { key: "ai", label: "AI Models", icon: Cpu, sources: ["huggingface"] },
+  { key: "papers", label: "Papers", icon: FileText, sources: ["arxiv", "zenodo"] },
   {
     key: "threads",
     label: "Threads",

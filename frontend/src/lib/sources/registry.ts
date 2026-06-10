@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { SourceType } from "./types";
 
-// Human category buckets used by SourceFilter to group the 28 sources into
+// Human category buckets used by SourceFilter to group the 29 sources into
 // scannable sections. Ordering in `CATEGORY_ORDER` drives the sheet
 // render order, so the "most useful" buckets come first.
 export type SourceCategory =
@@ -281,17 +281,6 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     sparse: true,
     tagline: "Q&A from Stack Overflow",
   },
-  paperswithcode: {
-    name: "Papers with Code",
-    icon: "📄",
-    lucideIcon: FileText,
-    color: "from-violet-500 to-fuchsia-500",
-    borderColor: "border-violet-500/30",
-    bgColor: "bg-violet-500/10",
-    supportsOr: false,
-    category: "ai",
-    tagline: "ML papers paired with implementations",
-  },
   homebrew: {
     name: "Homebrew",
     icon: "🍺",
@@ -537,8 +526,6 @@ export function getSourceSearchUrl(source: SourceType, query: string): string | 
       return `https://open-vsx.org/?query=${q}`;
     case "conda":
       return `https://anaconda.org/search?q=${q}`;
-    case "paperswithcode":
-      return `https://paperswithcode.com/search?q=${q}`;
     case "arxiv":
       return `https://arxiv.org/search/?query=${q}&searchtype=all`;
     case "zenodo":

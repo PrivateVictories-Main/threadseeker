@@ -8,7 +8,7 @@ const LABELS: Record<SourceType, string> = {
   dockerhub: "Docker Hub", flathub: "Flathub", homebrew: "Homebrew",
   fdroid: "F-Droid", aur: "AUR", openvsx: "Open VSX", conda: "conda-forge",
   nuget: "NuGet", wordpress: "WordPress", maven: "Maven",
-  paperswithcode: "Papers with Code", arxiv: "arXiv", zenodo: "Zenodo",
+  arxiv: "arXiv", zenodo: "Zenodo",
   hackernews: "Hacker News", reddit: "Reddit", lobsters: "Lobsters",
   stackoverflow: "Stack Overflow", devto: "DEV", hex: "Hex", pub: "pub.dev",
 };

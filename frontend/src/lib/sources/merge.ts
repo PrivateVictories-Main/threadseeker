@@ -71,7 +71,7 @@ export function mergeRelatedProjects(projects: UnifiedProject[]): UnifiedProject
     npm: 72, pypi: 72, crates: 72, maven: 68, nuget: 68, rubygems: 66, packagist: 66,
     conda: 62, huggingface: 60, jsr: 56, hex: 56,
     dockerhub: 52, homebrew: 50, flathub: 50, fdroid: 48, openvsx: 46, aur: 44, wordpress: 40,
-    arxiv: 30, paperswithcode: 30, zenodo: 26,
+    arxiv: 30, zenodo: 26,
     stackoverflow: 12, hackernews: 10, reddit: 10, lobsters: 10, devto: 10,
   };
   const popSignal = (p: UnifiedProject) =>

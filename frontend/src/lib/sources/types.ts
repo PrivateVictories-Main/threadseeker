@@ -20,7 +20,6 @@ export type SourceType =
   | "devto"
   | "lobsters"
   | "stackoverflow"
-  | "paperswithcode"
   | "homebrew"
   | "fdroid"
   | "arxiv"
@@ -104,7 +103,7 @@ export interface UnifiedProject {
   contributors?: number;
   commitsLastMonth?: number;
 
-  // Paper-shape metrics (arxiv / paperswithcode / zenodo)
+  // Paper-shape metrics (arxiv / zenodo)
   citations?: number;
   paperYear?: number;
   paperAuthors?: string[];

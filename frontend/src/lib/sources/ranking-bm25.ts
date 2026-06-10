@@ -282,7 +282,7 @@ export function rankCorpus(
       github: 150, huggingface: 140, npm: 120, pypi: 120, crates: 120,
       packagist: 110, rubygems: 110, gitlab: 100, codeberg: 100,
       dockerhub: 120, jsr: 110, flathub: 105, homebrew: 110, fdroid: 100,
-      arxiv: 110, paperswithcode: 115, stackoverflow: 95, hackernews: 90,
+      arxiv: 110, stackoverflow: 95, hackernews: 90,
       reddit: 90, lobsters: 90, devto: 85, aur: 100, openvsx: 110,
       conda: 115, zenodo: 105, nuget: 120, wordpress: 105, maven: 120,
       hex: 115, pub: 115,

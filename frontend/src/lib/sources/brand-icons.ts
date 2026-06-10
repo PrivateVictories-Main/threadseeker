@@ -8,7 +8,7 @@
 import {
   siGithub, siHuggingface, siGitlab, siNpm, siPypi, siRust, siYcombinator,
   siCodeberg, siComposer, siRubygems, siReddit, siDocker, siJsr, siFlathub,
-  siDevdotto, siLobsters, siStackoverflow, siPaperswithcode, siHomebrew,
+  siDevdotto, siLobsters, siStackoverflow, siHomebrew,
   siFdroid, siArxiv, siArchlinux, siCondaforge, siZenodo, siNuget, siWordpress,
   siApachemaven, siElixir, siDart,
 } from "simple-icons";
@@ -48,7 +48,6 @@ export const BRAND_ICONS: Partial<Record<SourceType, BrandMark>> = {
   devto: m(siDevdotto, "#e8e8e8"),
   lobsters: m(siLobsters, "#e0524d"),
   stackoverflow: m(siStackoverflow),
-  paperswithcode: m(siPaperswithcode),
   homebrew: m(siHomebrew),
   fdroid: m(siFdroid),
   arxiv: m(siArxiv, "#e5484d"),

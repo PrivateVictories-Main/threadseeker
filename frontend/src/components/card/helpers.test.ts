@@ -81,7 +81,6 @@ describe("openLabelForSource", () => {
 
   it("returns 'View paper' for scholarly sources", () => {
     expect(openLabelForSource("arxiv")).toBe("View paper");
-    expect(openLabelForSource("paperswithcode")).toBe("View paper");
     expect(openLabelForSource("zenodo")).toBe("View paper");
   });
 

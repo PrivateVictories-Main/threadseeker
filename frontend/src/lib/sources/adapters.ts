@@ -31,6 +31,24 @@ async function fetchViaProxy(
   return fetch(proxied, { signal });
 }
 
+// POST variant of the relay, for the rare upstream whose search is POST-only
+// (currently just Flathub). The Pages Function keeps a separate, tighter
+// host allowlist for POST — see functions/api/proxy.ts.
+async function postViaProxy(
+  targetUrl: string,
+  body: unknown,
+  signal?: AbortSignal,
+): Promise<Response> {
+  const base = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "";
+  const proxied = `${base}/api/proxy?url=${encodeURIComponent(targetUrl)}`;
+  return fetch(proxied, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
 // For sources backed by a dedicated Pages Function (e.g. /api/search-arxiv).
 async function callBackend<T>(
   path: string,
@@ -65,6 +83,38 @@ function decodeHtml(s: string): string {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
+}
+
+// Defensive ISO conversion for upstream date strings. `new Date(x)` happily
+// produces an Invalid Date whose .toISOString() THROWS — and when that happens
+// inside a .map() it zeroes the entire source. Every adapter date transform
+// must route through this (or an equivalent guard) instead of chaining
+// new Date(...).toISOString() bare.
+function safeIso(raw: unknown): string {
+  if (raw == null || raw === "") return "";
+  const d = new Date(raw as string | number);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString();
+}
+
+// WordPress.org serves `last_updated` as a 12-hour-clock string with no
+// zero-padding: "2026-04-01 4:54pm GMT" (verified by curl 2026-06-10). That
+// shape is unparseable by `new Date()` even after naive " "→"T" / "GMT"→"Z"
+// substitution — the old transform threw a RangeError per plugin and blanked
+// the whole source. Parse the am/pm form explicitly; fall back to the native
+// parser for any other shape; never throw.
+function parseWordPressDate(raw: unknown): string {
+  if (typeof raw !== "string" || !raw.trim()) return "";
+  const m = raw
+    .trim()
+    .match(/^(\d{4}-\d{2}-\d{2})[ T](\d{1,2}):(\d{2})\s*(am|pm)?(?:\s*GMT)?$/i);
+  if (m) {
+    let hours = parseInt(m[2], 10);
+    const meridiem = m[4]?.toLowerCase();
+    if (meridiem === "pm" && hours < 12) hours += 12;
+    if (meridiem === "am" && hours === 12) hours = 0;
+    return safeIso(`${m[1]}T${String(hours).padStart(2, "0")}:${m[3]}:00Z`);
+  }
+  return safeIso(raw);
 }
 
 // --- Repo hosts ---
@@ -163,6 +213,7 @@ export async function searchGitLab(
   query: string,
   page: number = 1,
   _deepSearch: boolean = true,
+  signal?: AbortSignal,
 ): Promise<SearchResult> {
   const allResults: any[] = [];
   const seenIds = new Set<number>();
@@ -178,6 +229,7 @@ export async function searchGitLab(
   try {
     const response = await fetch(`https://gitlab.com/api/v4/projects?${params}`, {
       headers: { Accept: "application/json" },
+      signal,
     });
     if (response.ok) {
       const items = await response.json();
@@ -217,11 +269,14 @@ export async function searchGitLab(
   };
 }
 
-export async function searchCodeberg(query: string): Promise<SearchResult> {
+export async function searchCodeberg(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     const response = await fetch(
       `https://codeberg.org/api/v1/repos/search?q=${encodeURIComponent(query)}&limit=40&sort=stars&order=desc`,
-      { headers: { Accept: "application/json" } },
+      { headers: { Accept: "application/json" }, signal },
     );
     if (!response.ok) return { projects: [], totalCount: 0, source: "codeberg" };
     const data = await response.json();
@@ -261,6 +316,7 @@ export async function searchHuggingFace(
   query: string,
   _page: number = 1,
   deepSearch: boolean = true,
+  signal?: AbortSignal,
 ): Promise<SearchResult> {
   const allItems: any[] = [];
   const seenIds = new Set<string>();
@@ -277,9 +333,13 @@ export async function searchHuggingFace(
   const responses = await Promise.all(
     endpoints.map(async (url) => {
       try {
-        const r = await fetch(url, { headers: { Accept: "application/json" } });
+        const r = await fetch(url, { headers: { Accept: "application/json" }, signal });
         if (!r.ok) return [];
-        return (await r.json()) as any[];
+        // The for-of below runs OUTSIDE this try/catch — an unexpected
+        // non-array body (error envelope, {}) must become [] here, or the
+        // iteration throws and rejects the whole source.
+        const parsed = await r.json();
+        return Array.isArray(parsed) ? (parsed as any[]) : [];
       } catch (error) {
         console.error(`Hugging Face search error (${url}):`, error);
         return [];
@@ -420,55 +480,8 @@ export async function searchArxiv(query: string, signal?: AbortSignal): Promise<
   };
 }
 
-export async function searchPapersWithCode(query: string): Promise<SearchResult> {
-  try {
-    const response = await fetchViaProxy(
-      `https://paperswithcode.com/api/v1/papers/?q=${encodeURIComponent(query)}`,
-    );
-    if (!response.ok)
-      return { projects: [], totalCount: 0, source: "paperswithcode" };
-    const data = await response.json();
-    const results = data.results || [];
-    return {
-      projects: results.slice(0, 30).map((p: any) => {
-        const published = p.published || "";
-        const year = (() => {
-          const d = new Date(published);
-          return Number.isNaN(d.getTime()) ? undefined : d.getUTCFullYear();
-        })();
-        const authors = Array.isArray(p.authors)
-          ? (p.authors as string[])
-          : typeof p.authors === "string"
-            ? [p.authors]
-            : [];
-        return {
-          id: `pwc-${p.id}`,
-          source: "paperswithcode" as const,
-          name: p.title,
-          fullName: p.id,
-          description: p.abstract ? String(p.abstract).slice(0, 300) : null,
-          url: p.url_abs || p.url_pdf || `https://paperswithcode.com/paper/${p.id}`,
-          stars: 0,
-          language: null,
-          topics: [],
-          author: {
-            name: authors[0] || "unknown",
-            avatar: "",
-          },
-          updatedAt: published,
-          paperYear: year,
-          paperAuthors: authors,
-          createdAt: published,
-        };
-      }),
-      totalCount: results.length,
-      source: "paperswithcode",
-    };
-  } catch (error) {
-    console.error("Papers with Code search error:", error);
-    return { projects: [], totalCount: 0, source: "paperswithcode" };
-  }
-}
+// Papers with Code was removed 2026-06: the service shut down and every
+// API path now 302s to huggingface.co. arXiv + Zenodo carry the paper beat.
 
 // --- Language package registries ---
 
@@ -649,11 +662,14 @@ export async function searchPyPI(
   };
 }
 
-export async function searchCrates(query: string): Promise<SearchResult> {
+export async function searchCrates(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     const response = await fetch(
       `https://crates.io/api/v1/crates?q=${encodeURIComponent(query)}&per_page=50&sort=relevance`,
-      { headers: { Accept: "application/json" } },
+      { headers: { Accept: "application/json" }, signal },
     );
     if (!response.ok) return { projects: [], totalCount: 0, source: "crates" };
     const data = await response.json();
@@ -687,11 +703,14 @@ export async function searchCrates(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchPackagist(query: string): Promise<SearchResult> {
+export async function searchPackagist(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     const response = await fetch(
       `https://packagist.org/search.json?q=${encodeURIComponent(query)}&per_page=40`,
-      { headers: { Accept: "application/json" } },
+      { headers: { Accept: "application/json" }, signal },
     );
     if (!response.ok) return { projects: [], totalCount: 0, source: "packagist" };
     const data = await response.json();
@@ -723,11 +742,14 @@ export async function searchPackagist(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchRubyGems(query: string): Promise<SearchResult> {
+export async function searchRubyGems(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     const response = await fetch(
       `https://rubygems.org/api/v1/search.json?query=${encodeURIComponent(query)}`,
-      { headers: { Accept: "application/json" } },
+      { headers: { Accept: "application/json" }, signal },
     );
     if (!response.ok) return { projects: [], totalCount: 0, source: "rubygems" };
     const gems = await response.json();
@@ -762,11 +784,14 @@ export async function searchRubyGems(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchJSR(query: string): Promise<SearchResult> {
+export async function searchJSR(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     const response = await fetch(
       `https://api.jsr.io/packages?query=${encodeURIComponent(query)}&limit=30`,
-      { headers: { Accept: "application/json" } },
+      { headers: { Accept: "application/json" }, signal },
     );
     if (!response.ok) return { projects: [], totalCount: 0, source: "jsr" };
     const data = await response.json();
@@ -807,10 +832,14 @@ export async function searchJSR(query: string): Promise<SearchResult> {
 
 // --- Container / app / OS package catalogues ---
 
-export async function searchDockerHub(query: string): Promise<SearchResult> {
+export async function searchDockerHub(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     const response = await fetchViaProxy(
       `https://hub.docker.com/v2/search/repositories/?query=${encodeURIComponent(query)}&page_size=30`,
+      signal,
     );
     if (!response.ok) return { projects: [], totalCount: 0, source: "dockerhub" };
     const data = await response.json();
@@ -835,7 +864,14 @@ export async function searchDockerHub(query: string): Promise<SearchResult> {
           name,
           fullName: repoName,
           description: r.short_description || null,
-          url: `https://hub.docker.com/r/${owner === "library" ? "_" : owner}/${name}`,
+          // Official (library-namespace) images live at /_/<name>, NOT
+          // /r/_/<name> — the /r/ prefix is only for user/org namespaces.
+          // The old `/r/_/<name>` construction 400'd on every official image
+          // (verified by curl 2026-06-10: /r/_/nginx → 400, /_/nginx → 200).
+          url:
+            owner === "library"
+              ? `https://hub.docker.com/_/${name}`
+              : `https://hub.docker.com/r/${owner}/${name}`,
           stars: r.star_count || 0,
           downloads: r.pull_count || 0,
           language: null,
@@ -853,10 +889,21 @@ export async function searchDockerHub(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchFlathub(query: string): Promise<SearchResult> {
+export async function searchFlathub(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
-    const response = await fetchViaProxy(
-      `https://flathub.org/api/v2/search?query=${encodeURIComponent(query)}`,
+    // Flathub's search is POST-only — GET /api/v2/search returns 405
+    // (verified by curl 2026-06-10) — with a Meilisearch-style envelope:
+    // { hits: [{ app_id, name, summary, installs_last_month,
+    //   updated_at <unix seconds>, icon, developer_name, main_categories }] }.
+    // Routed through the relay's dedicated POST passthrough (flathub.org is
+    // the only POST-allowlisted host).
+    const response = await postViaProxy(
+      "https://flathub.org/api/v2/search",
+      { query, filters: [] },
+      signal,
     );
     if (!response.ok) return { projects: [], totalCount: 0, source: "flathub" };
     const data = await response.json();
@@ -872,12 +919,18 @@ export async function searchFlathub(query: string): Promise<SearchResult> {
         stars: 0,
         downloads: a.installs_last_month || 0,
         language: null,
-        topics: a.categories || [],
+        topics: a.main_categories || a.categories || [],
         author: {
           name: a.developer_name || "Flathub",
           avatar: a.icon || "",
         },
-        updatedAt: a.updated_at || "",
+        // updated_at is unix SECONDS (a number), not an ISO string — convert,
+        // and never let an unexpected shape throw out of the map.
+        updatedAt:
+          typeof a.updated_at === "number"
+            ? safeIso(a.updated_at * 1000)
+            : safeIso(a.updated_at),
+        license: a.project_license || undefined,
       })),
       totalCount: hits.length,
       source: "flathub",
@@ -952,10 +1005,13 @@ export async function searchFDroid(query: string, signal?: AbortSignal): Promise
   };
 }
 
-export async function searchAUR(query: string): Promise<SearchResult> {
+export async function searchAUR(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     const url = `https://aur.archlinux.org/rpc/?v=5&type=search&by=name-desc&arg=${encodeURIComponent(query)}`;
-    const response = await fetchViaProxy(url);
+    const response = await fetchViaProxy(url, signal);
     if (!response.ok) return { projects: [], totalCount: 0, source: "aur" };
     const data = (await response.json()) as { results?: any[] };
     const results = (data?.results || []).slice(0, 25);
@@ -975,9 +1031,7 @@ export async function searchAUR(query: string): Promise<SearchResult> {
           name: p.Maintainer || "orphaned",
           avatar: "",
         },
-        updatedAt: p.LastModified
-          ? new Date(p.LastModified * 1000).toISOString()
-          : "",
+        updatedAt: p.LastModified ? safeIso(p.LastModified * 1000) : "",
         license: Array.isArray(p.License) ? p.License[0] : p.License,
       })),
       totalCount: results.length,
@@ -989,10 +1043,13 @@ export async function searchAUR(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchOpenVsx(query: string): Promise<SearchResult> {
+export async function searchOpenVsx(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     const url = `https://open-vsx.org/api/-/search?query=${encodeURIComponent(query)}&size=25&sortBy=relevance&sortOrder=desc`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal });
     if (!res.ok) throw new Error(`Open VSX ${res.status}`);
     const data = (await res.json()) as { extensions: any[] };
     const results = data.extensions || [];
@@ -1021,10 +1078,13 @@ export async function searchOpenVsx(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchCondaForge(query: string): Promise<SearchResult> {
+export async function searchCondaForge(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     const url = `https://api.anaconda.org/search?name=${encodeURIComponent(query)}`;
-    const response = await fetchViaProxy(url);
+    const response = await fetchViaProxy(url, signal);
     if (!response.ok) return { projects: [], totalCount: 0, source: "conda" };
     const data = (await response.json()) as any[];
     if (!Array.isArray(data)) return { projects: [], totalCount: 0, source: "conda" };
@@ -1056,10 +1116,13 @@ export async function searchCondaForge(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchNuGet(query: string): Promise<SearchResult> {
+export async function searchNuGet(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     const url = `https://azuresearch-usnc.nuget.org/query?q=${encodeURIComponent(query)}&take=30&prerelease=false`;
-    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    const response = await fetch(url, { headers: { Accept: "application/json" }, signal });
     if (!response.ok) return { projects: [], totalCount: 0, source: "nuget" };
     const data = await response.json();
     const results: any[] = data.data || [];
@@ -1093,13 +1156,16 @@ export async function searchNuGet(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchZenodo(query: string): Promise<SearchResult> {
+export async function searchZenodo(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     // Prefer "software" records — the ones most likely to interest an
     // open-source searcher. Fall back to datasets if software returns
     // nothing. Publications (papers) already covered by arXiv.
     const url = `https://zenodo.org/api/records?q=${encodeURIComponent(query)}&size=25&sort=mostrecent&type=software,dataset`;
-    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    const response = await fetch(url, { headers: { Accept: "application/json" }, signal });
     if (!response.ok) return { projects: [], totalCount: 0, source: "zenodo" };
     const data = await response.json();
     const hits: any[] = data.hits?.hits || [];
@@ -1107,6 +1173,13 @@ export async function searchZenodo(query: string): Promise<SearchResult> {
       projects: hits.map((r: any) => {
         const m = r.metadata || {};
         const creators: any[] = m.creators || [];
+        // Zenodo has no stars; unique_views is a *view* count. Surfacing it
+        // as `stars` made "★ 12,000" appear beside genuine GitHub stars
+        // (no-fake-stars policy violation, same class as the old npm
+        // quality*1000 bug). Feed it to the ranker via the normalized 0..1
+        // popularity channel instead: 10k unique views ≈ a genuinely popular
+        // record, so clamp views/10k into [0,1].
+        const uniqueViews = r.stats?.unique_views;
         return {
           id: `zenodo-${r.id}`,
           source: "zenodo" as const,
@@ -1114,7 +1187,11 @@ export async function searchZenodo(query: string): Promise<SearchResult> {
           fullName: r.doi || `zenodo:${r.id}`,
           description: m.description ? stripHtml(String(m.description)).slice(0, 300) : null,
           url: r.links?.self_html || r.doi_url || `https://zenodo.org/records/${r.id}`,
-          stars: r.stats?.unique_views || 0,
+          stars: 0,
+          popularityScore:
+            typeof uniqueViews === "number"
+              ? Math.min(Math.max(uniqueViews, 0) / 10_000, 1)
+              : undefined,
           downloads: r.stats?.unique_downloads || r.stats?.downloads || 0,
           language: null,
           topics: (m.keywords || []).slice(0, 6),
@@ -1135,13 +1212,16 @@ export async function searchZenodo(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchMaven(query: string): Promise<SearchResult> {
+export async function searchMaven(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     // Maven Central's Solr endpoint. `rows=30` matches our other registry
     // adapters; `wt=json` is required (the default is XML). Response shape:
     //   response.docs[] with { id, g, a, latestVersion, p, timestamp, versionCount }
     const url = `https://search.maven.org/solrsearch/select?q=${encodeURIComponent(query)}&rows=30&wt=json`;
-    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    const response = await fetch(url, { headers: { Accept: "application/json" }, signal });
     if (!response.ok) return { projects: [], totalCount: 0, source: "maven" };
     const data = await response.json();
     const docs: any[] = data.response?.docs || [];
@@ -1156,18 +1236,26 @@ export async function searchMaven(query: string): Promise<SearchResult> {
           description: `${p.p || "jar"} · ${p.versionCount || 0} versions`,
           url: `https://central.sonatype.com/artifact/${encodeURIComponent(p.g)}/${encodeURIComponent(p.a)}`,
           stars: 0,
-          downloads: p.versionCount || 0,
+          // Maven Central exposes no download counts and versionCount is NOT
+          // popularity (a release cadence at best — guava's 52 versions vs a
+          // 9-billion-download artifact with 5). Mapping it into `downloads`
+          // both mis-ranked and rendered "52 downloads" in the metric grid.
+          // Leave downloads unset; BM25 text relevance + the source baseline
+          // carry Maven ranking honestly.
           language: "Java",
           topics: [],
           author: {
             name: p.g,
             avatar: "",
           },
-          updatedAt: p.timestamp ? new Date(p.timestamp).toISOString() : "",
+          updatedAt: p.timestamp ? safeIso(p.timestamp) : "",
           version: p.latestVersion,
         };
       }),
-      totalCount: data.response?.numFound || docs.length,
+      // numFound is the corpus-wide Solr match count (can be 6 digits for a
+      // generic term), not "results in this response" like every other
+      // adapter reports — surfacing it inflated the per-source result badge.
+      totalCount: docs.length,
       source: "maven",
     };
   } catch (error) {
@@ -1176,12 +1264,15 @@ export async function searchMaven(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchHex(query: string): Promise<SearchResult> {
+export async function searchHex(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     // hex.pm has a clean search API but no browser CORS — proxy it. One call
     // returns rich metadata (description, downloads, license, version, repo).
     const url = `https://hex.pm/api/packages?search=${encodeURIComponent(query)}&sort=recent_downloads`;
-    const response = await fetchViaProxy(url);
+    const response = await fetchViaProxy(url, signal);
     if (!response.ok) return { projects: [], totalCount: 0, source: "hex" };
     const data = await response.json();
     const pkgs: any[] = Array.isArray(data) ? data.slice(0, 30) : [];
@@ -1219,12 +1310,15 @@ export async function searchHex(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchWordPress(query: string): Promise<SearchResult> {
+export async function searchWordPress(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     // api.wordpress.org ignores browser CORS, so proxy it. Edge-cache via
     // the proxy keeps common queries cheap.
     const target = `https://api.wordpress.org/plugins/info/1.2/?action=query_plugins&request%5Bsearch%5D=${encodeURIComponent(query)}&request%5Bper_page%5D=25`;
-    const response = await fetchViaProxy(target);
+    const response = await fetchViaProxy(target, signal);
     if (!response.ok) return { projects: [], totalCount: 0, source: "wordpress" };
     const data = await response.json();
     const plugins: any[] = data.plugins || [];
@@ -1250,9 +1344,10 @@ export async function searchWordPress(query: string): Promise<SearchResult> {
           name: stripHtml(decodeHtml(p.author || "")) || "unknown",
           avatar: p.icons?.["1x"] || p.icons?.default || "",
         },
-        updatedAt: p.last_updated
-          ? new Date(String(p.last_updated).replace(/\s+GMT$/, "Z").replace(" ", "T")).toISOString()
-          : "",
+        // last_updated arrives as "2026-04-01 4:54pm GMT" — see
+        // parseWordPressDate. The old replace()+toISOString() chain threw a
+        // RangeError on that 12-hour format, blanking the entire source.
+        updatedAt: parseWordPressDate(p.last_updated),
       })),
       totalCount: plugins.length,
       source: "wordpress",
@@ -1265,11 +1360,14 @@ export async function searchWordPress(query: string): Promise<SearchResult> {
 
 // --- Community threads ---
 
-export async function searchHackerNews(query: string): Promise<SearchResult> {
+export async function searchHackerNews(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     const response = await fetch(
       `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&hitsPerPage=40`,
-      { headers: { Accept: "application/json" } },
+      { headers: { Accept: "application/json" }, signal },
     );
     if (!response.ok) return { projects: [], totalCount: 0, source: "hackernews" };
     const data = await response.json();
@@ -1319,36 +1417,66 @@ export async function searchReddit(query: string, signal?: AbortSignal): Promise
   }
 }
 
-export async function searchLobsters(query: string): Promise<SearchResult> {
+export async function searchLobsters(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
-    const response = await fetchViaProxy(
-      `https://lobste.rs/search.json?q=${encodeURIComponent(query)}&what=stories&order=relevance`,
-    );
+    // DEGRADED MODE — lobste.rs no longer exposes a JSON search. Every
+    // /search.json parameter combination returns HTTP 400 (curl-verified
+    // 2026-06-10: ?q=…&what=stories&order=relevance, bare ?q=…, and the
+    // /search?…&format=json variant all 400; only the HTML page works).
+    // The best remaining JSON surface is the small hottest.json feed
+    // (~25 stories), so we fetch that and filter client-side by query
+    // tokens. Recall is limited to what's currently hot, but that beats a
+    // permanently dead source — and hot stories are exactly the threads a
+    // "what does the community think" search wants.
+    const response = await fetchViaProxy("https://lobste.rs/hottest.json", signal);
     if (!response.ok) return { projects: [], totalCount: 0, source: "lobsters" };
     const data = await response.json();
-    const stories = Array.isArray(data) ? data : data.stories || [];
+    const stories: any[] = Array.isArray(data) ? data : [];
+    const tokens = significantTokens(query);
+    const matches = stories.filter((s: any) => {
+      if (tokens.length === 0) return true;
+      const hay = [
+        s?.title || "",
+        Array.isArray(s?.tags) ? s.tags.join(" ") : "",
+        s?.description_plain || s?.description || "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return tokens.some((t) => hay.includes(t));
+    });
     return {
-      projects: stories.slice(0, 30).map((s: any) => ({
+      projects: matches.slice(0, 30).map((s: any) => ({
         id: `lobsters-${s.short_id || s.id}`,
         source: "lobsters" as const,
         name: s.title,
         fullName: `lobste.rs/${s.short_id || s.id}`,
-        description: s.description || null,
+        description: s.description_plain || stripHtml(String(s.description || "")) || null,
         url: s.url || s.comments_url || `https://lobste.rs/s/${s.short_id}`,
         stars: s.score || 0,
         commentsCount: s.comment_count || 0,
         language: null,
         topics: s.tags || [],
         author: {
-          name: s.submitter_user?.username || "unknown",
-          avatar: s.submitter_user?.avatar_url || "",
+          // hottest.json serves submitter_user as a plain username string;
+          // older payloads used { username, avatar_url }. Accept both.
+          name:
+            typeof s.submitter_user === "string"
+              ? s.submitter_user
+              : s.submitter_user?.username || "unknown",
+          avatar:
+            typeof s.submitter_user === "object"
+              ? s.submitter_user?.avatar_url || ""
+              : "",
         },
         updatedAt: s.created_at || "",
         upvotes: s.score || 0,
         comments: s.comment_count || 0,
         createdAt: s.created_at,
       })),
-      totalCount: stories.length,
+      totalCount: matches.length,
       source: "lobsters",
     };
   } catch (error) {
@@ -1357,11 +1485,14 @@ export async function searchLobsters(query: string): Promise<SearchResult> {
   }
 }
 
-export async function searchStackOverflow(query: string): Promise<SearchResult> {
+export async function searchStackOverflow(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     const response = await fetch(
       `https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&q=${encodeURIComponent(query)}&site=stackoverflow&pagesize=30&filter=withbody`,
-      { headers: { Accept: "application/json" } },
+      { headers: { Accept: "application/json" }, signal },
     );
     if (!response.ok) return { projects: [], totalCount: 0, source: "stackoverflow" };
     const data = await response.json();
@@ -1382,14 +1513,10 @@ export async function searchStackOverflow(query: string): Promise<SearchResult> 
           name: q.owner?.display_name || "unknown",
           avatar: q.owner?.profile_image || "",
         },
-        updatedAt: q.last_activity_date
-          ? new Date(q.last_activity_date * 1000).toISOString()
-          : "",
+        updatedAt: q.last_activity_date ? safeIso(q.last_activity_date * 1000) : "",
         upvotes: q.score || 0,
         comments: q.answer_count || 0,
-        createdAt: q.creation_date
-          ? new Date(q.creation_date * 1000).toISOString()
-          : undefined,
+        createdAt: q.creation_date ? safeIso(q.creation_date * 1000) || undefined : undefined,
       })),
       totalCount: items.length,
       source: "stackoverflow",
@@ -1400,7 +1527,10 @@ export async function searchStackOverflow(query: string): Promise<SearchResult> 
   }
 }
 
-export async function searchDevTo(query: string): Promise<SearchResult> {
+export async function searchDevTo(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
   try {
     // Dev.to has no search endpoint — it filters by a single tag, and tags are
     // single lowercase words. "rust web framework" mashed into one tag
@@ -1411,7 +1541,7 @@ export async function searchDevTo(query: string): Promise<SearchResult> {
     if (!tag) return { projects: [], totalCount: 0, source: "devto" };
     const response = await fetch(
       `https://dev.to/api/articles?tag=${encodeURIComponent(tag)}&per_page=30&top=7`,
-      { headers: { Accept: "application/json" } },
+      { headers: { Accept: "application/json" }, signal },
     );
     if (!response.ok) return { projects: [], totalCount: 0, source: "devto" };
     const items = (await response.json()) as any[];

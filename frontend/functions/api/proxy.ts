@@ -8,7 +8,6 @@ import { corsPreflight, jsonResponse, crossOriginBlocked } from "../_shared/http
 
 const HOST_ALLOWLIST = new Set<string>([
   "hub.docker.com",
-  "paperswithcode.com",
   "jsr.io",
   "api.jsr.io",
   "flathub.org",
@@ -26,6 +25,16 @@ const HOST_ALLOWLIST = new Set<string>([
   "hex.pm",
   "pub.dev",
 ]);
+
+// POST passthrough is deliberately a SEPARATE, tighter allowlist. Flathub
+// retired its GET search (405) in favor of POST /api/v2/search with a JSON
+// body, and the GET relay can't express that. Only hosts that *require* POST
+// search earn an entry here — everything else stays on the read-only GET path
+// so the relay never becomes a general-purpose POST trampoline.
+const POST_HOST_ALLOWLIST = new Set<string>(["flathub.org"]);
+
+// Cap relayed POST bodies. A search query is tiny; anything bigger is abuse.
+const MAX_POST_BODY_BYTES = 4_096;
 
 export const onRequestOptions: PagesFunction = async () => corsPreflight();
 
@@ -99,4 +108,79 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
     await cache.put(cacheKey, resp.clone());
   }
   return resp;
+};
+
+// POST passthrough — same SSRF posture as GET (https-only, host allowlist,
+// refuse redirects, force safe content-types) plus a JSON-only, size-capped
+// body relay. No edge caching: the Cache API only keys GETs, and the single
+// consumer (Flathub search) is fast enough to skip the complexity of a
+// body-hash cache key.
+export const onRequestPost: PagesFunction = async ({ request }) => {
+  const blocked = crossOriginBlocked(request);
+  if (blocked) return blocked;
+  const url = new URL(request.url);
+  const target = url.searchParams.get("url");
+  if (!target) return jsonResponse({ detail: "Missing ?url" }, 400);
+
+  let parsed: URL;
+  try {
+    parsed = new URL(target);
+  } catch {
+    return jsonResponse({ detail: "Invalid url" }, 400);
+  }
+  if (parsed.protocol !== "https:") {
+    return jsonResponse({ detail: "Only https allowed" }, 400);
+  }
+  if (!POST_HOST_ALLOWLIST.has(parsed.hostname)) {
+    return jsonResponse(
+      { detail: `Host not allowlisted for POST: ${parsed.hostname}` },
+      400,
+    );
+  }
+
+  // Only relay small, valid JSON bodies — re-serialize rather than streaming
+  // the raw bytes so the upstream can never receive smuggled non-JSON content.
+  const raw = await request.text();
+  if (raw.length > MAX_POST_BODY_BYTES) {
+    return jsonResponse({ detail: "Body too large" }, 413);
+  }
+  let body: unknown;
+  try {
+    body = JSON.parse(raw || "{}");
+  } catch {
+    return jsonResponse({ detail: "Body must be JSON" }, 400);
+  }
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(parsed.toString(), {
+      method: "POST",
+      // Same redirect refusal as GET: the allowlist only validates hop one.
+      redirect: "manual",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": "ThreadSeeker/1.0 (https://threadseeker.pages.dev)",
+      },
+      body: JSON.stringify(body),
+    } as RequestInit);
+  } catch (e) {
+    return jsonResponse({ detail: `Upstream fetch failed: ${(e as Error).message}` }, 502);
+  }
+  if (upstream.status === 0 || (upstream.status >= 300 && upstream.status < 400)) {
+    return jsonResponse({ detail: "Upstream redirect refused" }, 502);
+  }
+
+  const text = await upstream.text();
+  const upstreamType = upstream.headers.get("content-type") ?? "application/json";
+  const isJson = /^application\/(json|[\w.+-]+\+json)\b/i.test(upstreamType);
+  return new Response(text, {
+    status: upstream.status,
+    headers: {
+      "Content-Type": isJson ? "application/json" : "text/plain; charset=utf-8",
+      "X-Content-Type-Options": "nosniff",
+      "Access-Control-Allow-Origin": "*",
+      ...(isJson ? {} : { "Content-Disposition": "attachment" }),
+    },
+  });
 };

@@ -164,7 +164,6 @@ export function openLabelForSource(source: UnifiedProject["source"]): string {
     case "stackoverflow":
       return "View answer";
     case "arxiv":
-    case "paperswithcode":
     case "zenodo":
       return "View paper";
     case "devto":
@@ -360,7 +359,6 @@ export function metricsForProject(p: UnifiedProject): MetricCell[] {
       push("Stars", p.stars);
       break;
     case "arxiv":
-    case "paperswithcode":
     case "zenodo":
       if (p.citations !== undefined) push("Citations", p.citations);
       else push("Downloads", p.downloads);
@@ -464,7 +462,7 @@ export function miniStatsForProject(p: UnifiedProject): MiniStat[] {
     push("LIKES", p.upvotes ?? p.stars);
     push("FORMAT", p.language || undefined);
     push("UPDATED", p.updatedAt ? formatRelativeShort(p.updatedAt) : undefined, p.updatedAt);
-  } else if (p.source === "arxiv" || p.source === "paperswithcode" || p.source === "zenodo") {
+  } else if (p.source === "arxiv" || p.source === "zenodo") {
     push("YEAR", p.paperYear !== undefined ? String(p.paperYear) : undefined);
     push("CITATIONS", p.citations);
     push("AUTHORS", p.paperAuthors?.length || undefined);
@@ -540,7 +538,7 @@ export function quickActionsForProject(p: UnifiedProject): QuickAction[] {
     if (p.homepage) {
       out.push({ label: "DOCS", href: p.homepage, title: "Project docs" });
     }
-  } else if (p.source === "arxiv" || p.source === "paperswithcode" || p.source === "zenodo") {
+  } else if (p.source === "arxiv" || p.source === "zenodo") {
     if (p.homepage) {
       out.push({ label: "CODE", href: p.homepage, title: "Reference implementation" });
     }
@@ -625,8 +623,7 @@ export function cardStatRow(p: UnifiedProject): StatSegment[] {
     p.source === "homebrew" ||
     p.source === "dockerhub";
   const isModel = p.source === "huggingface";
-  const isPaper =
-    p.source === "arxiv" || p.source === "paperswithcode" || p.source === "zenodo";
+  const isPaper = p.source === "arxiv" || p.source === "zenodo";
   const isThread =
     p.source === "hackernews" ||
     p.source === "reddit" ||

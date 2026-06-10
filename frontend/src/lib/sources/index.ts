@@ -31,7 +31,6 @@ import {
   searchDevTo,
   searchLobsters,
   searchStackOverflow,
-  searchPapersWithCode,
   searchHomebrew,
   searchFDroid,
   searchArxiv,
@@ -91,7 +90,6 @@ const DEFAULT_SOURCES: SourceType[] = [
   "devto",
   "lobsters",
   "stackoverflow",
-  "paperswithcode",
   "homebrew",
   "fdroid",
   "arxiv",
@@ -139,7 +137,8 @@ export async function searchAllSources(
     );
     // When a newer search supersedes this run, stop awaiting this source
     // immediately (its result would be discarded anyway by the caller's
-    // run-id guard). The GitHub path additionally cancels its network call.
+    // run-id guard). Every adapter also receives the signal and cancels its
+    // in-flight network calls, so superseded runs free their connections.
     const aborted = new Promise<never>((_, reject) => {
       if (!signal) return;
       if (signal.aborted) {
@@ -158,39 +157,37 @@ export async function searchAllSources(
       case "github":
         return searchGitHub(q("github"), 1, deepSearch, signal);
       case "huggingface":
-        return searchHuggingFace(q("huggingface"), 1, deepSearch);
+        return searchHuggingFace(q("huggingface"), 1, deepSearch, signal);
       case "gitlab":
-        return searchGitLab(q("gitlab"), 1, deepSearch);
+        return searchGitLab(q("gitlab"), 1, deepSearch, signal);
       case "npm":
         return searchNpm(q("npm"), deepSearch, signal);
       case "pypi":
         return searchPyPI(q("pypi"), deepSearch, signal);
       case "crates":
-        return searchCrates(q("crates"));
+        return searchCrates(q("crates"), signal);
       case "hackernews":
-        return searchHackerNews(q("hackernews"));
+        return searchHackerNews(q("hackernews"), signal);
       case "codeberg":
-        return searchCodeberg(q("codeberg"));
+        return searchCodeberg(q("codeberg"), signal);
       case "packagist":
-        return searchPackagist(q("packagist"));
+        return searchPackagist(q("packagist"), signal);
       case "rubygems":
-        return searchRubyGems(q("rubygems"));
+        return searchRubyGems(q("rubygems"), signal);
       case "reddit":
         return searchReddit(q("reddit"), signal);
       case "dockerhub":
-        return searchDockerHub(q("dockerhub"));
+        return searchDockerHub(q("dockerhub"), signal);
       case "jsr":
-        return searchJSR(q("jsr"));
+        return searchJSR(q("jsr"), signal);
       case "flathub":
-        return searchFlathub(q("flathub"));
+        return searchFlathub(q("flathub"), signal);
       case "devto":
-        return searchDevTo(q("devto"));
+        return searchDevTo(q("devto"), signal);
       case "lobsters":
-        return searchLobsters(q("lobsters"));
+        return searchLobsters(q("lobsters"), signal);
       case "stackoverflow":
-        return searchStackOverflow(q("stackoverflow"));
-      case "paperswithcode":
-        return searchPapersWithCode(q("paperswithcode"));
+        return searchStackOverflow(q("stackoverflow"), signal);
       case "homebrew":
         return searchHomebrew(q("homebrew"), signal);
       case "fdroid":
@@ -198,21 +195,21 @@ export async function searchAllSources(
       case "arxiv":
         return searchArxiv(q("arxiv"), signal);
       case "aur":
-        return searchAUR(q("aur"));
+        return searchAUR(q("aur"), signal);
       case "openvsx":
-        return searchOpenVsx(q("openvsx"));
+        return searchOpenVsx(q("openvsx"), signal);
       case "conda":
-        return searchCondaForge(q("conda"));
+        return searchCondaForge(q("conda"), signal);
       case "nuget":
-        return searchNuGet(q("nuget"));
+        return searchNuGet(q("nuget"), signal);
       case "zenodo":
-        return searchZenodo(q("zenodo"));
+        return searchZenodo(q("zenodo"), signal);
       case "wordpress":
-        return searchWordPress(q("wordpress"));
+        return searchWordPress(q("wordpress"), signal);
       case "maven":
-        return searchMaven(q("maven"));
+        return searchMaven(q("maven"), signal);
       case "hex":
-        return searchHex(q("hex"));
+        return searchHex(q("hex"), signal);
       case "pub":
         return searchPub(q("pub"), signal);
       default:
