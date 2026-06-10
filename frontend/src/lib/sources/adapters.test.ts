@@ -51,6 +51,15 @@ import {
   searchLobsters,
   searchStackOverflow,
   searchDevTo,
+  searchModrinth,
+  searchCRAN,
+  searchAMO,
+  searchGreasyFork,
+  searchTerraform,
+  searchSnapcraft,
+  searchAnsibleGalaxy,
+  searchGnomeExtensions,
+  searchChocolatey,
 } from "./adapters";
 import * as fx from "./__fixtures__/adapter-payloads";
 
@@ -480,6 +489,188 @@ const CASES: AdapterCase[] = [
     routes: { "dev.to/api/articles": fx.devtoSearch },
     wrap: (items) => items,
     expectCount: 2,
+  },
+  {
+    name: "searchModrinth",
+    source: "modrinth",
+    idPrefix: "modrinth-",
+    query: "sodium",
+    run: searchModrinth,
+    routes: { "api.modrinth.com/v2/search": fx.modrinthSearch },
+    wrap: (items) => ({ hits: items }),
+    expectCount: 2,
+    extra: (res) => {
+      // Listing URL is built from project_type + slug.
+      expect(res.projects[0].url).toBe("https://modrinth.com/mod/sodium");
+      // No stars on Modrinth — downloads is the honest signal.
+      for (const p of res.projects) expect(p.stars).toBe(0);
+      expect(res.projects[0].downloads).toBe(38_000_000);
+    },
+  },
+  {
+    name: "searchCRAN",
+    source: "cran",
+    idPrefix: "cran-",
+    query: "ggplot",
+    run: searchCRAN,
+    routes: { "search.r-pkg.org/package/_search": fx.cranSearch },
+    wrap: (items) => ({ hits: { hits: items } }),
+    expectCount: 2,
+    extra: (res) => {
+      // Canonical CRAN listing URL + first homepage from the comma list.
+      expect(res.projects[0].url).toBe("https://cran.r-project.org/package=ggplot2");
+      expect(res.projects[0].homepage).toBe("https://ggplot2.tidyverse.org");
+      // Missing _source.URL → no homepage, not a throw.
+      expect(res.projects[1].homepage).toBeUndefined();
+      // Monthly downloads mapped honestly.
+      expect(res.projects[0].downloads).toBe(2_400_000);
+    },
+  },
+  {
+    name: "searchAMO",
+    source: "amo",
+    idPrefix: "amo-",
+    query: "ublock",
+    run: searchAMO,
+    routes: { "addons.mozilla.org/api/v5/addons/search": fx.amoSearch },
+    wrap: (items) => ({ results: items }),
+    expectCount: 2,
+    extra: (res) => {
+      // Locale-object fields ({en-US: …}) AND plain strings both unwrap.
+      expect(res.projects[0].name).toBe("uBlock Origin");
+      expect(res.projects[1].name).toBe("Tree Style Tab");
+      // SPDX slug preferred over the localized license display name.
+      expect(res.projects[0].license).toBe("GPL-3.0-only");
+      // ADU is adoption, never a star count.
+      for (const p of res.projects) expect(p.stars).toBe(0);
+    },
+  },
+  {
+    name: "searchGreasyFork",
+    source: "greasyfork",
+    idPrefix: "greasyfork-",
+    query: "youtube",
+    run: searchGreasyFork,
+    routes: { "api.greasyfork.org/en/scripts.json": fx.greasyforkScripts },
+    wrap: (items) => items,
+    expectCount: 2,
+    extra: (res) => {
+      expect(res.projects[0].author.name).toBe("avi12");
+      // Empty users[] → fallback, not a throw.
+      expect(res.projects[1].author.name).toBe("unknown");
+      expect(res.projects[0].downloads).toBe(1_250_000);
+    },
+  },
+  {
+    name: "searchTerraform",
+    source: "terraform",
+    idPrefix: "terraform-",
+    query: "vpc",
+    run: searchTerraform,
+    routes: { "registry.terraform.io/v1/modules/search": fx.terraformModules },
+    wrap: (items) => ({ modules: items }),
+    expectCount: 2,
+    extra: (res) => {
+      expect(res.projects[0].fullName).toBe("terraform-aws-modules/vpc/aws");
+      expect(res.projects[0].url).toBe(
+        "https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws",
+      );
+      expect(res.projects[0].homepage).toBe(
+        "https://github.com/terraform-aws-modules/terraform-aws-vpc",
+      );
+    },
+  },
+  {
+    name: "searchSnapcraft",
+    source: "snap",
+    idPrefix: "snap-",
+    query: "vlc",
+    run: searchSnapcraft,
+    routes: { "api.snapcraft.io/v2/snaps/find": fx.snapFind },
+    wrap: (items) => ({ results: items }),
+    expectCount: 2,
+    extra: (res) => {
+      // Version comes from the sibling `revision`, not `snap`.
+      expect(res.projects[0].version).toBe("3.0.20-1");
+      // The find API exposes no install metric — downloads stays honest-empty.
+      for (const p of res.projects) expect(p.downloads).toBeUndefined();
+      expect(res.projects[0].url).toBe("https://snapcraft.io/vlc");
+      expect(res.projects[0].author.name).toBe("VideoLAN");
+    },
+  },
+  {
+    name: "searchAnsibleGalaxy",
+    source: "ansible",
+    idPrefix: "ansible-",
+    query: "docker",
+    run: searchAnsibleGalaxy,
+    routes: { "galaxy.ansible.com/api/v3/plugin": fx.ansibleCollections },
+    wrap: (items) => ({ data: items }),
+    // Fixture carries 3 items; the is_deprecated one must be dropped.
+    expectCount: 2,
+    extra: (res) => {
+      expect(res.projects.map((p) => p.fullName)).not.toContain(
+        "community.docker_legacy",
+      );
+      expect(res.projects[0].fullName).toBe("community.docker");
+      expect(res.projects[0].url).toBe(
+        "https://galaxy.ansible.com/ui/repo/published/community/docker/",
+      );
+    },
+  },
+  {
+    name: "searchGnomeExtensions",
+    source: "gnome",
+    idPrefix: "gnome-",
+    query: "dash",
+    run: searchGnomeExtensions,
+    routes: { "extensions.gnome.org/extension-query": fx.gnomeExtensions },
+    wrap: (items) => ({ extensions: items }),
+    expectCount: 2,
+    extra: (res) => {
+      // Site-relative `link` is absolutized.
+      expect(res.projects[0].url).toBe(
+        "https://extensions.gnome.org/extension/307/dash-to-dock/",
+      );
+      // Absolute `url` field maps to homepage; empty string maps to none.
+      expect(res.projects[0].homepage).toBe("https://micheleg.github.io/dash-to-dock/");
+      expect(res.projects[1].homepage).toBeUndefined();
+    },
+  },
+  {
+    name: "searchChocolatey",
+    source: "chocolatey",
+    idPrefix: "chocolatey-",
+    query: "git",
+    run: searchChocolatey,
+    // Atom XML, not JSON — route returns a fresh raw-XML Response per call.
+    routes: {
+      "community.chocolatey.org/api/v2/Search": () =>
+        new Response(fx.chocolateyAtom, {
+          status: 200,
+          headers: { "Content-Type": "application/atom+xml" },
+        }),
+    },
+    // Entries without title/properties must be filtered, never thrown on.
+    wrap: (items) => () =>
+      new Response(
+        `<?xml version="1.0"?><feed>${items
+          .map(() => "<entry><m:properties></m:properties></entry>")
+          .join("")}</feed>`,
+        { status: 200, headers: { "Content-Type": "application/atom+xml" } },
+      ),
+    expectCount: 2,
+    extra: (res) => {
+      // <title> = package id, <d:Title> = display name.
+      expect(res.projects[0].name).toBe("Git");
+      expect(res.projects[0].fullName).toBe("git");
+      expect(res.projects[0].url).toBe(
+        "https://community.chocolatey.org/packages/git/2.49.0",
+      );
+      // DownloadCount parses through its m:type attribute.
+      expect(res.projects[0].downloads).toBe(14_882_190);
+      expect(res.projects[0].version).toBe("2.49.0");
+    },
   },
 ];
 

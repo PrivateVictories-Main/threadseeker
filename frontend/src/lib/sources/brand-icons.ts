@@ -10,7 +10,8 @@ import {
   siCodeberg, siComposer, siRubygems, siReddit, siDocker, siJsr, siFlathub,
   siDevdotto, siLobsters, siStackoverflow, siHomebrew,
   siFdroid, siArxiv, siArchlinux, siCondaforge, siZenodo, siNuget, siWordpress,
-  siApachemaven, siElixir, siDart,
+  siApachemaven, siElixir, siDart, siModrinth, siR, siFirefox, siGreasyfork,
+  siTerraform, siSnapcraft, siAnsible, siGnome, siChocolatey,
 } from "simple-icons";
 import type { SourceType } from "./types";
 
@@ -59,6 +60,15 @@ export const BRAND_ICONS: Partial<Record<SourceType, BrandMark>> = {
   maven: m(siApachemaven, "#e0566b"),
   hex: m(siElixir, "#b388d4"),
   pub: m(siDart, "#4ab5f5"),
+  modrinth: m(siModrinth),
+  cran: m(siR, "#5b8fd6"),
+  amo: m(siFirefox),
+  greasyfork: m(siGreasyfork, "#e0645c"), // official #670000 vanishes on dark glass
+  terraform: m(siTerraform, "#a07ee6"),
+  snap: m(siSnapcraft),
+  ansible: m(siAnsible, "#f25f5f"),
+  gnome: m(siGnome, "#74a8e8"),
+  chocolatey: m(siChocolatey),
 };
 
 export function getBrandMark(source: SourceType): BrandMark | undefined {

@@ -43,6 +43,15 @@ import {
   searchMaven,
   searchHex,
   searchPub,
+  searchModrinth,
+  searchCRAN,
+  searchAMO,
+  searchGreasyFork,
+  searchTerraform,
+  searchSnapcraft,
+  searchAnsibleGalaxy,
+  searchGnomeExtensions,
+  searchChocolatey,
 } from "./adapters";
 
 export * from "./types";
@@ -102,6 +111,15 @@ const DEFAULT_SOURCES: SourceType[] = [
   "maven",
   "hex",
   "pub",
+  "modrinth",
+  "cran",
+  "amo",
+  "greasyfork",
+  "terraform",
+  "snap",
+  "ansible",
+  "gnome",
+  "chocolatey",
 ];
 
 // If a source hasn't returned in this long we drop it for this run. One
@@ -212,6 +230,24 @@ export async function searchAllSources(
         return searchHex(q("hex"), signal);
       case "pub":
         return searchPub(q("pub"), signal);
+      case "modrinth":
+        return searchModrinth(q("modrinth"), signal);
+      case "cran":
+        return searchCRAN(q("cran"), signal);
+      case "amo":
+        return searchAMO(q("amo"), signal);
+      case "greasyfork":
+        return searchGreasyFork(q("greasyfork"), signal);
+      case "terraform":
+        return searchTerraform(q("terraform"), signal);
+      case "snap":
+        return searchSnapcraft(q("snap"), signal);
+      case "ansible":
+        return searchAnsibleGalaxy(q("ansible"), signal);
+      case "gnome":
+        return searchGnomeExtensions(q("gnome"), signal);
+      case "chocolatey":
+        return searchChocolatey(q("chocolatey"), signal);
       default:
         return { projects: [], totalCount: 0, source };
     }

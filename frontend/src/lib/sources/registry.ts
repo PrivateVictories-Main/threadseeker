@@ -25,6 +25,14 @@ import {
   Hash,
   Layers,
   Hexagon,
+  Gamepad2,
+  Sigma,
+  Puzzle,
+  ScrollText,
+  Cloud,
+  Cog,
+  Footprints,
+  Candy,
   type LucideIcon,
 } from "lucide-react";
 import { SourceType } from "./types";
@@ -413,6 +421,106 @@ const SOURCE_CONFIGS: Record<SourceType, SourceDisplayConfig> = {
     category: "packages",
     tagline: "Dart / Flutter packages",
   },
+  modrinth: {
+    name: "Modrinth",
+    icon: "⛏️",
+    lucideIcon: Gamepad2,
+    color: "from-green-500 to-emerald-600",
+    borderColor: "border-green-500/30",
+    bgColor: "bg-green-500/10",
+    supportsOr: false,
+    category: "packages",
+    tagline: "Minecraft mods, plugins and packs",
+  },
+  cran: {
+    name: "CRAN",
+    icon: "📊",
+    lucideIcon: Sigma,
+    color: "from-blue-500 to-indigo-600",
+    borderColor: "border-blue-500/30",
+    bgColor: "bg-blue-500/10",
+    supportsOr: false,
+    category: "packages",
+    tagline: "R packages",
+  },
+  amo: {
+    name: "Firefox Add-ons",
+    icon: "🧩",
+    lucideIcon: Puzzle,
+    color: "from-orange-500 to-amber-600",
+    borderColor: "border-orange-500/30",
+    bgColor: "bg-orange-500/10",
+    supportsOr: false,
+    category: "packages",
+    tagline: "Firefox browser extensions (AMO)",
+  },
+  greasyfork: {
+    name: "Greasy Fork",
+    icon: "🐒",
+    lucideIcon: ScrollText,
+    color: "from-red-600 to-rose-700",
+    borderColor: "border-red-500/30",
+    bgColor: "bg-red-500/10",
+    supportsOr: false,
+    category: "packages",
+    tagline: "Userscripts (Greasemonkey / Tampermonkey)",
+  },
+  terraform: {
+    name: "Terraform Registry",
+    icon: "🏗️",
+    lucideIcon: Cloud,
+    color: "from-purple-500 to-violet-600",
+    borderColor: "border-purple-500/30",
+    bgColor: "bg-purple-500/10",
+    supportsOr: false,
+    category: "packages",
+    tagline: "Terraform / OpenTofu infrastructure modules",
+  },
+  snap: {
+    name: "Snapcraft",
+    icon: "🧰",
+    lucideIcon: Package,
+    color: "from-orange-600 to-amber-700",
+    borderColor: "border-orange-500/30",
+    bgColor: "bg-orange-500/10",
+    supportsOr: false,
+    category: "packages",
+    tagline: "Linux apps (snap packages)",
+  },
+  ansible: {
+    name: "Ansible Galaxy",
+    icon: "⚙️",
+    lucideIcon: Cog,
+    color: "from-red-600 to-red-700",
+    borderColor: "border-red-500/30",
+    bgColor: "bg-red-500/10",
+    supportsOr: false,
+    category: "packages",
+    tagline: "Ansible automation collections",
+  },
+  gnome: {
+    name: "GNOME Extensions",
+    // The GNOME logo is a foot — Footprints is the closest lucide glyph.
+    icon: "🦶",
+    lucideIcon: Footprints,
+    color: "from-sky-500 to-blue-600",
+    borderColor: "border-sky-500/30",
+    bgColor: "bg-sky-500/10",
+    supportsOr: false,
+    category: "packages",
+    tagline: "GNOME Shell extensions",
+  },
+  chocolatey: {
+    name: "Chocolatey",
+    icon: "🍫",
+    lucideIcon: Candy,
+    color: "from-sky-400 to-blue-600",
+    borderColor: "border-sky-500/30",
+    bgColor: "bg-sky-500/10",
+    supportsOr: false,
+    category: "packages",
+    tagline: "Windows packages",
+  },
 };
 
 // The canonical, exhaustive list of every source — derived from the config
@@ -540,6 +648,24 @@ export function getSourceSearchUrl(source: SourceType, query: string): string | 
       return `https://hex.pm/packages?search=${q}`;
     case "pub":
       return `https://pub.dev/packages?q=${q}`;
+    case "modrinth":
+      return `https://modrinth.com/discover/mods?q=${q}`;
+    case "cran":
+      return `https://www.r-pkg.org/search.html?q=${q}`;
+    case "amo":
+      return `https://addons.mozilla.org/en-US/firefox/search/?q=${q}`;
+    case "greasyfork":
+      return `https://greasyfork.org/en/scripts?q=${q}`;
+    case "terraform":
+      return `https://registry.terraform.io/search/modules?q=${q}`;
+    case "snap":
+      return `https://snapcraft.io/search?q=${q}`;
+    case "ansible":
+      return `https://galaxy.ansible.com/ui/search/?keywords=${q}`;
+    case "gnome":
+      return `https://extensions.gnome.org/#q=${q}`;
+    case "chocolatey":
+      return `https://community.chocolatey.org/packages?q=${q}`;
     default:
       return null;
   }

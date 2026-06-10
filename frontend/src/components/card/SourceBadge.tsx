@@ -11,6 +11,9 @@ const LABELS: Record<SourceType, string> = {
   arxiv: "arXiv", zenodo: "Zenodo",
   hackernews: "Hacker News", reddit: "Reddit", lobsters: "Lobsters",
   stackoverflow: "Stack Overflow", devto: "DEV", hex: "Hex", pub: "pub.dev",
+  modrinth: "Modrinth", cran: "CRAN", amo: "Firefox Add-ons",
+  greasyfork: "Greasy Fork", terraform: "Terraform", snap: "Snapcraft",
+  ansible: "Ansible Galaxy", gnome: "GNOME", chocolatey: "Chocolatey",
 };
 
 export function SourceBadge({ source }: { source: SourceType }) {

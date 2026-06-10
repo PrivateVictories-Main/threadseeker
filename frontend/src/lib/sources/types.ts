@@ -31,7 +31,16 @@ export type SourceType =
   | "wordpress"
   | "maven"
   | "hex"
-  | "pub";
+  | "pub"
+  | "modrinth"
+  | "cran"
+  | "amo"
+  | "greasyfork"
+  | "terraform"
+  | "snap"
+  | "ansible"
+  | "gnome"
+  | "chocolatey";
 
 export interface RelatedSource {
   source: SourceType;

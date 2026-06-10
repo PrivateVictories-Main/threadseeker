@@ -995,3 +995,353 @@ export const devtoSearch = [
     created_at: "2026-04-02T08:45:00Z",
   },
 ];
+
+// --- Iter-25 additions (Modrinth / CRAN / AMO / Greasy Fork / Terraform /
+// Snapcraft / Ansible Galaxy / GNOME Extensions / Chocolatey) — shapes
+// curl-verified against the live APIs 2026-06-10. ---
+
+export const modrinthSearch = {
+  hits: [
+    {
+      project_id: "AANobbMI",
+      project_type: "mod",
+      slug: "sodium",
+      author: "jellysquid3",
+      title: "Sodium",
+      description:
+        "The fastest and most compatible rendering optimization mod for Minecraft.",
+      categories: ["fabric", "neoforge", "optimization"],
+      display_categories: ["fabric", "neoforge", "optimization"],
+      downloads: 38_000_000,
+      follows: 19_000,
+      icon_url: "https://cdn.modrinth.com/data/AANobbMI/icon.png",
+      date_created: "2021-01-03T00:53:34+00:00",
+      date_modified: "2026-05-31T12:00:00+00:00",
+      latest_version: "mc1.21.5-0.6.13",
+      license: "LGPL-3.0-only",
+    },
+    {
+      project_id: "gvQqBUqZ",
+      project_type: "mod",
+      slug: "lithium",
+      author: "jellysquid3",
+      title: "Lithium",
+      description: "No-compromises game logic optimization mod.",
+      categories: ["fabric", "optimization"],
+      display_categories: ["fabric", "optimization"],
+      downloads: 21_000_000,
+      follows: 8_400,
+      // Missing icon — exercises the avatar fallback.
+      icon_url: null,
+      date_created: "2021-01-03T01:10:00+00:00",
+      date_modified: "2026-04-18T09:30:00+00:00",
+      latest_version: "mc1.21.5-0.15.0",
+      license: "LGPL-3.0-only",
+    },
+  ],
+  total_hits: 2,
+};
+
+// Elasticsearch envelope from search.r-pkg.org (METACRAN).
+export const cranSearch = {
+  took: 12,
+  hits: {
+    total: 2,
+    hits: [
+      {
+        _id: "ggplot2",
+        _score: 11.2,
+        _source: {
+          Package: "ggplot2",
+          Title: "Create Elegant Data Visualisations Using the Grammar of Graphics",
+          Description:
+            "A system for 'declaratively' creating graphics, based on \"The Grammar of Graphics\".",
+          URL: "https://ggplot2.tidyverse.org, https://github.com/tidyverse/ggplot2",
+          downloads: 2_400_000,
+          revdeps: 5_900,
+          License: "MIT + file LICENSE",
+          Version: "3.5.2",
+          date: "2025-04-09T07:30:02+00:00",
+        },
+      },
+      {
+        _id: "jsonlite",
+        _score: 10.8,
+        _source: {
+          Package: "jsonlite",
+          Title: "A Simple and Robust JSON Parser and Generator for R",
+          Description: "A reasonably fast JSON parser and generator.",
+          // No URL field — exercises the homepage fallback.
+          downloads: 1_900_000,
+          revdeps: 4_100,
+          License: "MIT + file LICENSE",
+          Version: "1.8.9",
+          date: "2024-09-20T05:10:00+00:00",
+        },
+      },
+    ],
+  },
+};
+
+// AMO v5. `lang=en-US` is documented to flatten localized fields but live
+// responses still carry {locale: value} objects — the first item keeps the
+// object shape and the second uses plain strings, exercising BOTH branches
+// of the adapter's amoLocalized() unwrap.
+export const amoSearch = {
+  page_size: 20,
+  count: 2,
+  results: [
+    {
+      id: 607454,
+      slug: "ublock-origin",
+      name: { "en-US": "uBlock Origin" },
+      summary: {
+        "en-US":
+          "Finally, an efficient wide-spectrum content blocker. Easy on CPU and memory.",
+      },
+      url: "https://addons.mozilla.org/en-US/firefox/addon/ublock-origin/",
+      average_daily_users: 10_650_137,
+      weekly_downloads: 155_912,
+      ratings: { average: 4.8, count: 18_000 },
+      categories: ["privacy-security"],
+      authors: [{ id: 11423598, name: "Raymond Hill" }],
+      icon_url: "https://addons.mozilla.org/user-media/addon_icons/607/607454-64.png",
+      current_version: {
+        version: "1.63.2",
+        license: {
+          slug: "GPL-3.0-only",
+          name: { "en-US": "GNU General Public License v3.0 only" },
+        },
+      },
+      last_updated: "2026-06-08T15:06:37Z",
+      created: "2015-04-25T07:26:22Z",
+    },
+    {
+      id: 865295,
+      slug: "tree-style-tab",
+      name: "Tree Style Tab",
+      summary: "Show tabs like a tree.",
+      url: "https://addons.mozilla.org/en-US/firefox/addon/tree-style-tab/",
+      average_daily_users: 280_000,
+      weekly_downloads: 4_100,
+      ratings: { average: 4.6, count: 3_400 },
+      categories: ["tabs"],
+      // Missing author entry — exercises the fallback.
+      authors: [],
+      icon_url: "",
+      current_version: { version: "4.0.16", license: null },
+      last_updated: "2026-03-12T10:00:00Z",
+      created: "2007-09-04T00:00:00Z",
+    },
+  ],
+};
+
+// Greasy Fork returns a bare array (no envelope, no page-size param).
+export const greasyforkScripts = [
+  {
+    id: 4870,
+    name: "YouTube Auto HD",
+    description: "Automatically sets YouTube videos to your preferred quality.",
+    url: "https://greasyfork.org/scripts/4870-youtube-auto-hd",
+    total_installs: 1_250_000,
+    daily_installs: 420,
+    good_ratings: 980,
+    license: "MIT",
+    version: "3.2.1",
+    code_updated_at: "2026-05-20T08:14:00.000Z",
+    created_at: "2014-11-02T12:00:00.000Z",
+    users: [{ id: 9100, name: "avi12", url: "https://greasyfork.org/users/9100-avi12" }],
+  },
+  {
+    id: 38147,
+    name: "YouTube Classic",
+    description: null,
+    url: "https://greasyfork.org/scripts/38147-youtube-classic",
+    total_installs: 84_000,
+    daily_installs: 12,
+    good_ratings: 140,
+    license: null,
+    version: "1.9",
+    code_updated_at: "2025-12-01T16:40:00.000Z",
+    created_at: "2018-01-15T09:00:00.000Z",
+    // Missing users — exercises the author fallback.
+    users: [],
+  },
+];
+
+export const terraformModules = {
+  meta: { limit: 20, current_offset: 0 },
+  modules: [
+    {
+      id: "terraform-aws-modules/vpc/aws/5.21.0",
+      namespace: "terraform-aws-modules",
+      name: "vpc",
+      provider: "aws",
+      version: "5.21.0",
+      description: "Terraform module to create AWS VPC resources",
+      source: "https://github.com/terraform-aws-modules/terraform-aws-vpc",
+      published_at: "2025-04-02T13:42:05.528266Z",
+      downloads: 87_000_000,
+      verified: true,
+    },
+    {
+      id: "terraform-aws-modules/eks/aws/20.36.0",
+      namespace: "terraform-aws-modules",
+      name: "eks",
+      provider: "aws",
+      version: "20.36.0",
+      description: "Terraform module to create Amazon Elastic Kubernetes Service resources",
+      source: "https://github.com/terraform-aws-modules/terraform-aws-eks",
+      published_at: "2025-04-10T08:00:00Z",
+      downloads: 42_000_000,
+      verified: true,
+    },
+  ],
+};
+
+export const snapFind = {
+  results: [
+    {
+      name: "vlc",
+      revision: { version: "3.0.20-1" },
+      snap: {
+        title: "VLC",
+        summary: "The ultimate media player",
+        "store-url": "https://snapcraft.io/vlc",
+        license: "GPL-2.0+",
+        publisher: { "display-name": "VideoLAN", username: "videolan", validation: "verified" },
+        media: [
+          { type: "icon", url: "https://dashboard.snapcraft.io/site_media/appmedia/2016/07/vlc.png", width: 256, height: 256 },
+          { type: "screenshot", url: "https://dashboard.snapcraft.io/site_media/appmedia/2016/07/vlc-shot.png", width: 1918, height: 1006 },
+        ],
+      },
+    },
+    {
+      name: "gimp",
+      revision: { version: "2.10.38" },
+      snap: {
+        title: "GIMP",
+        summary: "GNU Image Manipulation Program",
+        "store-url": "https://snapcraft.io/gimp",
+        // No license / icon media — exercises the optional-field guards.
+        publisher: { "display-name": "Snapcrafters", username: "snapcrafters" },
+        media: [],
+      },
+    },
+  ],
+};
+
+// Ansible Galaxy v3 collection-version search. Third item is deprecated and
+// must be dropped by the adapter.
+export const ansibleCollections = {
+  meta: { count: 3 },
+  data: [
+    {
+      collection_version: {
+        namespace: "community",
+        name: "docker",
+        version: "4.5.2",
+        description: "Modules and plugins for working with Docker.",
+        pulp_created: "2025-04-07T12:03:10.248764Z",
+        tags: ["docker", "container"],
+      },
+      is_highest: true,
+      is_deprecated: false,
+      is_signed: false,
+    },
+    {
+      collection_version: {
+        namespace: "ansible",
+        name: "posix",
+        version: "1.6.2",
+        description: "Ansible Collection targeting POSIX and POSIX-ish platforms.",
+        pulp_created: "2024-12-01T09:30:00Z",
+        tags: ["posix", "system"],
+      },
+      is_highest: true,
+      is_deprecated: false,
+      is_signed: true,
+    },
+    {
+      collection_version: {
+        namespace: "community",
+        name: "docker_legacy",
+        version: "0.9.0",
+        description: "Deprecated legacy Docker content.",
+        pulp_created: "2021-02-01T00:00:00Z",
+        tags: ["docker"],
+      },
+      is_highest: true,
+      is_deprecated: true,
+      is_signed: false,
+    },
+  ],
+};
+
+// extensions.gnome.org — `link` and `icon` are site-relative; `url` (when
+// present) is the project's own homepage/repo.
+export const gnomeExtensions = {
+  extensions: [
+    {
+      uuid: "dash-to-dock@micxgx.gmail.com",
+      name: "Dash to Dock",
+      creator: "michele_g",
+      pk: 307,
+      description: "A dock for the Gnome Shell. This extension moves the dash out of the overview.",
+      link: "/extension/307/dash-to-dock/",
+      icon: "/extension-data/icons/icon_307.png",
+      downloads: 9_200_000,
+      url: "https://micheleg.github.io/dash-to-dock/",
+    },
+    {
+      uuid: "blur-my-shell@aunetx",
+      name: "Blur my Shell",
+      creator: "aunetx",
+      pk: 3193,
+      description: "Adds a blur look to different parts of the GNOME Shell.",
+      link: "/extension/3193/blur-my-shell/",
+      // Default placeholder icon + no homepage url.
+      icon: "/static/images/plugin.png",
+      downloads: 4_800_000,
+      url: "",
+    },
+  ],
+  total: 2,
+  numpages: 1,
+};
+
+// Chocolatey community feed — OData v2 Atom XML (string fixture; the adapter
+// regex-walks <entry> blocks). DownloadCount carries the m:type attribute the
+// real feed emits.
+export const chocolateyAtom = `<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<feed xml:base="http://community.chocolatey.org/api/v2/" xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns="http://www.w3.org/2005/Atom">
+  <title type="text">Search</title>
+  <entry>
+    <id>http://community.chocolatey.org/api/v2/Packages(Id='git',Version='2.49.0')</id>
+    <title type="text">git</title>
+    <updated>2026-05-30T11:00:26Z</updated>
+    <author><name>The Git Development Community</name></author>
+    <m:properties>
+      <d:Version>2.49.0</d:Version>
+      <d:Title>Git</d:Title>
+      <d:Description>Git is a free and open source distributed version control system designed to handle everything from small to very large projects.</d:Description>
+      <d:GalleryDetailsUrl>https://community.chocolatey.org/packages/git/2.49.0</d:GalleryDetailsUrl>
+      <d:DownloadCount m:type="Edm.Int32">14882190</d:DownloadCount>
+      <d:Published m:type="Edm.DateTime">2026-03-18T20:14:36.55</d:Published>
+    </m:properties>
+  </entry>
+  <entry>
+    <id>http://community.chocolatey.org/api/v2/Packages(Id='7zip',Version='24.9.0')</id>
+    <title type="text">7zip</title>
+    <updated>2026-04-12T08:00:00Z</updated>
+    <author><name>Igor Pavlov</name></author>
+    <m:properties>
+      <d:Version>24.9.0</d:Version>
+      <d:Title>7-Zip</d:Title>
+      <d:Description>7-Zip is a file archiver with a high compression ratio.</d:Description>
+      <d:GalleryDetailsUrl>https://community.chocolatey.org/packages/7zip/24.9.0</d:GalleryDetailsUrl>
+      <d:DownloadCount m:type="Edm.Int32">9120443</d:DownloadCount>
+      <d:Published m:type="Edm.DateTime">2026-02-02T10:30:00</d:Published>
+    </m:properties>
+  </entry>
+</feed>`;

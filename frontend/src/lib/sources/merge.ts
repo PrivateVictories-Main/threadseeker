@@ -28,6 +28,13 @@ const DEDUPABLE_SOURCES: ReadonlySet<SourceType> = new Set<SourceType>([
   "nuget",
   "wordpress",
   "maven",
+  // cran + chocolatey are real package registries distributing the same
+  // upstream projects as the rest of the dedup pool. The other Iter-25
+  // additions (modrinth/amo/greasyfork/gnome/snap/terraform/ansible) are
+  // apps/extensions or namespaced modules where cross-source folding would
+  // only produce false merges — they stay standalone.
+  "cran",
+  "chocolatey",
 ]);
 
 // Normalize a project's name for comparison: strip scopes, cases, separators,
@@ -69,8 +76,9 @@ export function mergeRelatedProjects(projects: UnifiedProject[]): UnifiedProject
   const sourceRank: Record<string, number> = {
     github: 100, gitlab: 90, codeberg: 80,
     npm: 72, pypi: 72, crates: 72, maven: 68, nuget: 68, rubygems: 66, packagist: 66,
-    conda: 62, huggingface: 60, jsr: 56, hex: 56,
+    conda: 62, huggingface: 60, jsr: 56, hex: 56, cran: 62, terraform: 58, ansible: 56,
     dockerhub: 52, homebrew: 50, flathub: 50, fdroid: 48, openvsx: 46, aur: 44, wordpress: 40,
+    chocolatey: 50, snap: 50, modrinth: 48, amo: 46, greasyfork: 44, gnome: 42,
     arxiv: 30, zenodo: 26,
     stackoverflow: 12, hackernews: 10, reddit: 10, lobsters: 10, devto: 10,
   };

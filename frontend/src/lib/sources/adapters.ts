@@ -1358,6 +1358,464 @@ export async function searchWordPress(
   }
 }
 
+export async function searchModrinth(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
+  try {
+    // Modrinth's API is fully CORS-enabled (Access-Control-Allow-Origin: *,
+    // curl-verified 2026-06-10) — direct fetch, no proxy hop needed.
+    const response = await fetch(
+      `https://api.modrinth.com/v2/search?query=${encodeURIComponent(query)}&limit=20`,
+      { headers: { Accept: "application/json" }, signal },
+    );
+    if (!response.ok) return { projects: [], totalCount: 0, source: "modrinth" };
+    const data = await response.json();
+    const hits: any[] = Array.isArray(data.hits) ? data.hits : [];
+    return {
+      projects: hits.map((h: any) => ({
+        id: `modrinth-${h.project_id || h.slug || h.title}`,
+        source: "modrinth" as const,
+        name: h.title || h.slug || "",
+        fullName: h.slug || h.title || "",
+        description: h.description || null,
+        url: `https://modrinth.com/${h.project_type || "mod"}/${h.slug}`,
+        // No stars on Modrinth — `downloads` is the honest popularity signal
+        // (follows is tiny by comparison and would just dilute it).
+        stars: 0,
+        downloads: h.downloads || 0,
+        language: null,
+        topics: Array.isArray(h.display_categories)
+          ? h.display_categories.slice(0, 6)
+          : Array.isArray(h.categories)
+            ? h.categories.slice(0, 6)
+            : [],
+        author: { name: h.author || "unknown", avatar: h.icon_url || "" },
+        updatedAt: safeIso(h.date_modified),
+        license: typeof h.license === "string" ? h.license : undefined,
+        createdAt: h.date_created,
+      })),
+      totalCount: hits.length,
+      source: "modrinth",
+    };
+  } catch (error) {
+    console.error("Modrinth search error:", error);
+    return { projects: [], totalCount: 0, source: "modrinth" };
+  }
+}
+
+export async function searchCRAN(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
+  try {
+    // search.r-pkg.org (METACRAN) exposes CRAN metadata through a plain
+    // Elasticsearch endpoint. No browser CORS — proxy it.
+    const response = await fetchViaProxy(
+      `https://search.r-pkg.org/package/_search?q=${encodeURIComponent(query)}&size=20`,
+      signal,
+    );
+    if (!response.ok) return { projects: [], totalCount: 0, source: "cran" };
+    const data = await response.json();
+    const hits: any[] = data?.hits?.hits || [];
+    return {
+      projects: hits.map((h: any) => {
+        const s = h._source || {};
+        const name = s.Package || h._id || "";
+        // _source.URL is a comma/space-separated list — first entry is the
+        // project homepage (usually the GitHub repo).
+        const homepage =
+          typeof s.URL === "string" ? s.URL.split(/[,\s]+/)[0] : undefined;
+        return {
+          id: `cran-${name}`,
+          source: "cran" as const,
+          name,
+          fullName: name,
+          description:
+            [s.Title, s.Description]
+              .filter(Boolean)
+              .join(" — ")
+              .replace(/\s+/g, " ")
+              .slice(0, 300) || null,
+          url: `https://cran.r-project.org/package=${encodeURIComponent(name)}`,
+          stars: 0,
+          // METACRAN's `downloads` is last-month CRAN downloads — honest.
+          downloads: s.downloads || 0,
+          language: "R",
+          topics: [],
+          author: { name: "CRAN", avatar: "" },
+          updatedAt: safeIso(s.date),
+          license: s.License || undefined,
+          version: s.Version || undefined,
+          homepage: homepage || undefined,
+          lastPublished: safeIso(s.date) || undefined,
+        };
+      }),
+      totalCount: hits.length,
+      source: "cran",
+    };
+  } catch (error) {
+    console.error("CRAN search error:", error);
+    return { projects: [], totalCount: 0, source: "cran" };
+  }
+}
+
+// AMO localized fields arrive either as plain strings or as {locale: value}
+// objects. `lang=en-US` is documented to flatten them, but live responses
+// still return objects (curl-verified 2026-06-10) — unwrap both shapes.
+function amoLocalized(v: unknown): string {
+  if (typeof v === "string") return v;
+  if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    const first = o["en-US"] ?? Object.values(o)[0];
+    return typeof first === "string" ? first : "";
+  }
+  return "";
+}
+
+export async function searchAMO(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
+  try {
+    // addons.mozilla.org API v5 is CORS-enabled (Access-Control-Allow-Origin:
+    // *, curl-verified 2026-06-10) — direct fetch.
+    const response = await fetch(
+      `https://addons.mozilla.org/api/v5/addons/search/?q=${encodeURIComponent(query)}&page_size=20&app=firefox&lang=en-US`,
+      { headers: { Accept: "application/json" }, signal },
+    );
+    if (!response.ok) return { projects: [], totalCount: 0, source: "amo" };
+    const data = await response.json();
+    const results: any[] = Array.isArray(data.results) ? data.results : [];
+    return {
+      projects: results.map((r: any) => {
+        const name = amoLocalized(r.name) || r.slug || "";
+        const cv = r.current_version || {};
+        return {
+          id: `amo-${r.id ?? r.slug ?? name}`,
+          source: "amo" as const,
+          name,
+          fullName: r.slug || name,
+          description: amoLocalized(r.summary) || null,
+          url: r.url || `https://addons.mozilla.org/en-US/firefox/addon/${r.slug}/`,
+          // No stars; ADU (average daily users) is AMO's real adoption signal
+          // — same channel WordPress uses for active_installs. Never fake the
+          // 0-5 review rating into a star count.
+          stars: 0,
+          downloads: r.average_daily_users || 0,
+          weeklyDownloads: r.weekly_downloads || undefined,
+          language: null,
+          topics: Array.isArray(r.categories) ? r.categories.slice(0, 6) : [],
+          author: {
+            name: r.authors?.[0]?.name || "unknown",
+            avatar: r.icon_url || "",
+          },
+          updatedAt: safeIso(r.last_updated),
+          license: cv.license?.slug || amoLocalized(cv.license?.name) || undefined,
+          version: cv.version || undefined,
+          homepage: amoLocalized(r.homepage?.url ?? r.homepage) || undefined,
+          createdAt: r.created,
+        };
+      }),
+      totalCount: results.length,
+      source: "amo",
+    };
+  } catch (error) {
+    console.error("Firefox Add-ons search error:", error);
+    return { projects: [], totalCount: 0, source: "amo" };
+  }
+}
+
+export async function searchGreasyFork(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
+  try {
+    // api.greasyfork.org is CORS-enabled (Access-Control-Allow-Origin: *,
+    // curl-verified 2026-06-10). The response is a bare ARRAY with no
+    // page-size param — pages run ~95KB, so cap to 20 client-side.
+    const response = await fetch(
+      `https://api.greasyfork.org/en/scripts.json?q=${encodeURIComponent(query)}&page=1`,
+      { headers: { Accept: "application/json" }, signal },
+    );
+    if (!response.ok) return { projects: [], totalCount: 0, source: "greasyfork" };
+    const data = await response.json();
+    const scripts: any[] = (Array.isArray(data) ? data : []).slice(0, 20);
+    return {
+      projects: scripts.map((s: any) => ({
+        id: `greasyfork-${s.id ?? s.name}`,
+        source: "greasyfork" as const,
+        name: s.name || "",
+        fullName: s.name || "",
+        description: s.description || null,
+        url: s.url || `https://greasyfork.org/en/scripts/${s.id}`,
+        stars: 0,
+        downloads: s.total_installs || 0,
+        language: "JavaScript",
+        topics: [],
+        author: { name: s.users?.[0]?.name || "unknown", avatar: "" },
+        updatedAt: safeIso(s.code_updated_at),
+        license: s.license || undefined,
+        version: s.version || undefined,
+        createdAt: s.created_at,
+      })),
+      totalCount: scripts.length,
+      source: "greasyfork",
+    };
+  } catch (error) {
+    console.error("Greasy Fork search error:", error);
+    return { projects: [], totalCount: 0, source: "greasyfork" };
+  }
+}
+
+export async function searchTerraform(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
+  try {
+    // registry.terraform.io has no browser CORS — proxy it.
+    const response = await fetchViaProxy(
+      `https://registry.terraform.io/v1/modules/search?q=${encodeURIComponent(query)}&limit=20`,
+      signal,
+    );
+    if (!response.ok) return { projects: [], totalCount: 0, source: "terraform" };
+    const data = await response.json();
+    const modules: any[] = Array.isArray(data.modules) ? data.modules : [];
+    return {
+      projects: modules.map((m: any) => {
+        const full = `${m.namespace}/${m.name}/${m.provider}`;
+        return {
+          id: `terraform-${m.id || full}`,
+          source: "terraform" as const,
+          name: m.name || "",
+          fullName: full,
+          description: m.description || null,
+          url: `https://registry.terraform.io/modules/${full}`,
+          stars: 0,
+          downloads: m.downloads || 0,
+          language: "HCL",
+          topics: m.provider ? [String(m.provider)] : [],
+          author: { name: m.namespace || "unknown", avatar: "" },
+          updatedAt: safeIso(m.published_at),
+          version: m.version || undefined,
+          homepage: m.source || undefined,
+          lastPublished: safeIso(m.published_at) || undefined,
+        };
+      }),
+      totalCount: modules.length,
+      source: "terraform",
+    };
+  } catch (error) {
+    console.error("Terraform Registry search error:", error);
+    return { projects: [], totalCount: 0, source: "terraform" };
+  }
+}
+
+export async function searchSnapcraft(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
+  try {
+    // api.snapcraft.io requires the Snap-Device-Series header (the proxy
+    // injects it via its per-host extra-headers map) and an explicit `fields`
+    // param — without `fields` the find endpoint returns names only.
+    const response = await fetchViaProxy(
+      `https://api.snapcraft.io/v2/snaps/find?q=${encodeURIComponent(query)}&fields=title,summary,store-url,version,publisher,license,media`,
+      signal,
+    );
+    if (!response.ok) return { projects: [], totalCount: 0, source: "snap" };
+    const data = await response.json();
+    const results: any[] = Array.isArray(data.results) ? data.results : [];
+    return {
+      projects: results.slice(0, 20).map((r: any) => {
+        const s = r.snap || {};
+        const icon = Array.isArray(s.media)
+          ? s.media.find((mm: any) => mm?.type === "icon")?.url || ""
+          : "";
+        return {
+          id: `snap-${r.name || s.title}`,
+          source: "snap" as const,
+          name: s.title || r.name || "",
+          fullName: r.name || s.title || "",
+          description: s.summary || null,
+          url: s["store-url"] || `https://snapcraft.io/${r.name}`,
+          // Snapcraft's find API exposes no stars and no install counts —
+          // leave both empty rather than inventing a signal.
+          stars: 0,
+          language: null,
+          topics: [],
+          author: {
+            name: s.publisher?.["display-name"] || s.publisher?.username || "unknown",
+            avatar: icon,
+          },
+          updatedAt: "",
+          license: s.license || undefined,
+          version: r.revision?.version || undefined,
+        };
+      }),
+      totalCount: results.length,
+      source: "snap",
+    };
+  } catch (error) {
+    console.error("Snapcraft search error:", error);
+    return { projects: [], totalCount: 0, source: "snap" };
+  }
+}
+
+export async function searchAnsibleGalaxy(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
+  try {
+    // galaxy.ansible.com v3 search; no browser CORS — proxy it. NOTE:
+    // `order_by=-download_count` was retired upstream ("not one of the
+    // available choices", curl-verified 2026-06-10) — default ordering is
+    // relevance, and the payload exposes no download metric at all, so we
+    // honestly ship none. is_highest=true keeps one row per collection.
+    const response = await fetchViaProxy(
+      `https://galaxy.ansible.com/api/v3/plugin/ansible/search/collection-versions/?keywords=${encodeURIComponent(query)}&limit=20&is_highest=true`,
+      signal,
+    );
+    if (!response.ok) return { projects: [], totalCount: 0, source: "ansible" };
+    const data = await response.json();
+    const items: any[] = (Array.isArray(data.data) ? data.data : []).filter(
+      (it: any) => !it?.is_deprecated,
+    );
+    return {
+      projects: items.map((it: any) => {
+        const cv = it.collection_version || {};
+        const full = `${cv.namespace}.${cv.name}`;
+        return {
+          id: `ansible-${full}`,
+          source: "ansible" as const,
+          name: cv.name || "",
+          fullName: full,
+          description: cv.description || null,
+          url: `https://galaxy.ansible.com/ui/repo/published/${cv.namespace}/${cv.name}/`,
+          stars: 0,
+          language: null,
+          topics: Array.isArray(cv.tags) ? cv.tags.slice(0, 6).map(String) : [],
+          author: { name: cv.namespace || "unknown", avatar: "" },
+          updatedAt: safeIso(cv.pulp_created),
+          version: cv.version || undefined,
+          lastPublished: safeIso(cv.pulp_created) || undefined,
+        };
+      }),
+      totalCount: items.length,
+      source: "ansible",
+    };
+  } catch (error) {
+    console.error("Ansible Galaxy search error:", error);
+    return { projects: [], totalCount: 0, source: "ansible" };
+  }
+}
+
+export async function searchGnomeExtensions(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
+  try {
+    // extensions.gnome.org has no browser CORS — proxy it. `link` and `icon`
+    // come back site-relative and need the https://extensions.gnome.org prefix.
+    const response = await fetchViaProxy(
+      `https://extensions.gnome.org/extension-query/?search=${encodeURIComponent(query)}&page=1`,
+      signal,
+    );
+    if (!response.ok) return { projects: [], totalCount: 0, source: "gnome" };
+    const data = await response.json();
+    const exts: any[] = Array.isArray(data.extensions) ? data.extensions : [];
+    const abs = (p: unknown): string => {
+      if (typeof p !== "string" || !p) return "";
+      return p.startsWith("http") ? p : `https://extensions.gnome.org${p}`;
+    };
+    return {
+      projects: exts.slice(0, 20).map((e: any) => ({
+        id: `gnome-${e.uuid || e.pk || e.name}`,
+        source: "gnome" as const,
+        name: e.name || "",
+        fullName: e.uuid || e.name || "",
+        description: e.description
+          ? String(e.description).replace(/\s+/g, " ").slice(0, 300)
+          : null,
+        url: abs(e.link) || `https://extensions.gnome.org/extension/${e.pk}/`,
+        stars: 0,
+        downloads: e.downloads || 0,
+        language: "JavaScript",
+        topics: [],
+        author: { name: e.creator || "unknown", avatar: abs(e.icon) },
+        updatedAt: "",
+        // e.url (when present) is the project's own repo/homepage.
+        homepage: typeof e.url === "string" && e.url ? e.url : undefined,
+      })),
+      totalCount: exts.length,
+      source: "gnome",
+    };
+  } catch (error) {
+    console.error("GNOME Extensions search error:", error);
+    return { projects: [], totalCount: 0, source: "gnome" };
+  }
+}
+
+export async function searchChocolatey(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
+  try {
+    // Chocolatey's community feed is OData v2 — an Atom XML feed, not JSON.
+    // The exact param shape matters (it 400s without targetFramework /
+    // includePrerelease) so keep it verbatim; only the quoted searchTerm is
+    // URL-encoded. Parsed with the same regex-walk approach as
+    // functions/api/search-arxiv.ts — no DOMParser dependency.
+    const target =
+      "https://community.chocolatey.org/api/v2/Search()?$filter=IsLatestVersion&$top=20" +
+      `&searchTerm=${encodeURIComponent(`'${query}'`)}` +
+      "&targetFramework=''&includePrerelease=false";
+    const response = await fetchViaProxy(target, signal);
+    if (!response.ok) return { projects: [], totalCount: 0, source: "chocolatey" };
+    const xml = await response.text();
+    const tag = (src: string, name: string): string => {
+      const mm = src.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`));
+      return mm ? mm[1].trim() : "";
+    };
+    const entries: string[] = [];
+    const entryRe = /<entry[\s>]([\s\S]*?)<\/entry>/g;
+    let m: RegExpExecArray | null;
+    while ((m = entryRe.exec(xml)) !== null) entries.push(m[1]);
+    const projects = entries
+      .map((e) => {
+        // <title> carries the package id; <d:Title> the display name.
+        const pkgId = tag(e, "title") || (e.match(/Id='([^']+)'/)?.[1] ?? "");
+        const display = decodeHtml(tag(e, "d:Title")) || pkgId;
+        if (!pkgId && !display) return null;
+        const downloads = parseInt(tag(e, "d:DownloadCount"), 10);
+        const author = e.match(/<author>\s*<name>([^<]*)/)?.[1]?.trim() || "unknown";
+        return {
+          id: `chocolatey-${pkgId || display}`,
+          source: "chocolatey" as const,
+          name: display,
+          fullName: pkgId || display,
+          description:
+            stripHtml(decodeHtml(tag(e, "d:Description"))).slice(0, 300) || null,
+          url:
+            tag(e, "d:GalleryDetailsUrl") ||
+            `https://community.chocolatey.org/packages/${pkgId}`,
+          stars: 0,
+          downloads: Number.isFinite(downloads) && downloads > 0 ? downloads : 0,
+          language: null,
+          topics: [],
+          author: { name: author, avatar: "" },
+          updatedAt: safeIso(tag(e, "d:Published")),
+          version: tag(e, "d:Version") || undefined,
+        };
+      })
+      .filter((p): p is NonNullable<typeof p> => p !== null);
+    return { projects, totalCount: projects.length, source: "chocolatey" };
+  } catch (error) {
+    console.error("Chocolatey search error:", error);
+    return { projects: [], totalCount: 0, source: "chocolatey" };
+  }
+}
+
 // --- Community threads ---
 
 export async function searchHackerNews(

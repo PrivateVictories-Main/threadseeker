@@ -24,7 +24,22 @@ const HOST_ALLOWLIST = new Set<string>([
   "api.wordpress.org",
   "hex.pm",
   "pub.dev",
+  "search.r-pkg.org",
+  "registry.terraform.io",
+  "api.snapcraft.io",
+  "galaxy.ansible.com",
+  "extensions.gnome.org",
+  "community.chocolatey.org",
 ]);
+
+// Per-host extra request headers, merged into the standard header set on the
+// GET path. api.snapcraft.io hard-requires `Snap-Device-Series: 16` (a store
+// API-series version marker, not device tracking) and 400s without it. Keep
+// this map tiny — a host earns an entry only when the upstream refuses to
+// answer without the header.
+const HOST_EXTRA_HEADERS: Record<string, Record<string, string>> = {
+  "api.snapcraft.io": { "Snap-Device-Series": "16" },
+};
 
 // POST passthrough is deliberately a SEPARATE, tighter allowlist. Flathub
 // retired its GET search (405) in favor of POST /api/v2/search with a JSON
@@ -75,6 +90,7 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
       headers: {
         Accept: "application/json, text/plain, */*",
         "User-Agent": "ThreadSeeker/1.0 (https://threadseeker.pages.dev)",
+        ...(HOST_EXTRA_HEADERS[parsed.hostname] ?? {}),
       },
       // Cloudflare-specific cache hint
       cf: { cacheTtl: 300, cacheEverything: true },
