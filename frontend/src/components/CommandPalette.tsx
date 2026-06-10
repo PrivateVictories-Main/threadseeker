@@ -16,6 +16,11 @@
 // subtitle + section title (so "github" matches the "Filter to GitHub"
 // command in the Filters section).
 //
+// A11y: the input + list form an ARIA 1.2 combobox/listbox pair (same
+// idiom as SearchBar) — DOM focus stays on the input while
+// aria-activedescendant points at the highlighted option's id, so screen
+// readers announce ↑/↓ movement without focus ever leaving the field.
+//
 // Open via:
 //   - ⌘K (mac) / Ctrl+K (other)
 //   - Custom event `threadseeker:open-command-palette` (callable from
@@ -24,7 +29,14 @@
 // Honors reduced-motion via the global <MotionConfig reducedMotion="user">
 // in MotionProvider — no branching needed here.
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Search,
@@ -112,6 +124,10 @@ export function CommandPalette({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  // Stable id linking the combobox input to the listbox (aria-controls)
+  // and to each option (`${listboxId}-opt-${idx}` — the target of
+  // aria-activedescendant). Mirrors SearchBar's suggestion-list wiring.
+  const listboxId = useId();
   // Trap Tab within the palette + restore focus on close (the palette already
   // focuses the input on open; the trap just contains Tab + locks scroll).
   useFocusTrap(panelRef, open, () => setOpen(false));
@@ -436,7 +452,23 @@ export function CommandPalette({
                 onKeyDown={handleInputKeyDown}
                 placeholder="Search commands or type a query…"
                 aria-label="Search commands"
-                className="flex-1 bg-transparent border-0 outline-none text-[14px] text-slate-800 placeholder:text-slate-400"
+                /* ARIA 1.2 combobox pattern (see SearchBar for the same
+                   idiom): expanded only while options exist; the active-
+                   descendant guard (< visible.length) covers the one render
+                   where the visible set shrank but the clamp effect hasn't
+                   reset activeIdx yet, so we never reference a missing id. */
+                role="combobox"
+                aria-expanded={visible.length > 0}
+                aria-controls={listboxId}
+                aria-autocomplete="list"
+                aria-activedescendant={
+                  visible.length > 0 && activeIdx < visible.length
+                    ? `${listboxId}-opt-${activeIdx}`
+                    : undefined
+                }
+                /* placeholder uses the faint-text token (not slate-400, which
+                   is 2.9:1 on white — fails AA; see tokens.css). */
+                className="flex-1 bg-transparent border-0 outline-none text-[14px] text-slate-800 placeholder:text-[color:var(--ts-text-faint)]"
               />
               <kbd className="hidden sm:inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded border border-indigo-200 bg-white/80 font-mono text-[10.5px] text-slate-500">
                 ESC
@@ -445,15 +477,21 @@ export function CommandPalette({
 
             <div
               ref={listRef}
+              id={listboxId}
               className="flex-1 overflow-y-auto px-2 py-2"
-              role="listbox"
-              aria-label="Available commands"
+              /* Only a listbox while it actually holds options — the
+                 zero-match empty state is plain content, not an option, and
+                 must not be hidden from AT inside a listbox role. The input's
+                 aria-expanded flips false in lockstep. */
+              role={visible.length > 0 ? "listbox" : undefined}
+              aria-label={visible.length > 0 ? "Available commands" : undefined}
             >
               {grouped.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
                   <Sparkles className="w-5 h-5 text-indigo-300 mb-2" aria-hidden />
                   <p className="text-[13px] text-slate-500">No matching commands.</p>
-                  <p className="text-[11.5px] text-slate-400 mt-0.5">
+                  {/* faint-text token, not slate-400 — AA contrast in light mode. */}
+                  <p className="text-[11.5px] text-[color:var(--ts-text-faint)] mt-0.5">
                     Press{" "}
                     <kbd className="px-1 py-0.5 rounded border border-indigo-200 bg-white font-mono text-[10px]">
                       ↵
@@ -467,8 +505,20 @@ export function CommandPalette({
                     .slice(0, gIdx)
                     .reduce((sum, [, list]) => sum + list.length, 0);
                   return (
-                    <div key={section} className="py-1">
-                      <div className="px-3 pt-2 pb-1.5">
+                    /* role=group keeps listbox→option ownership intact across
+                       the section wrappers (bare divs between a listbox and
+                       its options break the accessibility tree). The group
+                       carries the section name itself; the visual header
+                       below merely re-renders it with the code-comment
+                       slashes, so it's aria-hidden to avoid AT reading
+                       "slash slash Search" on top of the group label. */
+                    <div
+                      key={section}
+                      className="py-1"
+                      role="group"
+                      aria-label={section}
+                    >
+                      <div className="px-3 pt-2 pb-1.5" aria-hidden>
                         <span className="ts-section-header">
                           {`// ${section}`}
                         </span>
@@ -481,6 +531,10 @@ export function CommandPalette({
                           <button
                             key={cmd.id}
                             type="button"
+                            /* id is what aria-activedescendant on the input
+                               points at — keyed by visible index so it always
+                               matches the highlight state. */
+                            id={`${listboxId}-opt-${idx}`}
                             data-cmd-idx={idx}
                             role="option"
                             aria-selected={isActive}
@@ -532,7 +586,9 @@ export function CommandPalette({
               )}
             </div>
 
-            <div className="flex items-center justify-between px-4 py-2.5 border-t border-indigo-100/80 font-mono text-[10.5px] uppercase tracking-[0.08em] text-slate-400">
+            {/* Footer hints use the faint-text token — slate-400 fails AA
+                contrast (2.9:1) on the light glass surface. */}
+            <div className="flex items-center justify-between px-4 py-2.5 border-t border-indigo-100/80 font-mono text-[10.5px] uppercase tracking-[0.08em] text-[color:var(--ts-text-faint)]">
               <span className="inline-flex items-center gap-2">
                 <span className="inline-flex items-center gap-1">
                   <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-indigo-200 bg-white/80 text-[10px] text-slate-600 normal-case tracking-normal">
