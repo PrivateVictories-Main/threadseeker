@@ -26,18 +26,37 @@ const MODEL_ID = "mixedbread-ai/mxbai-embed-xsmall-v1";
 
 let extractorPromise = null;
 
+async function buildExtractor() {
+  const { pipeline, env } = await import(TRANSFORMERS_URL);
+  // Explicit single-thread WASM: avoids needing COOP/COEP isolation, which
+  // would force CORP on every cross-origin fetch sitewide.
+  if (env?.backends?.onnx?.wasm) env.backends.onnx.wasm.numThreads = 1;
+  // Despite the docs, device:"webgpu" does NOT fall back on its own — and
+  // worse, a FAILED webgpu pipeline attempt poisons ORT's backend registry
+  // for the whole worker, so a subsequent device:"wasm" retry fails with the
+  // same webgpu error (verified in headless Chromium). The only safe order
+  // is: probe for a real GPU adapter FIRST (requestAdapter resolves null on
+  // denylisted/headless machines where navigator.gpu still exists), and only
+  // then commit to a single pipeline attempt on the proven device.
+  let device = "wasm";
+  try {
+    if (typeof navigator !== "undefined" && navigator.gpu) {
+      const adapter = await navigator.gpu.requestAdapter();
+      if (adapter) device = "webgpu";
+    }
+  } catch {
+    /* probe failure = no GPU — wasm it is */
+  }
+  return pipeline("feature-extraction", MODEL_ID, { dtype: "q8", device });
+}
+
 function getExtractor() {
-  extractorPromise ??= (async () => {
-    const { pipeline, env } = await import(TRANSFORMERS_URL);
-    // Explicit single-thread WASM: avoids needing COOP/COEP isolation, which
-    // would force CORP on every cross-origin fetch sitewide. The fast path is
-    // WebGPU anyway (v4 falls back to WASM automatically).
-    if (env?.backends?.onnx?.wasm) env.backends.onnx.wasm.numThreads = 1;
-    return pipeline("feature-extraction", MODEL_ID, {
-      dtype: "q8",
-      device: "webgpu",
-    });
-  })();
+  // Reset on total failure so a transient network error doesn't disable the
+  // semantic layer for the whole session — the next search retries.
+  extractorPromise ??= buildExtractor().catch((err) => {
+    extractorPromise = null;
+    throw err;
+  });
   return extractorPromise;
 }
 
