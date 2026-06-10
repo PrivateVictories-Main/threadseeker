@@ -85,7 +85,6 @@ export const FILLER_WORDS = new Set([
   // natural-language query ("which X is best", "how do I", "most popular Y").
   "which", "what", "how", "where", "when", "why", "while", "whose",
   "most", "more", "all", "vs", "versus", "between",
-  "shows", "show", "showing", "leaving", "leave", "runs",
   "alternative", "alternatives", "compare", "comparison", "difference",
   "does", "do", "is", "are",
 ]);
@@ -125,6 +124,11 @@ const GENERIC_WORDS = new Set([
   "personal", "machine", "computer", "laptop", "instance", "everything",
   "version", "latest", "similar", "across", "around", "inside", "without",
   "within", "every", "alternativeto", "well", "still", "even", "however",
+  // Mid-sentence framing verbs: filler in a PARAGRAPH ("a tool that shows
+  // me…", "runs on a pi") but real content in short queries ("tv show
+  // tracker") — so they only lose term-SELECTION tie-breaks here, and are
+  // never dropped or down-weighted the way FILLER_WORDS are.
+  "shows", "show", "showing", "leaving", "leave", "runs",
 ]);
 
 // How "subject-like" a content term is, for picking WHICH terms of a long

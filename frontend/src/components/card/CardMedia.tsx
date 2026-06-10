@@ -54,7 +54,9 @@ export function CardMedia({
           src={`https://opengraph.githubassets.com/1/${fullName}`}
           alt=""
           loading={aboveFold ? "eager" : "lazy"}
-          fetchPriority={aboveFold ? "high" : "auto"}
+          // Lowercase on purpose: React 18 only recognizes the camelCase
+          // prop from v19 and warns in dev; the spread dodges the JSX types.
+          {...({ fetchpriority: aboveFold ? "high" : "auto" } as Record<string, string>)}
           decoding="async"
           width={1280}
           height={640}

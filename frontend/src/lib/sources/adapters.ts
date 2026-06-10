@@ -46,6 +46,10 @@ async function postViaProxy(
   signal?: AbortSignal,
 ): Promise<Response> {
   const base = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "";
+  // Same quiet-disable contract as fetchViaProxy above.
+  if (base === "disabled") {
+    return new Response("[]", { status: 503, statusText: "backend disabled" });
+  }
   const proxied = `${base}/api/proxy?url=${encodeURIComponent(targetUrl)}`;
   return fetch(proxied, {
     method: "POST",

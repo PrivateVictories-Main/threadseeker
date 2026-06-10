@@ -25,10 +25,12 @@ const TRANSFORMERS_URL =
 // scripts/fetch-semantic-assets.mjs) — visitors never depend on a
 // third-party CDN for the heavyweight download. If the local copy is
 // missing (skipped prebuild, partial deploy), we fall back to the HF Hub
-// CDN. Either way transformers.js caches the files in the browser Cache
-// API — one download per browser, then offline-capable.
-const LOCAL_MODEL_ID = "mxbai-embed-xsmall-v1";
-const REMOTE_MODEL_ID = "mixedbread-ai/mxbai-embed-xsmall-v1";
+// CDN. ONE full-org id for both paths, deliberately: transformers.js'
+// Cache API keys derive from the id, and with the full id a returning
+// user's pre-existing HF-keyed cache entries are an exact hit — no forced
+// re-download when the hosting moved. After the first load the files are
+// cached per browser either way.
+const MODEL_ID = "mixedbread-ai/mxbai-embed-xsmall-v1";
 
 let extractorPromise = null;
 
@@ -58,31 +60,35 @@ async function buildExtractor() {
   if (env?.backends?.onnx?.wasm) env.backends.onnx.wasm.numThreads = 1;
   const device = await detectDevice();
 
-  // Local-first: same-origin /models/<id>/… (cheap existence probe keeps the
-  // failure path fast and avoids transformers.js poisoning any internal state
-  // with a half-failed local load).
+  // Local-first: same-origin /models/<id>/…. The probe targets the ONNX file
+  // — the largest, LAST-downloaded asset — so a partial prebuild (configs
+  // present, model missing) reads as "not deployed" instead of fooling the
+  // check. Outcomes:
+  //   resolved ok      → local pipeline
+  //   resolved !ok     → genuinely not deployed → HF Hub CDN
+  //   fetch REJECTED   → transient network flake, not evidence of absence →
+  //                      still try local (its files are likely cached; if
+  //                      truly absent the pipeline throws into the caller's
+  //                      catch and search stays deterministic).
+  let useLocal = true;
   try {
-    const probe = await fetch(`/models/${LOCAL_MODEL_ID}/config.json`, {
-      method: "HEAD",
-    });
-    if (probe.ok) {
-      env.allowRemoteModels = false;
-      env.allowLocalModels = true;
-      env.localModelPath = "/models/";
-      return await pipeline("feature-extraction", LOCAL_MODEL_ID, {
-        dtype: "q8",
-        device,
-      });
-    }
+    const probe = await fetch(
+      `/models/${MODEL_ID}/onnx/model_quantized.onnx`,
+      { method: "HEAD" },
+    );
+    if (!probe.ok) useLocal = false;
   } catch {
-    /* fall through to the HF Hub CDN */
+    /* keep useLocal = true — see above */
+  }
+  if (useLocal) {
+    env.allowRemoteModels = false;
+    env.allowLocalModels = true;
+    env.localModelPath = "/models/";
+    return pipeline("feature-extraction", MODEL_ID, { dtype: "q8", device });
   }
   env.allowLocalModels = false;
   env.allowRemoteModels = true;
-  return pipeline("feature-extraction", REMOTE_MODEL_ID, {
-    dtype: "q8",
-    device,
-  });
+  return pipeline("feature-extraction", MODEL_ID, { dtype: "q8", device });
 }
 
 function getExtractor() {

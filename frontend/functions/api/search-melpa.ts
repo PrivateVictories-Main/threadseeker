@@ -54,7 +54,13 @@ export const onRequestPost: PagesFunction = async ({ request }) => {
       const hit = scoreMatch(q, pkg.name, pkg.desc ?? "");
       if (hit > 0) scored.push({ score: hit, pkg });
     }
-    scored.sort((a, b) => b.score - a.score);
+    // Downloads break score ties — scoreMatch tiers are coarse (flat prefix/
+    // substring scores), and a stable alphabetical sort inside a tier let
+    // "git-backup" (23 downloads) survive the top-30 cut while magit
+    // (5.18M downloads, the flagship MELPA package) was truncated at #76.
+    scored.sort(
+      (a, b) => b.score - a.score || (b.pkg.downloads || 0) - (a.pkg.downloads || 0),
+    );
     return { results: scored.slice(0, 30).map((s) => s.pkg) };
   });
 };

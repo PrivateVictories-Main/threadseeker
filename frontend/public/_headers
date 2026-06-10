@@ -10,9 +10,11 @@
 /_next/static/*
   Cache-Control: public, max-age=31536000, immutable
 
-# Vendored semantic-rerank model weights (~24 MB, version-pinned content) —
-# cache hard so the browser HTTP cache covers visitors even before
-# transformers.js' own Cache API does.
+# Vendored semantic-rerank model weights (~24 MB, pinned to a specific HF
+# revision SHA in scripts/fetch-semantic-assets.mjs, so content at this path
+# genuinely never changes — model upgrades MUST use a new directory) — cache
+# hard so the browser HTTP cache covers visitors even before transformers.js'
+# own Cache API does.
 /models/*
   Cache-Control: public, max-age=31536000, immutable
 

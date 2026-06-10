@@ -261,15 +261,18 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
     // On a /search/[slug] landing whose auto-run query is still untouched,
     // keep the clean canonical URL — rewriting it to /search/foo/?q=foo
     // immediately after hydration would make every visit a non-canonical
-    // variant. The rewrite kicks in only once the user changes anything.
-    if (
+    // variant. ACTIVELY rewrite to the bare pathname (not an early return):
+    // a user who sets sort=stars and then reverts to defaults must see the
+    // stale ?q=&sort= params cleaned up, not frozen in place.
+    const isPristineLanding =
       initialQuery &&
       query === initialQuery.trim() &&
-      qs === new URLSearchParams({ q: query }).toString()
-    ) {
-      return;
-    }
-    const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+      qs === new URLSearchParams({ q: query }).toString();
+    const newUrl = isPristineLanding
+      ? window.location.pathname
+      : qs
+        ? `${window.location.pathname}?${qs}`
+        : window.location.pathname;
     window.history.replaceState(null, "", newUrl);
   }, [query, selectedSources, hasSearched, sortMode, activeSourceFilter, resultsView, initialQuery]);
 

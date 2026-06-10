@@ -48,8 +48,15 @@ const DEDUPABLE_SOURCES: ReadonlySet<SourceType> = new Set<SourceType>([
 function projectFingerprint(p: UnifiedProject): string {
   let s = p.name.toLowerCase();
   s = s.replace(/^@[^/]+\//, ""); // strip npm-style scope
-  s = s.replace(/^(python-|py-|node-|rust-|ruby-|go-)/, "");
-  s = s.replace(/(-python|-py|-node|-rust|-ruby|-go|-official)$/, "");
+  // The language prefix/suffix strip exists for ecosystem PORTS
+  // (python-requests = requests). MELPA's naming convention inverts that
+  // meaning — "go-mode" is Emacs support FOR Go, a different project from
+  // "rust-mode" — so melpa names fingerprint raw (42 live collisions
+  // otherwise: go-mode/rust-mode/python-mode all folded into "mode").
+  if (p.source !== "melpa") {
+    s = s.replace(/^(python-|py-|node-|rust-|ruby-|go-)/, "");
+    s = s.replace(/(-python|-py|-node|-rust|-ruby|-go|-official)$/, "");
+  }
   s = s.replace(/[-_.\s]+/g, "");
   return s;
 }

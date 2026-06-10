@@ -132,7 +132,7 @@ const PER_SOURCE_TIMEOUT_MS = 12_000;
 
 // Max sources fetched simultaneously. The browser caps ~6 connections/origin
 // and many adapters route through the same same-origin /api/proxy, so firing
-// all ~29 at once just queues + contends; a pool of 8 keeps the fast,
+// all 40 at once just queues + contends; a pool of 8 keeps the fast,
 // high-priority sources flowing without head-of-line blocking.
 const MAX_CONCURRENT_SOURCES = 8;
 

@@ -377,8 +377,11 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
         // a run-id-guarded patch — exactly like a relaxation pass.
         const ai = longQuery ? await aiPromise : null;
         if (searchRunIdRef.current !== runId) return;
-        if (ai && AI_INTENTS.has(ai.intent)) {
+        const corpusSizeBeforeAi = mergedCorpus.length;
+        let intentChanged = false;
+        if (ai && AI_INTENTS.has(ai.intent) && ai.intent !== expansion.intent) {
           expansion.intent = ai.intent as typeof expansion.intent;
+          intentChanged = true;
           applyHue();
         }
         if (ai && ai.keyTerms.length > 0) {
@@ -411,8 +414,16 @@ export function useSearch({ selectedSources, resetView }: UseSearchArgs) {
           }
         }
 
-        const aiRanked = rankCorpus(mergeRelatedProjects(mergedCorpus), freeText, expansion);
-        setProjects(aiRanked);
+        // Re-rank only when the AI patch actually changed something — for the
+        // common short-query path (no AI award at all), the first ranked
+        // paint already IS the final order and a second merge+rank+set is
+        // pure waste.
+        const aiChangedAnything =
+          intentChanged || mergedCorpus.length !== corpusSizeBeforeAi;
+        const aiRanked = aiChangedAnything
+          ? rankCorpus(mergeRelatedProjects(mergedCorpus), freeText, expansion)
+          : ranked;
+        if (aiChangedAnything) setProjects(aiRanked);
         // Track the final displayed set so the AI verdict (fired after the
         // relaxation loop below) summarizes what the user actually ends up
         // seeing — not a stale strict-pass top-10.
