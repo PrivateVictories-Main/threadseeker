@@ -120,7 +120,9 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
       "Content-Type": isJson ? "application/json" : "text/plain; charset=utf-8",
       "X-Content-Type-Options": "nosniff",
       "Access-Control-Allow-Origin": "*",
-      "Cache-Control": "public, max-age=300, s-maxage=300",
+      // Only successes are browser/edge-cacheable; a transient upstream 4xx/5xx
+      // must not be pinned in the visitor's browser cache for 5 minutes.
+      "Cache-Control": upstream.ok ? "public, max-age=300, s-maxage=300" : "no-store",
       ...(isJson ? {} : { "Content-Disposition": "attachment" }),
     },
   });
@@ -210,6 +212,8 @@ export const onRequestPost: PagesFunction = async ({ request }) => {
       "Content-Type": isJson ? "application/json" : "text/plain; charset=utf-8",
       "X-Content-Type-Options": "nosniff",
       "Access-Control-Allow-Origin": "*",
+      // Same rule as the GET path: never let an upstream failure stick in a cache.
+      "Cache-Control": upstream.ok ? "public, max-age=300, s-maxage=300" : "no-store",
       ...(isJson ? {} : { "Content-Disposition": "attachment" }),
     },
   });

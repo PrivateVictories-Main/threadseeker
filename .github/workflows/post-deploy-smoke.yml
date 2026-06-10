@@ -55,3 +55,54 @@ jobs:
         run: |
           curl -sS --fail --max-time 20 -o /dev/null "$BASE/search/api-gateway/"
           echo "SEO landing OK"
+
+  # Pre-warm production's edge caches. caches.default is PER-COLO, so after a
+  # deploy (which invalidates Function code paths) the first visitor at each
+  # colo pays a multi-second recompute on the index-scan search Functions.
+  # Hitting the hot endpoints with the top curated queries (see
+  # frontend/src/lib/suggestions.ts CURATED_QUERIES) means real users land on
+  # warm caches instead. Best-effort by design — a cold upstream or a slow
+  # index fetch must never fail the workflow.
+  warm-cache:
+    name: Warm production edge caches
+    needs: smoke
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    env:
+      BASE: https://threadseeker.pages.dev
+    steps:
+      - name: Pre-warm search Functions (top 8 curated queries)
+        run: |
+          endpoints="search-homebrew search-fdroid search-vcpkg search-melpa search-arxiv"
+          queries=(
+            "react state management"
+            "vector database"
+            "self-hosted photo library"
+            "terraform aws modules"
+            "minecraft server plugins"
+            "firefox privacy extensions"
+            "local llm runtime"
+            "rust http framework"
+          )
+          for ep in $endpoints; do
+            for q in "${queries[@]}"; do
+              code=$(curl -sS -o /dev/null -w "%{http_code}" -m 20 \
+                -X POST -H "Content-Type: application/json" \
+                --data "{\"query\":\"$q\"}" \
+                "$BASE/api/$ep" || echo ERR)
+              echo "warm $ep '$q' -> $code"
+            done
+          done
+
+      - name: Pre-warm big-index proxy targets
+        # The two heavyweight indexes relayed through /api/proxy — Homebrew's
+        # formula + cask lists (~4-5 MB combined). One GET each populates the
+        # edge cache so interactive searches skip the cold download.
+        run: |
+          for u in \
+            "https%3A%2F%2Fformulae.brew.sh%2Fapi%2Fformula.json" \
+            "https%3A%2F%2Fformulae.brew.sh%2Fapi%2Fcask.json"; do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" -m 60 \
+              "$BASE/api/proxy?url=$u" || echo ERR)
+            echo "warm proxy $u -> $code"
+          done

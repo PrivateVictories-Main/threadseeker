@@ -66,7 +66,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     // 302s on archive/tarball/raw endpoints → codeload/objects.githubusercontent),
     // leaking the token. We only ever call search/repos/readme, which return
     // 200 inline, so refusing any redirect is safe and closes the exfil path.
-    upstream = await fetch(parsed.toString(), { headers, redirect: "manual" });
+    // Cap the upstream wait: GitHub's unauthenticated tier has been observed
+    // hanging >30s under rate-limit pressure. A timeout rejects the fetch
+    // promise (TimeoutError), landing in the catch below → same 502 shape.
+    upstream = await fetch(parsed.toString(), {
+      headers,
+      redirect: "manual",
+      signal: AbortSignal.timeout(10_000),
+    });
   } catch (e) {
     return jsonResponse(
       { detail: `GitHub fetch failed: ${(e as Error).message}` },
@@ -93,7 +100,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       "Content-Type": isJson ? "application/json" : "text/plain; charset=utf-8",
       "X-Content-Type-Options": "nosniff",
       "Access-Control-Allow-Origin": "*",
-      "Cache-Control": `public, max-age=${CACHE_TTL}, s-maxage=${CACHE_TTL}`,
+      // Errors must not be browser-cached for 5 min — only successes are fresh.
+      "Cache-Control": upstream.ok
+        ? `public, max-age=${CACHE_TTL}, s-maxage=${CACHE_TTL}`
+        : "no-store",
     },
   });
   // Only cache successful responses so a transient rate-limit/5xx doesn't stick.

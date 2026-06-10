@@ -11,6 +11,9 @@ export function jsonResponse(
     status,
     headers: {
       "Content-Type": "application/json",
+      // Pages _headers don't apply to Function responses, so nosniff must be
+      // set here. Callers' extraHeaders still override via the spread below.
+      "X-Content-Type-Options": "nosniff",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
