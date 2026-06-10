@@ -36,9 +36,10 @@ import { NetworkErrorMessage, NetworkErrorTray } from "@/components/network/Netw
 import { AnimatedGrid } from "@/components/motion/AnimatedGrid";
 import { Toast } from "@/components/motion/Toast";
 import { CountUp } from "@/components/motion/CountUp";
+import { SearchProgressBar } from "@/components/SearchProgressBar";
 import { RevealOnScroll } from "@/components/motion/RevealOnScroll";
 import { AppShell } from "@/components/shell/AppShell";
-import { modeVariants } from "@/lib/motion";
+import { modeVariants, springSnappy, springPill } from "@/lib/motion";
 import { safeHref } from "@/lib/utils";
 // Registry-only import (display config + types): the heavy engine modules
 // (adapters/synonyms/ranking) are loaded lazily by useSearch on idle, so the
@@ -467,6 +468,15 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
         drawerPinned={!!drawerProject && viewportIsXl}
         onClear={handleClear}
       >
+        {/* The search thread — the fan-out's progress as a luminous strand
+            across the viewport top. Built long ago, never mounted (caught by
+            the motion audit). */}
+        <SearchProgressBar
+          total={lastSearchedCount}
+          remaining={pendingSources}
+          active={isLoading}
+        />
+
         {/* popLayout (not "wait"): the exiting section pops out of flow so
             the incoming one paints in the SAME frame — submit → skeletons
             visible instantly, crossfading through the receding hero. */}
@@ -486,7 +496,6 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
               <LandingHero
                 headingLevel={heroHeadingLevel}
                 sourceCount={ALL_SOURCES.length}
-                sources={ALL_SOURCES}
                 onSearch={handleSearch}
                 history={history}
               />
@@ -604,7 +613,12 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
             >
               <div className="ts-results-inner">
                 {isLoading && resultCount === 0 ? (
-                  <div className="space-y-5">
+                  <motion.div
+                    key="skeleton-phase"
+                    className="space-y-5"
+                    initial={false}
+                    exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                  >
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11.5px] uppercase tracking-[0.08em] text-slate-500 tabular-nums">
                       <span className="inline-flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" aria-hidden />
@@ -650,9 +664,14 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                         />
                       ))}
                     </div>
-                  </div>
+                  </motion.div>
                 ) : resultCount > 0 ? (
-                  <div className="space-y-4">
+                  <motion.div
+                    key="results-phase"
+                    className="space-y-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1, transition: { duration: 0.2, delay: 0.05 } }}
+                  >
                     {/* Iter-24 — query echo banner. Big mono `// SEARCHING "..."`
                         head so the user always knows what query produced the
                         current results. */}
@@ -765,18 +784,23 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                         emptySources={emptySources}
                       />
                       <ViewToggle view={resultsView} onChange={setResultsView} />
-                      {sortToastLabel && (
-                        <motion.span
-                          className="ts-sort-toast"
-                          initial={{ opacity: 0, scale: 0.9, y: -4 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ type: "spring", stiffness: 360, damping: 24 }}
-                          aria-live="polite"
-                        >
-                          {sortToastLabel}
-                        </motion.span>
-                      )}
+                      {/* AnimatePresence so the exit actually runs — without
+                          it the chip blinked out at the dismiss timeout. */}
+                      <AnimatePresence>
+                        {sortToastLabel && (
+                          <motion.span
+                            key="sort-toast"
+                            className="ts-sort-toast"
+                            initial={{ opacity: 0, scale: 0.9, y: -4 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.92, y: -4, transition: { duration: 0.16 } }}
+                            transition={springSnappy}
+                            aria-live="polite"
+                          >
+                            {sortToastLabel}
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1">
@@ -926,6 +950,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                           animate={{ opacity: 1, y: 0, transition: { duration: 0.22 } }}
                           exit={{ opacity: 0, y: -8, transition: { duration: 0.16 } }}
                         >
+                          <AnimatePresence mode="popLayout" initial={false}>
                           {view.map((project, idx) => (
                             <ProjectListRow
                               key={project.id}
@@ -942,6 +967,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                               flashId={flashCardId}
                             />
                           ))}
+                          </AnimatePresence>
                         </motion.div>
                       ) : (
                         <motion.div
@@ -1049,7 +1075,7 @@ export function HomeApp({ initialQuery }: { initialQuery?: string }) {
                         variant={view.length < 9 ? "full" : "footer"}
                       />
                     )}
-                  </div>
+                  </motion.div>
                 ) : hasSearched && lastSearchedCount > 0 && failedSources.length === lastSearchedCount ? (
                   <NetworkErrorMessage
                     sourceCount={lastSearchedCount}
@@ -1298,19 +1324,14 @@ function ViewToggle({
             onClick={() => onChange(kind)}
             title={`${kind === "grid" ? "Grid" : "List"} view`}
             whileTap={{ scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 360, damping: 24 }}
+            transition={springSnappy}
           >
             {active && (
               <motion.span
                 layoutId="ts-view-toggle-active-pill"
                 className="ts-view-toggle-active-bg"
                 aria-hidden
-                transition={{
-                  type: "spring",
-                  stiffness: 380,
-                  damping: 32,
-                  mass: 0.7,
-                }}
+                transition={springPill}
               />
             )}
             <Icon className="w-3.5 h-3.5" aria-hidden />

@@ -88,6 +88,7 @@ export function AnimatedCard({
       layout={enableLayout ? "position" : false}
       layoutId={layoutId}
       variants={cardVariants}
+      custom={index ?? 0}
       initial={enterFrom}
       animate="visible"
       exit="exit"

@@ -5,6 +5,8 @@ import type { Transition, Variants } from "framer-motion";
 export const springSoft: Transition = { type: "spring", stiffness: 190, damping: 24, mass: 0.9 };
 // Snappy — for UI chrome reacting to user input (toggle, filter flip).
 export const springSnappy: Transition = { type: "spring", stiffness: 360, damping: 28 };
+// Pill — the shared layoutId active-pill glide (sidebar nav, view toggle).
+export const springPill: Transition = { type: "spring", stiffness: 380, damping: 32, mass: 0.7 };
 // Bouncy — playful one-shots like the bookmark heart tap.
 export const springBouncy: Transition = { type: "spring", stiffness: 320, damping: 18 };
 
@@ -13,9 +15,13 @@ export const springBouncy: Transition = { type: "spring", stiffness: 320, dampin
 // deliberate "card-by-card" land and the rest catch up. delayChildren
 // nudged to 0.06 so the grid breath happens after the parent fade-in
 // is meaningfully visible.
+// Stagger moved into the CARD variant (dynamic, clamped) — container-level
+// staggerChildren can't cap, so 100 results trickled in for 3.5s on every
+// list→grid toggle. Cards now delay min(index, 12) * 0.035: the first two
+// rows land card-by-card, everything deeper arrives together.
 export const gridContainer: Variants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.035, delayChildren: 0.06 } },
+  visible: { opacity: 1, transition: { delayChildren: 0.06 } },
 };
 
 export const cardVariants: Variants = {
@@ -27,7 +33,10 @@ export const cardVariants: Variants = {
   // x: 0 + scale: 1 in `visible` is required so per-card variations in
   // the `initial` prop (AnimatedCard's odd/even tilt) animate back to
   // the same resting offset.
-  visible: { opacity: 1, y: 0, x: 0, scale: 1, transition: springSoft },
+  visible: (i: number = 0) => ({
+    opacity: 1, y: 0, x: 0, scale: 1,
+    transition: { ...springSoft, delay: Math.min(i, 12) * 0.035 },
+  }),
   // exit scale 0.94 (was 0.98 / page-wrapper 0.96) so the filter-toggle
   // collapse reads as a deliberate "card leaves the set" rather than a
   // gentle ghost.
@@ -43,7 +52,23 @@ export const cardVariants: Variants = {
 
 export const bookmarkVariants: Variants = {
   rest:   { scale: 1 },
-  tapped: { scale: [1, 1.4, 1], transition: { ...springBouncy, duration: 0.45, times: [0, 0.55, 1] } },
+  // Tween, not spring: a spring ignores duration/times, so the designed
+  // "hold at 1.4 until 55%" choreography never ran. easeOut keeps the snap.
+  tapped: { scale: [1, 1.4, 1], transition: { duration: 0.45, times: [0, 0.55, 1], ease: "easeOut" } },
+};
+
+// List-row entrance: a dynamic variant, because a variant's own transition
+// overrides any `transition` prop on the component — the previous attempt
+// passed the stagger delay as a prop and it silently never ran (all rows
+// sprang in simultaneously). `custom={index}` feeds the delay; modulo keeps
+// long lists from trickling forever.
+export const listRowVariants: Variants = {
+  hidden: { opacity: 0, y: 8, scale: 0.995 },
+  visible: (i: number = 0) => ({
+    opacity: 1, y: 0, x: 0, scale: 1,
+    transition: { ...springSoft, delay: (i % 12) * 0.022 },
+  }),
+  exit: { opacity: 0, y: -6, scale: 0.97, transition: { duration: 0.16 } },
 };
 
 export const sheetVariants: Variants = {
@@ -78,7 +103,8 @@ export const modeVariants: Variants = {
     transition: { duration: 0.2, ease: [0.32, 0.72, 0, 1] },
   },
   resultsEnter: { opacity: 0, y: 14 },
-  resultsShow:  { opacity: 1, y: 0, filter: "blur(0px)", transition: { ...springSoft, duration: 0.34 } },
+  // Duration-form spring (stiffness-form springs silently IGNORE duration).
+  resultsShow:  { opacity: 1, y: 0, filter: "blur(0px)", transition: { type: "spring", duration: 0.34, bounce: 0.16 } },
   resultsExit:  {
     opacity: 0, scale: 0.99, filter: "blur(4px)",
     transition: { duration: 0.18, ease: [0.32, 0.72, 0, 1] },

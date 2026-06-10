@@ -3,7 +3,7 @@
 // Iter-26 — landing hero as a real entry point.
 //
 // The hero is a glass panel whose backdrop is the SourceConstellation (the
-// signature centerpiece — 28 brand-colored source nodes woven by a drifting
+// signature centerpiece — 9 brand-colored source nodes woven by a drifting
 // thread). On top: caption, headline, tagline, a FOCAL search bar, and
 // one-click example-query chips. Previously the hero was all-text with only a
 // "press /" hint — the most valuable real estate on a search product offered
@@ -17,7 +17,9 @@ interface Props {
   /** h1 on "/", h2 on /search/[slug] landings (which own their h1). */
   headingLevel?: "h1" | "h2";
   sourceCount: number;
-  sources: SourceType[];
+  /** No longer consumed — the constellation's node roster is static now.
+   *  Kept (optional) so existing call sites passing it still compile. */
+  sources?: SourceType[];
   onSearch: (query: string) => void;
   history?: string[];
 }
@@ -31,14 +33,14 @@ const EXAMPLES = [
   "self-hosted photo library",
 ];
 
-export function LandingHero({ sourceCount, sources, onSearch, history = [], headingLevel = "h1" }: Props) {
+export function LandingHero({ sourceCount, onSearch, history = [], headingLevel = "h1" }: Props) {
   // /search/[slug] landings render their own unique <h1> in the static SEO
   // band; the hero headline demotes to <h2> there so each landing has exactly
   // one h1 (the query) instead of two.
   const Headline = headingLevel;
   return (
     <section className="ts-landing-hero" aria-label="ThreadSeeker introduction">
-      <SourceConstellation sources={sources} />
+      <SourceConstellation />
 
       <div className="ts-landing-hero-inner">
         <span className="ts-hero-caption" aria-hidden>

@@ -29,7 +29,7 @@ export function CardSkeleton({ sparse = false, index = 0 }: Props = {}) {
           <Shimmer className="shimmer-pill ml-auto" style={{ width: "60px" }} />
         </div>
         <div className="flex items-center gap-3">
-          <Shimmer className="shimmer-circle" style={{ width: "44px", height: "44px" }} />
+          <Shimmer className="shimmer-circle" style={{ width: "48px", height: "48px" }} />
           <div className="flex-1 flex flex-col gap-1.5">
             <Shimmer className="shimmer-title" style={{ height: "20px" }} />
             <Shimmer className="shimmer-sub" />
@@ -53,7 +53,7 @@ export function CardSkeleton({ sparse = false, index = 0 }: Props = {}) {
         <Shimmer className="shimmer-pill ml-auto" style={{ width: "70px" }} />
       </div>
       <div className="flex items-center gap-3">
-        <Shimmer className="shimmer-circle" style={{ width: "44px", height: "44px" }} />
+        <Shimmer className="shimmer-circle" style={{ width: "48px", height: "48px" }} />
         <div className="flex-1 flex flex-col gap-1.5">
           <Shimmer className="shimmer-title" style={{ height: "20px" }} />
           <Shimmer className="shimmer-sub" />

@@ -63,8 +63,8 @@ const TAGLINE_BY_KEY: Record<CategoryKey, string> = {
   all: "Every source — the full ThreadSeeker index",
   repos: "GitHub, GitLab, Codeberg",
   packages: "npm, PyPI, crates, RubyGems, NuGet, Docker…",
-  ai: "Hugging Face models + Papers with Code",
-  papers: "arXiv, Zenodo, Papers with Code",
+  ai: "Hugging Face models + AI repos",
+  papers: "arXiv preprints + Zenodo records",
   threads: "Hacker News, Reddit, Lobsters, Stack Overflow, dev.to",
 };
 

@@ -1061,7 +1061,6 @@ button.topic-chip-interactive {
 .ts-source-nuget        { color: #5b21b6; background: rgba(91,33,182,0.10);  border-color: rgba(91,33,182,0.22); }
 .ts-source-wordpress    { color: #1d4ed8; background: rgba(59,130,246,0.10); border-color: rgba(59,130,246,0.22); }
 .ts-source-maven        { color: #b91c1c; background: rgba(239,68,68,0.10);  border-color: rgba(239,68,68,0.22); }
-.ts-source-paperswithcode { color: #0e7490; background: rgba(14,116,144,0.10); border-color: rgba(14,116,144,0.22); }
 .ts-source-arxiv        { color: #991b1b; background: rgba(220,38,38,0.10);  border-color: rgba(220,38,38,0.22); }
 .ts-source-zenodo       { color: #1d4ed8; background: rgba(59,130,246,0.10); border-color: rgba(59,130,246,0.22); }
 .ts-source-hackernews   { color: #c2410c; background: rgba(234,88,12,0.12);  border-color: rgba(234,88,12,0.25); }
@@ -1069,6 +1068,19 @@ button.topic-chip-interactive {
 .ts-source-lobsters     { color: #7c2d12; background: rgba(120,53,15,0.10);  border-color: rgba(120,53,15,0.22); }
 .ts-source-stackoverflow{ color: #c2410c; background: rgba(234,88,12,0.10);  border-color: rgba(234,88,12,0.22); }
 .ts-source-devto        { color: #0f172a; background: rgba(15,23,42,0.08);   border-color: rgba(15,23,42,0.18); }
+.ts-source-hex { color: #6d4393; background: rgba(109,67,147,0.10); border-color: rgba(109,67,147,0.22); }
+.ts-source-pub { color: #0175c2; background: rgba(1,117,194,0.10); border-color: rgba(1,117,194,0.22); }
+.ts-source-modrinth { color: #049150; background: rgba(0,175,92,0.10); border-color: rgba(0,175,92,0.24); }
+.ts-source-cran { color: #276dc3; background: rgba(39,109,195,0.10); border-color: rgba(39,109,195,0.22); }
+.ts-source-amo { color: #d6541f; background: rgba(255,113,57,0.12); border-color: rgba(255,113,57,0.26); }
+.ts-source-greasyfork { color: #8d2f2f; background: rgba(141,47,47,0.10); border-color: rgba(141,47,47,0.22); }
+.ts-source-terraform { color: #844fba; background: rgba(132,79,186,0.10); border-color: rgba(132,79,186,0.22); }
+.ts-source-snap { color: #c4431a; background: rgba(233,84,32,0.10); border-color: rgba(233,84,32,0.24); }
+.ts-source-ansible { color: #cc2233; background: rgba(238,0,0,0.08); border-color: rgba(238,0,0,0.20); }
+.ts-source-gnome { color: #3a72b8; background: rgba(74,134,207,0.10); border-color: rgba(74,134,207,0.22); }
+.ts-source-chocolatey { color: #4a7eb5; background: rgba(128,181,227,0.14); border-color: rgba(128,181,227,0.30); }
+.ts-source-vcpkg { color: #3f72ad; background: rgba(0,89,156,0.10); border-color: rgba(0,89,156,0.22); }
+.ts-source-melpa { color: #7f5ab6; background: rgba(127,90,182,0.10); border-color: rgba(127,90,182,0.22); }
 
 .ts-pills {
   display: flex; flex-wrap: wrap; gap: 6px;
@@ -1359,6 +1371,13 @@ button.topic-chip-interactive {
 }
 ::view-transition-new(root) {
   z-index: 2;
+}
+
+/* GitHub OG banners are always light/white — on dark glass an untreated
+   grid is a wall of glaring 2:1 rectangles. Dim + gently re-saturate so
+   they sit INSIDE the dark surface instead of on top of it. */
+.dark .ts-card-media img {
+  filter: brightness(0.82) contrast(1.04) saturate(1.06);
 }
 
 /* Cover banners settle in on load (opacity + 1.5% scale) instead of
@@ -1766,7 +1785,6 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
 .ts-identity-ribbon-nuget        { background: #5b21b6; }
 .ts-identity-ribbon-wordpress    { background: #3b82f6; }
 .ts-identity-ribbon-maven        { background: #ef4444; }
-.ts-identity-ribbon-paperswithcode { background: #0e7490; }
 .ts-identity-ribbon-arxiv        { background: #b91c1c; }
 .ts-identity-ribbon-zenodo       { background: #3b82f6; }
 .ts-identity-ribbon-hackernews   { background: #f97316; }
@@ -1774,6 +1792,22 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
 .ts-identity-ribbon-lobsters     { background: #78350f; }
 .ts-identity-ribbon-stackoverflow{ background: #ea580c; }
 .ts-identity-ribbon-devto        { background: #0f172a; }
+/* The 13 newest sources — brand-hue ribbons (were silently falling back
+   to the generic accent). Hues from brand-icons.ts, darkened slightly
+   where a brand mark is too light to read as a 3px edge. */
+.ts-identity-ribbon-hex          { background: #6d4393; }
+.ts-identity-ribbon-pub          { background: #0175c2; }
+.ts-identity-ribbon-modrinth     { background: #00af5c; }
+.ts-identity-ribbon-cran         { background: #276dc3; }
+.ts-identity-ribbon-amo          { background: #ff7139; }
+.ts-identity-ribbon-greasyfork   { background: #8d2f2f; }
+.ts-identity-ribbon-terraform    { background: #844fba; }
+.ts-identity-ribbon-snap         { background: #e95420; }
+.ts-identity-ribbon-ansible      { background: #cc2233; }
+.ts-identity-ribbon-gnome        { background: #4a86cf; }
+.ts-identity-ribbon-chocolatey   { background: #5b8fc7; }
+.ts-identity-ribbon-vcpkg        { background: #3f72ad; }
+.ts-identity-ribbon-melpa        { background: #7f5ab6; }
 
 /* Scan-line on first hover — single 1.4s sweep, then settles. Reads as
    "data scanning" / live-system feel. Reduced-motion drops it entirely.
@@ -2290,7 +2324,7 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
     box-shadow: none !important;
   }
   /* Hide UI chrome that doesn't belong in a printout. */
-  .ts-sticky-progress,
+  .ts-search-thread,
   .ts-toast-motion,
   .search-bar-pulse,
   .sb-submit,
@@ -2845,29 +2879,6 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
 @media (min-width: 640px) {
   .ts-cmd-meta { display: inline-flex; }
 }
-/* Indeterminate sticky progress bar — when source count keeps the bar
-   honest at <100% but we want to communicate "still working", swap to a
-   left-to-right looping shimmer. Uses the same gradient palette as the
-   determinate variant. */
-.ts-sticky-progress.indeterminate { overflow: hidden; }
-.ts-sticky-progress.indeterminate > span {
-  width: 30%;
-  animation: ts-sticky-progress-loop 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  transition: none;
-}
-@keyframes ts-sticky-progress-loop {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(440%); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ts-sticky-progress.indeterminate > span {
-    animation: none;
-    transform: none;
-    width: 100%;
-    opacity: 0.55;
-  }
-}
-
 /* Overhaul B — ResultsToolbar refinements.
    Toolbar reads as a unified command surface rather than a row of
    independent buttons. Bottom border separates the toolbar from the
@@ -2910,19 +2921,6 @@ body { transition: --ts-intent-hue 800ms cubic-bezier(0.32, 0.72, 0, 1); }
 
 /* Sticky results-mode progress bar — thin animated gradient under the
    sticky header, full-width of the header. */
-.ts-sticky-progress {
-  position: absolute;
-  left: 0; right: 0; bottom: -1px;
-  height: 2px;
-  background: rgba(var(--ts-accent-rgb),0.08);
-  overflow: hidden;
-}
-.ts-sticky-progress > span {
-  display: block; height: 100%;
-  background: linear-gradient(90deg, #6366f1, #3b82f6, #0ea5e9);
-  transition: width .3s ease-out;
-}
-
 /* =========================================================================
    Iter-21 / Overhaul G — HF-clean unified stat row.
    Single horizontal row of icon + number segments, faint middot

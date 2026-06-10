@@ -14,6 +14,7 @@
 // uncluttered on the landing page where there's nothing to sort.
 
 import { motion } from "framer-motion";
+import { springSoft } from "@/lib/motion";
 import { Menu, X as XIcon } from "lucide-react";
 import { CountUp } from "@/components/motion/CountUp";
 import { SearchBar } from "@/components/SearchBar";
@@ -67,7 +68,7 @@ export function AppTopBar({
       // Iter-24 — fade down from above on mount. 0.3s, springSoft cadence.
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 200, damping: 26, mass: 0.8 }}
+      transition={springSoft}
     >
       <div className="ts-topbar-inner">
         {/* Mobile hamburger — only visible <md (sidebar hides below md

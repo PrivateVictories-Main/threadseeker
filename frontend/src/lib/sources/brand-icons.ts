@@ -3,15 +3,18 @@
 // crab/gear, the Docker whale — instead of duplicated monochrome lucide glyphs.
 // Each entry carries the SVG path, the official brand hex, and an optional
 // `darkHex` for brands whose official color is near-black (and would vanish on
-// our dark glass). Sources without a brand mark (Open VSX) fall back to the
-// registry lucide icon via <SourceMark>.
+// our dark glass). Sources whose registry has no mark of its own (Open VSX,
+// vcpkg, MELPA) borrow their ecosystem's mark (VSCodium, C++, GNU Emacs) —
+// same pattern as crates→Rust, hex→Elixir, pub→Dart. The lucide-glyph
+// fallback in <SourceMark> remains only as a safety net.
 import {
   siGithub, siHuggingface, siGitlab, siNpm, siPypi, siRust, siYcombinator,
   siCodeberg, siComposer, siRubygems, siReddit, siDocker, siJsr, siFlathub,
   siDevdotto, siLobsters, siStackoverflow, siHomebrew,
   siFdroid, siArxiv, siArchlinux, siCondaforge, siZenodo, siNuget, siWordpress,
   siApachemaven, siElixir, siDart, siModrinth, siR, siFirefox, siGreasyfork,
-  siTerraform, siSnapcraft, siAnsible, siGnome, siChocolatey,
+  siTerraform, siSnapcraft, siAnsible, siGnome, siChocolatey, siVscodium,
+  siCplusplus, siGnuemacs,
 } from "simple-icons";
 import type { SourceType } from "./types";
 
@@ -30,9 +33,10 @@ const m = (icon: { path: string; hex: string }, darkHex?: string): BrandMark => 
   darkHex,
 });
 
-// `Partial` — sources without a simple-icons mark (Open VSX, vcpkg, MELPA —
-// checked against the installed simple-icons 2026-06-10) are simply absent
-// here and fall back to their registry lucide glyph via <SourceMark>.
+// `Partial` — every current source has a mark (Open VSX / vcpkg / MELPA via
+// ecosystem proxies, verified against the installed simple-icons 2026-06-10);
+// any future source added without one falls back to its registry lucide
+// glyph via <SourceMark>.
 export const BRAND_ICONS: Partial<Record<SourceType, BrandMark>> = {
   github: m(siGithub, "#e6edf3"),
   huggingface: m(siHuggingface),
@@ -71,6 +75,9 @@ export const BRAND_ICONS: Partial<Record<SourceType, BrandMark>> = {
   ansible: m(siAnsible, "#f25f5f"),
   gnome: m(siGnome, "#74a8e8"),
   chocolatey: m(siChocolatey),
+  openvsx: m(siVscodium), // Open VSX has no mark; VSCodium is the ecosystem
+  vcpkg: m(siCplusplus, "#659ad2"), // vcpkg has no mark; C++ is the ecosystem (official #00599C vanishes on dark glass)
+  melpa: m(siGnuemacs, "#a587d9"), // MELPA has no mark; GNU Emacs is the ecosystem (lightened for dark)
 };
 
 export function getBrandMark(source: SourceType): BrandMark | undefined {

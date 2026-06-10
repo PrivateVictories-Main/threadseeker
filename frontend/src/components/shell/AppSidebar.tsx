@@ -25,6 +25,7 @@
 // position so it stays put on scroll. Spotify-macOS sidebar feel.
 
 import { useEffect, useState } from "react";
+import { springSnappy, springSoft, springPill } from "@/lib/motion";
 import { motion } from "framer-motion";
 import {
   Globe,
@@ -109,13 +110,7 @@ export function AppSidebar({
       // reduced-motion via the framer provider.
       initial={{ opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{
-        type: "spring",
-        stiffness: 200,
-        damping: 26,
-        mass: 0.9,
-        delay: 0.05,
-      }}
+      transition={{ ...springSoft, delay: 0.05 }}
     >
       <div className="ts-sidebar-inner">
         {/* HEADER — wordmark */}
@@ -143,19 +138,14 @@ export function AppSidebar({
                     className={`ts-sidebar-nav-item has-layout-pill${isActive ? " is-active" : ""}`}
                     aria-pressed={isActive}
                     whileTap={{ scale: 0.985 }}
-                    transition={{ type: "spring", stiffness: 360, damping: 24 }}
+                    transition={springSnappy}
                   >
                     {isActive && (
                       <motion.span
                         layoutId="ts-sidebar-active-pill"
                         className="ts-sidebar-nav-active-bg"
                         aria-hidden
-                        transition={{
-                          type: "spring",
-                          stiffness: 380,
-                          damping: 32,
-                          mass: 0.7,
-                        }}
+                        transition={springPill}
                       />
                     )}
                     <span className="ts-sidebar-nav-icon" aria-hidden>

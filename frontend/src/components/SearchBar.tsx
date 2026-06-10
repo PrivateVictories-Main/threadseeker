@@ -11,6 +11,7 @@ import {
 import { Search, Loader2, X, Clock, ArrowUpRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { getSuggestions } from "@/lib/suggestions";
+import { springSnappy } from "@/lib/motion";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -244,7 +245,7 @@ export function SearchBar({
                 : "rgba(99, 102, 241, 0.14)",
               color: focused ? "#4f46e5" : "var(--ts-text-subtle)",
             }}
-            transition={{ type: "spring", stiffness: 360, damping: 24 }}
+            transition={springSnappy}
           >
             /
           </motion.span>

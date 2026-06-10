@@ -32,7 +32,7 @@ import {
   formatRelativeShort,
   popularityClass,
 } from "./card/helpers";
-import { cardVariants } from "@/lib/motion";
+import { listRowVariants, springBouncy } from "@/lib/motion";
 
 interface Props {
   project: UnifiedProject;
@@ -90,12 +90,14 @@ export function ProjectListRow({
       data-source={project.source}
       data-pop={popClass ?? undefined}
       className={`ts-list-row${focused ? " is-focused" : ""}${isFlash ? " is-flash" : ""}`}
-      variants={cardVariants}
+      variants={listRowVariants}
       initial="hidden"
       animate="visible"
       exit="exit"
-      custom={index}
-      transition={{ delay: ((index ?? 0) % 12) * 0.018 }}
+      custom={index ?? 0}
+      // FLIP position animation on sort/filter reorder — the grid gets this
+      // via AnimatedCard; without it the list teleports.
+      layout="position"
     >
       {/* Source-tinted left edge — shared DNA with the grid card's cover. */}
       <IdentityRibbon source={project.source} />
@@ -174,7 +176,7 @@ export function ProjectListRow({
           aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
           title={isBookmarked ? "Saved" : "Save"}
           whileTap={{ scale: 1.25 }}
-          transition={{ type: "spring", stiffness: 320, damping: 14 }}
+          transition={springBouncy}
         >
           <Heart
             className="w-3.5 h-3.5"

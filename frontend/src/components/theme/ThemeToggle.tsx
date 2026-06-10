@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { springSnappy } from "@/lib/motion";
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
 import { motion } from "framer-motion";
@@ -77,7 +78,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
       title={isDark ? "Light mode" : "Dark mode"}
       whileTap={{ scale: 0.92, rotate: -12 }}
-      transition={{ type: "spring", stiffness: 360, damping: 22 }}
+      transition={springSnappy}
     >
       {/* Render Moon pre-mount (stable SSR markup); swap to Sun in dark. */}
       {isDark ? (
