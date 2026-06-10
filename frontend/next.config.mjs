@@ -6,6 +6,12 @@ const isExport = process.env.NEXT_OUTPUT === 'export';
 const nextConfig = {
   output: isExport ? 'export' : 'standalone',
 
+  // Directory-style exported URLs (/search/foo/ → search/foo/index.html) so
+  // the /search/[slug] SEO landings' canonicals + sitemap entries are
+  // byte-identical to what Cloudflare Pages serves — no redirect hop for
+  // crawlers.
+  trailingSlash: true,
+
   images: {
     unoptimized: true,
     remotePatterns: [
